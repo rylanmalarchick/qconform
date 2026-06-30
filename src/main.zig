@@ -1,9 +1,8 @@
 const std = @import("std");
 
-// qconform — a conformance checker for pulse-level quantum control.
-// Skeleton: nothing implemented yet. Design lives in docs/spec.txt (local).
+// qconform: a conformance checker for pulse-level quantum control.
 pub fn main() void {
-    std.debug.print("qconform: skeleton — nothing implemented yet\n", .{});
+    std.debug.print("qconform: not implemented\n", .{});
 }
 
 test "skeleton" {
