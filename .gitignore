@@ -3,6 +3,5 @@ zig-out/
 .zig-cache/
 zig-cache/
 
-# Planning docs stay local — remote is code only
-/plan.txt
+# Planning stays local — remote is code only
 /docs/
