@@ -1,0 +1,354 @@
+{
+ "format": "qconform-descriptor",
+ "format_version": 0,
+ "identification": {
+  "name": "a\nb\tc\"d\\e",
+  "board": "ZCU216",
+  "fw_timestamp": "\u0000\u001f",
+  "cfg_sw_version": "0.2.367",
+  "library": {
+   "name": "q\\k",
+   "version": "2\"0"
+  },
+  "descriptor_version": "v\u000b0"
+ },
+ "frames": "compiled_away",
+ "rounding": {
+  "time": "nearest_half_even",
+  "frequency": "nearest_half_even",
+  "phase": "nearest_half_even",
+  "amplitude": "trunc_toward_zero"
+ },
+ "channels": [
+  {
+   "name": "gen0",
+   "kind": "drive",
+   "vendor_type": "axis_signal_gen_v6",
+   "unit": {
+    "num": 1,
+    "den": 16773120000
+   },
+   "duration_grid": 28,
+   "schedule_grid": 39,
+   "capabilities": {
+    "phrst": true,
+    "envelope_memory_samples": 65536,
+    "envelope_sample_grid": 16,
+    "envelope_max_abs": 32766
+   },
+   "constraints": [
+    {
+     "id": "pulse_length_range",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 84,
+     "max_units": 1834980,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "length",
+       "note_contains": "min boundary",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "length",
+       "note_contains": "below min 3 cycles",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "length",
+       "note_contains": "first over max",
+       "outcome": "reject"
+      }
+     ]
+    },
+    {
+     "id": "pulse_length_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "vendor_repairable",
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "length",
+       "note_contains": "fraction 20+0.25 cycles",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "frequency_range",
+     "quantity": "frequency",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "min": {
+      "num": -4792320000,
+      "den": 1
+     },
+     "max": {
+      "num": 4792320000,
+      "den": 1
+     },
+     "resolution": {
+      "num": 73125,
+      "den": 32768
+     },
+     "post_mixer": false,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "freq",
+       "note_contains": "quantization +0.3 step",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "phase_resolution",
+     "quantity": "phase",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "resolution": {
+      "num": 1,
+      "den": 4294967296
+     },
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "phase",
+       "note_contains": "quantization +0.3 step",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "amplitude_range",
+     "quantity": "amplitude",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "min": {
+      "num": -1,
+      "den": 1
+     },
+     "max": {
+      "num": 1,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 32766
+     },
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "gain",
+       "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "envelope_sample_grid",
+     "quantity": "count",
+     "shape": "grid_samples",
+     "severity": "fatal",
+     "grid": 16,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "envelope",
+       "note_contains": "length not multiple of samps_per_clk",
+       "outcome": "reject"
+      }
+     ]
+    },
+    {
+     "id": "envelope_amplitude",
+     "quantity": "amplitude",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -1,
+      "den": 1
+     },
+     "max": {
+      "num": 1,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 32766
+     },
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "envelope",
+       "note_contains": "envelope amplitude over maxv",
+       "outcome": "reject"
+      }
+     ]
+    }
+   ],
+   "vendor_behavior": [
+    {
+     "id": "frequency_alias_mod_f_dds",
+     "vendor_action": "out-of-band frequency silently aliases mod 2**32 DDS units; readback hides the wrap",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "freq",
+       "note_contains": "1.5x f_dds",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "freq",
+       "note_contains": "full f_dds",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "gain_over_full_scale",
+     "vendor_action": "gain beyond +/-1.0 accepted; raw register exceeds maxv (hardware behavior undetermined, suspected wrap)",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "gain",
+       "note_contains": "well over full scale",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "envelope_memory_overflow_unchecked",
+     "vendor_action": "envelopes exceeding memory compile silently; failure surfaces only at hardware load",
+     "qconform_severity": "fatal",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "envelope",
+       "note_contains": "envelope exceeds memory",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "negative_time_accepted",
+     "vendor_action": "negative pulse time accepted silently at compile",
+     "qconform_severity": "fatal",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "timing",
+       "note_contains": "negative pulse time",
+       "outcome": "accept"
+      }
+     ]
+    }
+   ],
+   "sample_unit": {
+    "num": 1,
+    "den": 9584640000
+   }
+  },
+  {
+   "name": "ro0",
+   "kind": "readout",
+   "vendor_type": "axis_dyn_readout_v1",
+   "unit": {
+    "num": 1,
+    "den": 2150400000
+   },
+   "duration_grid": 7,
+   "schedule_grid": 5,
+   "constraints": [
+    {
+     "id": "readout_length_range",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 21,
+     "max_units": 458745,
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "readout",
+       "note_contains": "below min 3",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "readout",
+       "note_contains": "first over max",
+       "outcome": "reject"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "budgets": [
+  {
+   "id": "pmem_words",
+   "limit": 4096,
+   "cost_model": {
+    "kind": "linear",
+    "per_item": 1,
+    "overhead": 14
+   },
+   "evidence": [
+    {
+     "config": "zcu216-testbench",
+     "axis": "budget_pmem",
+     "note_contains": "program memory",
+     "outcome": "reject"
+    }
+   ]
+  },
+  {
+   "id": "wmem_words",
+   "limit": 1024,
+   "cost_model": {
+    "kind": "linear",
+    "per_item": 1,
+    "overhead": 0
+   },
+   "evidence": [
+    {
+     "config": "zcu216-testbench",
+     "axis": "budget_wmem",
+     "note_contains": "waveform memory",
+     "outcome": "reject"
+    }
+   ]
+  },
+  {
+   "id": "loop_registers",
+   "limit": 16,
+   "cost_model": {
+    "kind": "indeterminate_band",
+    "per_item": 1,
+    "reserved_min": 0,
+    "reserved_max": 4
+   },
+   "evidence": [
+    {
+     "config": "zcu216-testbench",
+     "axis": "budget_regs",
+     "note_contains": "data registers",
+     "outcome": "reject"
+    }
+   ]
+  }
+ ]
+}

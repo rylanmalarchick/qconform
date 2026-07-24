@@ -1,0 +1,122 @@
+qconform capability descriptor v0
+=================================
+
+Versioned JSON contract describing what a device (as driven by a pinned
+toolchain) can realize. The checker decides program realizability
+against exactly one descriptor. Draft v0, 2026-07-10; field set freezes
+at v1. JSON conventions (no floats, canonical num/den rationals, i64
+bounds) as in program-format-v0.txt. Machine schema:
+schemas/descriptor-v0.schema.json. Worked instance:
+examples/descriptor-qick-testbench.json.
+
+identification
+--------------
+  {"name": "qick-zcu216-testbench", "board": "ZCU216",
+   "fw_timestamp": "...", "cfg_sw_version": "0.2.367",
+   "library": {"name": "qick", "version": "0.2.418"},
+   "descriptor_version": "0"}
+
+Both the firmware config version AND the toolchain library version pin
+the descriptor: the survey proved accept/reject/round behavior is a
+function of the (config, library) pair. A report echoes this block. A
+descriptor with different pins is a different descriptor.
+
+frames
+------
+"native" or "compiled_away". QICK is compiled_away: exporters emit one
+frame per channel and fold virtual-Z into per-pulse phase.
+
+rounding
+--------
+Per-quantity rounding mode the toolchain applies to in-range values:
+  {"time": "nearest_half_even", "frequency": "nearest_half_even",
+   "phase": "nearest_half_even", "amplitude": "trunc_toward_zero"}
+One global mode would be wrong: QICK truncates gain toward zero while
+rounding time/freq/phase to nearest (survey-proven asymmetry). The
+half-even tie-break is source-verified, empirically unreachable from
+float64 physical values.
+
+channels
+--------
+One entry per generator and readout. Time model: `unit` is an exact
+rational number of seconds, strictly positive (num > 0), chosen as
+1 / lcm(channel clock, tProc timing clock), so that
+
+  one channel clock cycle = duration_grid * unit   (durations live here)
+  one tProc timing tick   = schedule_grid * unit   (schedule times live here)
+
+both exact integers. This carries QICK's two-clock reality (e.g. gen:
+fabric 599.04 MHz vs tProc 430.08 MHz -> unit = 1/16773.12 MHz,
+duration_grid 28, schedule_grid 39; readout at 307.2 MHz -> grids 7/5
+on a 2150.4 MHz base). A single "grid" field would misstate the device:
+grids differ per quantity on one channel.
+
+  {"name": "gen0", "kind": "drive", "vendor_type": "axis_signal_gen_v6",
+   "unit": {"num": 1, "den": 16773120000},
+   "duration_grid": 28, "schedule_grid": 39,
+   "sample_unit": {...},            envelope sample period, if any
+   "capabilities": {...}, "constraints": [...], "vendor_behavior": [...]}
+
+capabilities: phrst (bool), n_tones (mux), envelope_memory_samples,
+envelope_sample_grid, envelope_max_abs.
+
+constraints
+-----------
+Typed by shape, each with a stable id, a severity from the report
+model (fatal | vendor_repairable), and mandatory `evidence`:
+
+  range_units       integer min_units/max_units in channel units
+                    (pulse length, readout length)
+  range_resolution  rational min/max/resolution in SI base units;
+                    optional post_mixer: true means the toolchain
+                    checks the range AFTER mixer subtraction (QICK
+                    interpolated gens do)
+  grid_samples      integer grid (envelope length multiple)
+
+evidence: [{"config", "axis", "note_contains", "outcome"}] -- pointers
+into the survey catalog rows that demonstrate the constraint.
+check_descriptor.py enforces that every reference resolves; a
+constraint without live evidence does not ship. This is what makes the
+descriptor an empirical artifact rather than transcribed documentation.
+
+vendor_behavior
+---------------
+Documented toolchain behaviors that are NOT rejects -- the silent
+repairs and soundness gaps a checker must know about:
+
+  {"id": "frequency_alias_mod_f_dds",
+   "vendor_action": "...", "qconform_severity": "vendor_repairable",
+   "semantics_preserving": false, "evidence": [...]}
+
+v0 entries for QICK: frequency_alias_mod_f_dds (non-interpolated gens),
+envelope_memory_overflow_unchecked (qconform severity fatal: the board
+load fails), gain_over_full_scale, negative_time_accepted,
+mux_length_near_max_assembler_error.
+
+budgets
+-------
+Whole-program resource limits with survey-calibrated cost models:
+
+  {"id": "pmem_words", "limit": 4096,
+   "cost_model": {"kind": "linear", "per_item": 1, "overhead": 14},
+   "evidence": [...]}
+
+kinds: linear (pmem = per_item * n + overhead; wmem likewise) and
+indeterminate_band (loop_registers: reserved_min/reserved_max bound
+the unknowable part; the checker's class B verdict goes indeterminate
+inside the band, per the report model). Cost models are pinned to the
+library version like everything else.
+
+coverage consequences
+---------------------
+A channel with an empty constraints list (QICK pfb readouts in v0) is
+declared, not checked: the checker must report its constraint classes
+as unchecked, never silently passed. The descriptor is the source of
+the report's coverage manifest.
+
+generation
+----------
+Descriptors are built by tools/descriptor/build_descriptor.py from a
+captured vendor config plus the survey catalog, and gated by
+check_descriptor.py. Hand edits without evidence are a schema
+violation by policy, not just style.

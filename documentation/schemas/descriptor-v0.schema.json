@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "qconform-descriptor-v0",
+  "title": "qconform capability descriptor v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "format_version", "identification", "frames", "rounding", "channels", "budgets"],
+  "properties": {
+    "format": {"const": "qconform-descriptor"},
+    "format_version": {"const": 0},
+    "identification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "board", "fw_timestamp", "cfg_sw_version", "library", "descriptor_version"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "board": {"type": "string"},
+        "fw_timestamp": {"type": "string"},
+        "cfg_sw_version": {"type": "string"},
+        "library": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {"name": {"type": "string"}, "version": {"type": "string"}}
+        },
+        "descriptor_version": {"type": "string"}
+      }
+    },
+    "frames": {"enum": ["native", "compiled_away"]},
+    "rounding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["time", "frequency", "phase", "amplitude"],
+      "properties": {
+        "time": {"$ref": "#/$defs/roundmode"},
+        "frequency": {"$ref": "#/$defs/roundmode"},
+        "phase": {"$ref": "#/$defs/roundmode"},
+        "amplitude": {"$ref": "#/$defs/roundmode"}
+      }
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "vendor_type", "unit", "duration_grid", "schedule_grid", "constraints"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["drive", "readout"]},
+          "vendor_type": {"type": "string"},
+          "unit": {"$ref": "#/$defs/positive_rational"},
+          "sample_unit": {"$ref": "#/$defs/positive_rational"},
+          "duration_grid": {"type": "integer", "exclusiveMinimum": 0},
+          "schedule_grid": {"type": "integer", "exclusiveMinimum": 0},
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "phrst": {"type": "boolean"},
+              "n_tones": {"type": "integer", "exclusiveMinimum": 0},
+              "envelope_memory_samples": {"type": "integer", "exclusiveMinimum": 0},
+              "envelope_sample_grid": {"type": "integer", "exclusiveMinimum": 0},
+              "envelope_max_abs": {"type": "integer", "exclusiveMinimum": 0}
+            }
+          },
+          "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
+          "vendor_behavior": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "vendor_action", "qconform_severity", "semantics_preserving", "evidence"],
+              "properties": {
+                "id": {"$ref": "#/$defs/ruleid"},
+                "vendor_action": {"type": "string"},
+                "qconform_severity": {"enum": ["fatal", "vendor_repairable"]},
+                "semantics_preserving": {"type": "boolean"},
+                "evidence": {"$ref": "#/$defs/evidence"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "budgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "limit", "cost_model", "evidence"],
+        "properties": {
+          "id": {"$ref": "#/$defs/ruleid"},
+          "limit": {"type": "integer", "minimum": 0},
+          "cost_model": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind"],
+            "properties": {
+              "kind": {"enum": ["linear", "indeterminate_band"]},
+              "per_item": {"type": "integer"},
+              "overhead": {"type": "integer"},
+              "reserved_min": {"type": "integer"},
+              "reserved_max": {"type": "integer"}
+            }
+          },
+          "evidence": {"$ref": "#/$defs/evidence"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ruleid": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "roundmode": {"enum": ["nearest_half_even", "trunc_toward_zero"]},
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "den"],
+      "properties": {
+        "num": {"type": "integer"},
+        "den": {"type": "integer", "exclusiveMinimum": 0}
+      }
+    },
+    "positive_rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "den"],
+      "properties": {
+        "num": {"type": "integer", "exclusiveMinimum": 0},
+        "den": {"type": "integer", "exclusiveMinimum": 0}
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["config", "axis", "note_contains", "outcome"],
+        "properties": {
+          "config": {"type": "string"},
+          "axis": {"type": "string"},
+          "note_contains": {"type": "string"},
+          "outcome": {"enum": ["accept", "accept_round", "reject", "crash"]}
+        }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "quantity", "shape", "severity", "evidence"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleid"},
+        "quantity": {"enum": ["time", "frequency", "phase", "amplitude", "count"]},
+        "shape": {"enum": ["range_units", "range_resolution", "grid_samples"]},
+        "severity": {"enum": ["fatal", "vendor_repairable"]},
+        "min_units": {"type": "integer"},
+        "max_units": {"type": "integer"},
+        "min": {"$ref": "#/$defs/rational"},
+        "max": {"$ref": "#/$defs/rational"},
+        "resolution": {"$ref": "#/$defs/rational"},
+        "post_mixer": {"type": "boolean"},
+        "grid": {"type": "integer", "exclusiveMinimum": 0},
+        "evidence": {"$ref": "#/$defs/evidence"}
+      }
+    }
+  }
+}

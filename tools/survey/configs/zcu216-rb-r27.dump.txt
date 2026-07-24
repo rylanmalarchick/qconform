@@ -1,0 +1,40 @@
+QICK running on ZCU216, software version 0.2.371
+
+Firmware configuration (built Tue Oct 21 16:43:27 2025):
+
+	Global clocks (MHz): tProc dispatcher timing 430.080, RF reference 245.760
+	Groups of related clocks: [tProc timing clock, DAC tile 1, DAC tile 2, DAC tile 3], [DAC tile 0], [ADC tile 2]
+
+	1 signal generator channels:
+	0:	axis_signal_gen_v6 - fs=9584.640 Msps, fabric=599.040 MHz
+		envelope memory: 65536 complex samples (6.838 us)
+		32-bit DDS, range=9584.640 MHz
+		DAC tile 0, blk 0 is 0_228 on JHC1, or QICK box DAC port 0
+
+	1 readout channels:
+	0:	axis_dyn_readout_v1 - configured by tProc output 4
+		fs=2457.600 Msps, decimated=307.200 MHz, 32-bit DDS, range=2457.600 MHz
+		axis_avg_buffer v1.2 (has edge counter, no weights)
+		memory 8192 accumulated, 4096 decimated (13.333 us)
+		triggered by tport 10, pin 0, feedback to tProc input 0
+		ADC tile 2, blk 0 is 0_226 on JHC7, or QICK box ADC port 4
+
+	8 digital output pins:
+	0:	PMOD0_0_LS
+	1:	PMOD0_1_LS
+	2:	PMOD0_2_LS
+	3:	PMOD0_3_LS
+	4:	PMOD0_4_LS
+	5:	PMOD0_5_LS
+	6:	PMOD0_6_LS
+	7:	PMOD0_7_LS
+
+	tProc: qick_processor ("v2") rev 27, core execution clock 200.000 MHz
+		memories (words): program 16384, data 16384, waveform 1024
+		external start pin: None
+		external stop pin: None
+
+	DDR4 memory buffer: 1073741824 samples (3.495 sec), 128 samples/transfer
+		wired to readouts [0]
+
+	MR buffer: 8192 samples (3.333 us), wired to readouts [0]

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "qconform-report-v0",
+  "title": "qconform report format v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "format_version", "verdict", "descriptor", "rejections", "budgets", "coverage"],
+  "properties": {
+    "format": {"const": "qconform-report"},
+    "format_version": {"const": 0},
+    "verdict": {"enum": ["pass", "pass_with_repairs", "fail"]},
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "firmware", "software", "descriptor_version"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "firmware": {"type": "string"},
+        "software": {"type": "string"},
+        "descriptor_version": {"type": "string"}
+      }
+    },
+    "rejections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule", "severity", "element", "quantity", "value", "limit"],
+        "properties": {
+          "rule": {"$ref": "#/$defs/ruleid"},
+          "severity": {"enum": ["fatal", "vendor_repairable"]},
+          "repair": {"$ref": "#/$defs/ruleid"},
+          "element": {"type": "integer", "minimum": 0},
+          "quantity": {"enum": ["time", "frequency", "phase", "amplitude", "count"]},
+          "value": {"$ref": "#/$defs/rational"},
+          "limit": {"$ref": "#/$defs/rational"}
+        },
+        "if": {"properties": {"severity": {"const": "vendor_repairable"}}},
+        "then": {"required": ["repair"]},
+        "else": {"not": {"required": ["repair"]}}
+      }
+    },
+    "budgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["budget", "verdict", "lower_bound", "upper_bound", "limit"],
+        "properties": {
+          "budget": {"$ref": "#/$defs/ruleid"},
+          "verdict": {"enum": ["fits", "violates", "indeterminate"]},
+          "lower_bound": {"type": "integer"},
+          "upper_bound": {"type": "integer"},
+          "limit": {"type": "integer"}
+        }
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["class", "status"],
+        "properties": {
+          "class": {"$ref": "#/$defs/ruleid"},
+          "status": {"enum": ["checked", "not_applicable", "unchecked", "indeterminate"]}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ruleid": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "den"],
+      "properties": {
+        "num": {"type": "integer"},
+        "den": {"type": "integer", "exclusiveMinimum": 0}
+      }
+    }
+  }
+}

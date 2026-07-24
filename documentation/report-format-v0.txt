@@ -1,0 +1,115 @@
+qconform report format v0
+=========================
+
+Versioned JSON output contract of the checker. Implementable from this
+file plus program-format-v0.txt. Draft v0, 2026-07-10; the field set
+freezes at v1. JSON conventions (no floats, canonical rationals, i64
+bounds) are the same as program-format-v0.txt.
+
+verdict and exit codes
+----------------------
+  verdict            meaning                          exit code
+  pass               no rejections                    0
+  fail               at least one fatal rejection     1
+  pass_with_repairs  rejections, all vendor_repairable 2
+  (no report)        tool error: malformed program,   3
+                     invalid descriptor, io, oom
+
+A CI gate chooses its strictness: fail the build on exit >= 1, or
+tolerate named repairs by failing only on 1 and 3. Unrealizable is a
+normal result; only exit 3 is an abnormal one.
+
+rule ids
+--------
+snake_case enum names serialized as strings; append-only. A rule id is
+never renamed, renumbered, or reused; a retired rule keeps its id
+reserved. Numeric ordinals never appear in output. Repair ids follow
+the same discipline.
+
+rejection
+---------
+  {"rule": "grid_multiple", "severity": "fatal", "element": 0,
+   "quantity": "time",
+   "value": {"num": 3, "den": 29950000},
+   "limit": {"num": 1, "den": 149750000}}
+
+- rule: rule id
+- severity: fatal | vendor_repairable
+- repair: present iff severity is vendor_repairable; the repair id
+  names what the vendor stack silently does (e.g. quantize_duration,
+  zero_pad_envelope). Whether a repair preserves experiment semantics
+  is documented per repair id in the rule catalog, not restated per
+  rejection.
+- element: the element id from the program file
+- quantity: time | frequency | phase | amplitude | count
+- value, limit: offending value and device limit as exact rationals in
+  the SI base unit of the quantity: seconds, Hz, turns, full-scale
+  fraction, dimensionless count. Temporal values are reported in
+  seconds, converted exactly from ticks, so a report reads the same
+  under any descriptor.
+
+Ordering is deterministic: rules in catalog order; within a rule,
+elements in file order. Identical input yields byte-identical output.
+
+budgets (class B)
+-----------------
+  {"budget": "instruction_memory", "verdict": "indeterminate",
+   "lower_bound": 9000, "upper_bound": 14000, "limit": 12288}
+
+- fits: upper_bound <= limit; stays out of the rejection list
+- violates: lower_bound > limit; also emitted as a fatal rejection with
+  quantity count
+- indeterminate: the limit falls between the bounds; reported here,
+  never a rejection. A fatal reject only ever comes from a proven lower
+  bound, not from a conservative estimate.
+
+coverage manifest
+-----------------
+  [{"class": "timing_grid", "status": "checked"},
+   {"class": "instruction_memory", "status": "indeterminate"},
+   {"class": "rtio_slack", "status": "unchecked"}]
+
+status: checked | not_applicable | unchecked | indeterminate.
+pass means exactly: no violation found within the classes marked
+checked, against the echoed descriptor at its pinned versions. Nothing
+more. not_applicable marks a class the program does not exercise; a
+vacuous pass and an unchecked class are different statements.
+
+descriptor echo
+---------------
+  "descriptor": {"name": "qick-zcu216-testbench",
+                 "firmware": "2025-08-29",
+                 "software": "qick-0.2.418",
+                 "descriptor_version": "0"}
+
+Opaque echo of the descriptor's identification block; its detailed
+shape is fixed by the descriptor schema (phase 3). The report always
+states what it checked against.
+
+top level and example
+---------------------
+{
+  "format": "qconform-report",
+  "format_version": 0,
+  "verdict": "fail",
+  "descriptor": {"name": "qick-zcu216-testbench",
+                 "firmware": "2025-08-29",
+                 "software": "qick-0.2.418",
+                 "descriptor_version": "0"},
+  "rejections": [
+    {"rule": "grid_multiple", "severity": "fatal", "element": 0,
+     "quantity": "time",
+     "value": {"num": 3, "den": 29950000},
+     "limit": {"num": 1, "den": 149750000}}
+  ],
+  "budgets": [
+    {"budget": "instruction_memory", "verdict": "indeterminate",
+     "lower_bound": 9000, "upper_bound": 14000, "limit": 12288}
+  ],
+  "coverage": [
+    {"class": "timing_grid", "status": "checked"},
+    {"class": "frequency_range", "status": "not_applicable"},
+    {"class": "instruction_memory", "status": "indeterminate"},
+    {"class": "rtio_slack", "status": "unchecked"}
+  ]
+}

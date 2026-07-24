@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "qconform-program-v0",
+  "title": "qconform program format v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "format_version", "channels", "frames", "waveforms", "elements"],
+  "properties": {
+    "format": {"const": "qconform-program"},
+    "format_version": {"const": 0},
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "unit"],
+        "properties": {
+          "name": {"$ref": "#/$defs/name"},
+          "unit": {"$ref": "#/$defs/positive_rational"},
+          "sample_unit": {"$ref": "#/$defs/positive_rational"}
+        }
+      }
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "channel", "frequency", "phase"],
+        "properties": {
+          "name": {"$ref": "#/$defs/name"},
+          "channel": {"$ref": "#/$defs/name"},
+          "frequency": {"$ref": "#/$defs/rational"},
+          "phase": {"$ref": "#/$defs/rational"}
+        }
+      }
+    },
+    "waveforms": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "kind", "amplitude"],
+            "properties": {
+              "name": {"$ref": "#/$defs/name"},
+              "kind": {"const": "const"},
+              "amplitude": {"$ref": "#/$defs/rational"}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "kind", "full_scale", "i", "q"],
+            "properties": {
+              "name": {"$ref": "#/$defs/name"},
+              "kind": {"const": "samples"},
+              "full_scale": {"type": "integer", "exclusiveMinimum": 0},
+              "i": {"type": "array", "items": {"type": "integer"}},
+              "q": {"type": "array", "items": {"type": "integer"}}
+            }
+          }
+        ]
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "frame", "waveform", "duration"],
+            "properties": {
+              "id": {"$ref": "#/$defs/id"},
+              "kind": {"const": "play"},
+              "frame": {"$ref": "#/$defs/name"},
+              "waveform": {"$ref": "#/$defs/name"},
+              "duration": {"$ref": "#/$defs/duration"}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "frame", "duration"],
+            "properties": {
+              "id": {"$ref": "#/$defs/id"},
+              "kind": {"enum": ["capture", "delay"]},
+              "frame": {"$ref": "#/$defs/name"},
+              "duration": {"$ref": "#/$defs/duration"}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind"],
+            "properties": {
+              "id": {"$ref": "#/$defs/id"},
+              "kind": {"const": "barrier"},
+              "frames": {"type": "array", "items": {"$ref": "#/$defs/name"}}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "frame", "phase"],
+            "properties": {
+              "id": {"$ref": "#/$defs/id"},
+              "kind": {"const": "shift_phase"},
+              "frame": {"$ref": "#/$defs/name"},
+              "phase": {"$ref": "#/$defs/rational"}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "frame", "frequency"],
+            "properties": {
+              "id": {"$ref": "#/$defs/id"},
+              "kind": {"const": "set_frequency"},
+              "frame": {"$ref": "#/$defs/name"},
+              "frequency": {"$ref": "#/$defs/rational"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "name": {"type": "string", "minLength": 1},
+    "id": {"type": "integer", "minimum": 0},
+    "duration": {"type": "integer"},
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "den"],
+      "properties": {
+        "num": {"type": "integer"},
+        "den": {"type": "integer", "exclusiveMinimum": 0}
+      }
+    },
+    "positive_rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "den"],
+      "properties": {
+        "num": {"type": "integer", "exclusiveMinimum": 0},
+        "den": {"type": "integer", "exclusiveMinimum": 0}
+      }
+    }
+  }
+}

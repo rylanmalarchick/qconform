@@ -1,0 +1,1 @@
+{"axis": "phrst", "cfg_sw_version": "0.2.371", "config": "zcu216-rb-r27", "gen_ch": 0, "gen_type": "axis_signal_gen_v6", "kind": "const", "note": "phrst support gated by gen type", "numpy_version": "2.4.6", "observed": {}, "outcome": "accept", "param": "phrst", "qick_version": "0.2.418", "requested": 1}

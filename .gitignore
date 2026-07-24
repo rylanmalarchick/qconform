@@ -1,6 +1,7 @@
-# Zig
-zig-out/
-.zig-cache/
-zig-cache/
-
 /notes/
+
+# build artifacts
+/qconform
+src/test_rational
+src/test_json
+src/test_enums

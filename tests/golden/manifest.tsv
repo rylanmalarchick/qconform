@@ -1,0 +1,23 @@
+# qconform golden corpus. Any implementation can run this; see run.sh.
+# Paths are relative to this directory. exit: 0 pass, 1 fail,
+# 2 pass_with_repairs, 3 tool error. report "-" means exit 3: stdout must
+# be empty and nothing is byte-compared.
+#
+# case	descriptor	program	exit	report
+ramsey-pass	descriptors/testbench.json	ramsey-pass/program.json	0	ramsey-pass/expected.json
+below-min-length	descriptors/testbench.json	below-min-length/program.json	1	below-min-length/expected.json
+off-grid-duration	descriptors/testbench.json	off-grid-duration/program.json	2	off-grid-duration/expected.json
+freq-alias-v6	descriptors/testbench.json	freq-alias-v6/program.json	2	freq-alias-v6/expected.json
+freq-out-of-band-int4	descriptors/qce2025-r26.json	freq-out-of-band-int4/program.json	1	freq-out-of-band-int4/expected.json
+envelope-over-memory	descriptors/qce2025-r26.json	envelope-over-memory/program.json	1	envelope-over-memory/expected.json
+envelope-off-sample-grid	descriptors/testbench.json	envelope-off-sample-grid/program.json	1	envelope-off-sample-grid/expected.json
+amplitude-over-fullscale	descriptors/testbench.json	amplitude-over-fullscale/program.json	2	amplitude-over-fullscale/expected.json
+hostile-identification	descriptors/hostile-ident.json	hostile-identification/program.json	0	hostile-identification/expected.json
+negative-zero-is-integer	descriptors/testbench.json	negative-zero-is-integer/program.json	0	negative-zero-is-integer/expected.json
+malformed-float	descriptors/testbench.json	malformed-float/program.json	3	-
+malformed-dup-id	descriptors/testbench.json	malformed-dup-id/program.json	3	-
+malformed-dangling-frame	descriptors/testbench.json	malformed-dangling-frame/program.json	3	-
+malformed-negative-unit	descriptors/testbench.json	malformed-negative-unit/program.json	3	-
+malformed-envelope-sample-min	descriptors/testbench.json	malformed-envelope-sample-min/program.json	3	-
+malformed-overflow-cost-descriptor	descriptors/overflow-cost.json	malformed-overflow-cost-descriptor/program.json	3	-
+malformed-zero-grid-descriptor	descriptors/zero-grid.json	malformed-zero-grid-descriptor/program.json	3	-

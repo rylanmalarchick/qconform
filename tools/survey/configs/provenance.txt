@@ -1,0 +1,46 @@
+config provenance
+=================
+
+zcu216-testbench.json
+  source: openquantumhardware/qick
+          firmware/testbench/qick_testbench/soccfg.json (MIT)
+  fetched 2026-07-10, verbatim. ZCU216, sw 0.2.367, fw 2025-08-29,
+  tProc v2 rev 27. The only public machine-readable tProc v2 soccfg
+  found by GitHub-wide code search on 2026-07-10 (that scarcity is a
+  finding; see notes/survey-qick-2026-07.txt).
+
+zcu216-rb-r27.json
+  source dump: openquantumhardware/qick
+          firmware/notebooks/qick_rb/RB_tProc_v2_experiment.ipynb (MIT),
+          output cell; stored as zcu216-rb-r27.dump.txt
+  reconstructed by reconstruct.py from the testbench template; exactly
+  three fields differ (sw_version 0.2.371, fw_timestamp 2025-10-21,
+  pmem_size 16384). Faithfulness: reconstruct_check.py reproduces the
+  published dump byte-for-byte.
+
+zcu216-qce2025-r26.json
+  source dump: openquantumhardware/QCE2025
+          fw/2025-08-16_216_tprocv2r26_rfbv2_standard/README.txt;
+          stored as zcu216-qce2025-r26.dump.txt
+  caveat: that repo has no license file; the dump is used as a data
+  source only. ZCU216, sw 0.2.365, fw 2025-08-16, tProc v2 rev 26,
+  16 gens (4x axis_signal_gen_v6, 1x axis_sg_mixmux8_v1,
+  11x axis_sg_int4_v2), 11 readouts, time tagger.
+  reconstructed by reconstruct.py. Printed values (fs, f_fabric, f_dds,
+  maxlen, b_dds, memories, revision, clocks, wiring) come from the dump.
+  Fields the dump does not print are inferred and marked here:
+    - int4/mixmux: maxv 32766, maxv_scale 0.9 (int4) / 1.0 (mixmux),
+      samps_per_clk 1 (int4; consistent with dump us math) / 4 (mixmux,
+      unused for const), interpolation 4, complex_env true -- all from
+      qick 0.2.418 driver source constants (drivers/generator.py:
+      AbsSignalGen.MAXV, AbsIntSignalGen.MAXV_SCALE/FS_INTERPOLATION,
+      AxisSgMixMux8V1)
+    - pfb_readout_v4 internals (decimation 16, f_fabric) inferred from
+      printed decimated rate and drivers/readout.py DOWNSAMPLING=4
+    - tproc dreg_qty 16 and peripheral flags copied from the testbench
+      template (not printed by any dump)
+    - rf dac/adc tile entries for tiles 1-3 derived from printed fs
+      (fs_mult 28 x refclk 245.76)
+  Faithfulness: reconstruct_check.py reproduces the published dump
+  byte-for-byte up to the "QICK box daughter cards" section (printed by
+  the RF-board runtime, not by QickConfig; excluded by design).

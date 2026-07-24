@@ -1,0 +1,28 @@
+{
+  "format": "qconform-program",
+  "format_version": 0,
+  "channels": [
+    {"name": "d0",
+     "unit": {"num": 1, "den": 599000000}},
+    {"name": "r0",
+     "unit": {"num": 1, "den": 599000000}}
+  ],
+  "frames": [
+    {"name": "q0_xy", "channel": "d0",
+     "frequency": {"num": 4900000000, "den": 1},
+     "phase": {"num": 0, "den": 1}},
+    {"name": "r0_ro", "channel": "r0",
+     "frequency": {"num": 6100000000, "den": 1},
+     "phase": {"num": 0, "den": 1}}
+  ],
+  "waveforms": [
+    {"name": "flat", "kind": "const",
+     "amplitude": {"num": 1, "den": 2}}
+  ],
+  "elements": [
+    {"id": 0, "kind": "play", "frame": "q0_xy",
+     "waveform": "flat", "duration": 60},
+    {"id": 1, "kind": "barrier", "frames": ["q0_xy", "r0_ro"]},
+    {"id": 2, "kind": "capture", "frame": "r0_ro", "duration": 1200}
+  ]
+}

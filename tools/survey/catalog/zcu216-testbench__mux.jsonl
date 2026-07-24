@@ -1,0 +1,1 @@
+{"axis": "mux", "cfg_sw_version": "0.2.367", "config": "zcu216-testbench", "note": "no channel of the required type in this config", "numpy_version": "2.4.6", "outcome": "skipped", "qick_version": "0.2.418"}

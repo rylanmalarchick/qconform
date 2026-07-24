@@ -1,0 +1,188 @@
+qconform program format v0
+==========================
+
+Versioned JSON interchange format for pulse programs: exporters produce
+it, the checker consumes it. Implementable from this file alone.
+Draft v0, 2026-07-10; the field set freezes at v1.
+
+JSON conventions
+----------------
+- UTF-8, one JSON object per file
+- no floats anywhere; every JSON number is an integer
+- non-integer quantities are rationals: {"num": N, "den": D} with N, D
+  integers, D > 0, gcd(|N|, D) = 1; the sign lives on num. A reader
+  rejects non-canonical rationals.
+- integers must survive a 64-bit round-trip; values outside i64 are
+  rejected. A reader that parses numbers through float64 does not
+  conform.
+- unknown fields and unknown kinds are validation errors, not warnings
+- name strings are nonempty and unique within their array
+
+Top level
+---------
+  {
+    "format": "qconform-program",
+    "format_version": 0,
+    "channels": [...],
+    "frames": [...],
+    "waveforms": [...],
+    "elements": [...]
+  }
+
+A reader that sees a format_version it does not implement errors out;
+it never guesses.
+
+channels
+--------
+  {"name": "d0",
+   "unit": {"num": 1, "den": 599000000},
+   "sample_unit": {"num": 1, "den": 9584000000}}
+
+- name: the binding key against the device descriptor at check time
+- unit: the channel's time base, an exact rational number of seconds
+  per time unit, strictly positive (num > 0); every duration on the
+  channel is an integer count of this unit. A non-positive time base is
+  a validation error, not a rejection: it would run the frame clock
+  backwards. Exporters emit the unit they know exactly (QICK: one tProc
+  tick; Qblox: 1 ns = {"num": 1, "den": 1000000000}). Conversion to
+  descriptor ticks happens at check time; a duration that does not
+  convert exactly is a grid rejection, not an input error.
+- sample_unit: seconds per waveform sample on this channel, strictly
+  positive on the same terms as unit; required only if a samples
+  waveform plays here. Timing unit and sample rate
+  differ on real hardware (QICK generators run many samples per tProc
+  tick), so they are declared separately.
+
+frames
+------
+  {"name": "q0_xy", "channel": "d0",
+   "frequency": {"num": 4900000000, "den": 1},
+   "phase": {"num": 0, "den": 1}}
+
+- a frame is a clock plus NCO state on one channel
+- frequency: initial value, rational Hz
+- phase: initial value, rational turns (1 turn = 2 pi rad); turns keep
+  phase arithmetic exact where radians cannot
+- targets without native frames (QICK) get one frame per channel from
+  the exporter; the descriptor declares frames native or compiled-away
+
+waveforms
+---------
+  {"name": "flat", "kind": "const",
+   "amplitude": {"num": 1, "den": 2}}
+
+  {"name": "arb", "kind": "samples", "full_scale": 32767,
+   "i": [0, 16384, 32767], "q": [0, 0, 0]}
+
+- amplitude: dimensionless full-scale fraction, rational in [-1, 1]
+- samples: integer DAC-code arrays; full_scale declares the code that
+  means 1.0; i and q have equal length; one entry per sample_unit
+- parametric kinds (gaussian, drag, flat_top) are reserved for a later
+  version; v0 exporters lower them to samples
+
+elements
+--------
+Ordered list; the order is the timing model. Time is instruction-
+ordered per frame: play, capture, and delay advance their frame's clock
+by duration; shift_phase and set_frequency take zero time; barrier
+aligns clocks. Absolute times are computed by the checker's resolve
+pass and never appear in the file.
+
+Every element has:
+- id: unsigned integer, unique within the file, assigned by the
+  exporter. Rejections cite ids, never list positions, so the checker's
+  internal program representation can change without breaking the
+  report contract.
+- kind: play | capture | delay | barrier | shift_phase | set_frequency
+
+  {"id": 0, "kind": "play", "frame": "q0_xy",
+   "waveform": "flat", "duration": 60}
+
+  {"id": 1, "kind": "capture", "frame": "r0_ro", "duration": 1200}
+
+  {"id": 2, "kind": "delay", "frame": "q0_xy", "duration": 100}
+
+  {"id": 3, "kind": "barrier", "frames": ["q0_xy", "r0_ro"]}
+
+  {"id": 4, "kind": "shift_phase", "frame": "q0_xy",
+   "phase": {"num": 1, "den": 4}}
+
+  {"id": 5, "kind": "set_frequency", "frame": "q0_xy",
+   "frequency": {"num": 4850000000, "den": 1}}
+
+- duration: integer count of the frame's channel unit
+- a samples waveform states its own length; whether duration * unit
+  equals sample count * sample_unit is a device rule (vendors zero-pad
+  the mismatch silently), never an input error
+- barrier with frames omitted aligns every frame in the file
+- shift_phase is virtual-Z; phase in rational turns, added to the frame
+- capture returns data; result naming and binning are target scope, not
+  program scope, in v0
+
+validation errors vs rejections
+-------------------------------
+Malformed input is a tool error (exit 3; see report-format-v0.txt):
+duplicate ids or names, dangling frame/channel/waveform references,
+non-canonical rationals, non-positive unit or sample_unit, unknown
+fields or kinds, missing sample_unit under a samples waveform. A well-formed program that violates device
+limits is never a tool error; it produces rejections.
+
+example: QICK-flavored (unit = one tProc tick)
+----------------------------------------------
+{
+  "format": "qconform-program",
+  "format_version": 0,
+  "channels": [
+    {"name": "d0",
+     "unit": {"num": 1, "den": 599000000}},
+    {"name": "r0",
+     "unit": {"num": 1, "den": 599000000}}
+  ],
+  "frames": [
+    {"name": "q0_xy", "channel": "d0",
+     "frequency": {"num": 4900000000, "den": 1},
+     "phase": {"num": 0, "den": 1}},
+    {"name": "r0_ro", "channel": "r0",
+     "frequency": {"num": 6100000000, "den": 1},
+     "phase": {"num": 0, "den": 1}}
+  ],
+  "waveforms": [
+    {"name": "flat", "kind": "const",
+     "amplitude": {"num": 1, "den": 2}}
+  ],
+  "elements": [
+    {"id": 0, "kind": "play", "frame": "q0_xy",
+     "waveform": "flat", "duration": 60},
+    {"id": 1, "kind": "barrier", "frames": ["q0_xy", "r0_ro"]},
+    {"id": 2, "kind": "capture", "frame": "r0_ro", "duration": 1200}
+  ]
+}
+
+example: Qblox-flavored (unit = 1 ns)
+-------------------------------------
+{
+  "format": "qconform-program",
+  "format_version": 0,
+  "channels": [
+    {"name": "cluster0_qcm0_o1",
+     "unit": {"num": 1, "den": 1000000000},
+     "sample_unit": {"num": 1, "den": 1000000000}}
+  ],
+  "frames": [
+    {"name": "q0_drive", "channel": "cluster0_qcm0_o1",
+     "frequency": {"num": 400000001, "den": 4},
+     "phase": {"num": 0, "den": 1}}
+  ],
+  "waveforms": [
+    {"name": "arb", "kind": "samples", "full_scale": 32767,
+     "i": [0, 16384, 32767, 16384],
+     "q": [0, 0, 0, 0]}
+  ],
+  "elements": [
+    {"id": 0, "kind": "shift_phase", "frame": "q0_drive",
+     "phase": {"num": 1, "den": 4}},
+    {"id": 1, "kind": "play", "frame": "q0_drive",
+     "waveform": "arb", "duration": 4},
+    {"id": 2, "kind": "delay", "frame": "q0_drive", "duration": 100}
+  ]
+}

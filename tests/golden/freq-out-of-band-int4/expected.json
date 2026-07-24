@@ -1,0 +1,33 @@
+{
+ "format": "qconform-report",
+ "format_version": 0,
+ "verdict": "fail",
+ "descriptor": {"name": "qick-zcu216-qce2025-r26", "firmware": "Sat Aug 16 12:14:08 2025", "software": "qick-0.2.418", "descriptor_version": "0"},
+ "rejections": [
+  {"rule": "frequency_range", "severity": "fatal", "element": 0, "quantity": "frequency", "value": {"num": 1290240000, "den": 1}, "limit": {"num": 860160000, "den": 1}}
+ ],
+ "budgets": [
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 15, "upper_bound": 16, "limit": 4096},
+  {"budget": "wmem_words", "verdict": "fits", "lower_bound": 1, "upper_bound": 1, "limit": 1024}
+ ],
+ "coverage": [
+  {"class": "pulse_length_range", "status": "checked"},
+  {"class": "pulse_length_grid", "status": "checked"},
+  {"class": "readout_length_range", "status": "not_applicable"},
+  {"class": "frequency_range", "status": "checked"},
+  {"class": "frequency_resolution", "status": "checked"},
+  {"class": "phase_resolution", "status": "checked"},
+  {"class": "amplitude_range", "status": "checked"},
+  {"class": "amplitude_resolution", "status": "checked"},
+  {"class": "envelope_sample_grid", "status": "not_applicable"},
+  {"class": "envelope_amplitude", "status": "not_applicable"},
+  {"class": "envelope_memory", "status": "not_applicable"},
+  {"class": "schedule_grid", "status": "checked"},
+  {"class": "negative_duration", "status": "checked"},
+  {"class": "negative_time", "status": "not_applicable"},
+  {"class": "pmem_words", "status": "checked"},
+  {"class": "wmem_words", "status": "checked"},
+  {"class": "loop_registers", "status": "not_applicable"},
+  {"class": "unconstrained_channel", "status": "not_applicable"}
+ ]
+}

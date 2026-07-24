@@ -1,0 +1,25 @@
+{
+  "format": "qconform-report",
+  "format_version": 0,
+  "verdict": "fail",
+  "descriptor": {"name": "qick-zcu216-testbench",
+                 "firmware": "2025-08-29",
+                 "software": "qick-0.2.418",
+                 "descriptor_version": "0"},
+  "rejections": [
+    {"rule": "grid_multiple", "severity": "fatal", "element": 0,
+     "quantity": "time",
+     "value": {"num": 3, "den": 29950000},
+     "limit": {"num": 1, "den": 149750000}}
+  ],
+  "budgets": [
+    {"budget": "instruction_memory", "verdict": "indeterminate",
+     "lower_bound": 9000, "upper_bound": 14000, "limit": 12288}
+  ],
+  "coverage": [
+    {"class": "timing_grid", "status": "checked"},
+    {"class": "frequency_range", "status": "not_applicable"},
+    {"class": "instruction_memory", "status": "indeterminate"},
+    {"class": "rtio_slack", "status": "unchecked"}
+  ]
+}

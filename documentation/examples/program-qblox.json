@@ -1,0 +1,26 @@
+{
+  "format": "qconform-program",
+  "format_version": 0,
+  "channels": [
+    {"name": "cluster0_qcm0_o1",
+     "unit": {"num": 1, "den": 1000000000},
+     "sample_unit": {"num": 1, "den": 1000000000}}
+  ],
+  "frames": [
+    {"name": "q0_drive", "channel": "cluster0_qcm0_o1",
+     "frequency": {"num": 400000001, "den": 4},
+     "phase": {"num": 0, "den": 1}}
+  ],
+  "waveforms": [
+    {"name": "arb", "kind": "samples", "full_scale": 32767,
+     "i": [0, 16384, 32767, 16384],
+     "q": [0, 0, 0, 0]}
+  ],
+  "elements": [
+    {"id": 0, "kind": "shift_phase", "frame": "q0_drive",
+     "phase": {"num": 1, "den": 4}},
+    {"id": 1, "kind": "play", "frame": "q0_drive",
+     "waveform": "arb", "duration": 4},
+    {"id": 2, "kind": "delay", "frame": "q0_drive", "duration": 100}
+  ]
+}
