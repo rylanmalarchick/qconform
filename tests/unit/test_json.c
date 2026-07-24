@@ -7,8 +7,8 @@
 
 #include <stdlib.h>
 
-#include "arena.c"
-#include "json.c"
+#include "../../src/arena.c"
+#include "../../src/json.c"
 #include "test.h"
 
 static Arena *A;

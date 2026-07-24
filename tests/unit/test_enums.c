@@ -1,6 +1,6 @@
-#include "enums.c"
-#include "capability.h"
-#include "ir.h"
+#include "../../src/enums.c"
+#include "../../src/capability.h"
+#include "../../src/ir.h"
 #include "test.h"
 
 TEST(names_round_trip) {

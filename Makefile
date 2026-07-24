@@ -28,10 +28,12 @@ SOURCES := \
 
 HEADERS := $(wildcard $(SRC_DIR)/*.h)
 
-# Test binaries include the .c files under test directly, so they can reach
-# file-private functions — the access the Zig `test` blocks had.
+TEST_DIR := tests/unit
+
+# Unit tests include the .c files under test directly, so they can reach
+# file-private functions.
 TESTS := test_rational test_json test_enums
-TEST_BINS := $(addprefix $(SRC_DIR)/,$(TESTS))
+TEST_BINS := $(addprefix $(TEST_DIR)/,$(TESTS))
 
 .PHONY: all check test golden tripwires sanitize clean
 
@@ -40,13 +42,13 @@ all: $(BIN)
 $(BIN): $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $(SOURCES) $(LDFLAGS)
 
-$(SRC_DIR)/test_rational: $(SRC_DIR)/test_rational.c $(SOURCES) $(HEADERS)
+$(TEST_DIR)/test_rational: $(TEST_DIR)/test_rational.c $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $<
 
-$(SRC_DIR)/test_json: $(SRC_DIR)/test_json.c $(SOURCES) $(HEADERS)
+$(TEST_DIR)/test_json: $(TEST_DIR)/test_json.c $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $<
 
-$(SRC_DIR)/test_enums: $(SRC_DIR)/test_enums.c $(SOURCES) $(HEADERS)
+$(TEST_DIR)/test_enums: $(TEST_DIR)/test_enums.c $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $< $(SRC_DIR)/rational.c
 
 test: $(TEST_BINS)
@@ -56,7 +58,7 @@ golden: $(BIN)
 	@./tests/golden/run.sh ./$(BIN)
 
 tripwires: $(BIN)
-	@$(SRC_DIR)/tripwires.sh ./$(BIN)
+	@tests/tripwires.sh ./$(BIN)
 
 check: test golden tripwires
 

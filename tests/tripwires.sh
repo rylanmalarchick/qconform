@@ -9,13 +9,13 @@
 #   H2  no llabs/abs on int64: undefined at INT64_MIN, which a descriptor may
 #       legally contain.
 #
-# Usage: ./tripwires.sh <built-binary>
+# Usage: ./tests/tripwires.sh <built-binary>
 # Comments are stripped before matching, so prose about floats does not trip.
 
 set -eu
 
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-cd "$here"
+cd "$here/../src"
 binary=${1:-}
 status=0
 

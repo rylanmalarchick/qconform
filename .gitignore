@@ -2,6 +2,10 @@
 
 # build artifacts
 /qconform
-src/test_rational
-src/test_json
-src/test_enums
+tests/unit/test_rational
+tests/unit/test_json
+tests/unit/test_enums
+
+# python
+__pycache__/
+*.pyc

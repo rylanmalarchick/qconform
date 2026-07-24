@@ -7,8 +7,8 @@
  * and under UBSan/ASan; -O2 is the run that matters for abs_i64.
  */
 
-#include "arena.c"
-#include "rational.c"
+#include "../../src/arena.c"
+#include "../../src/rational.c"
 #include "test.h"
 
 static Rat rat(int64_t n, int64_t d) {

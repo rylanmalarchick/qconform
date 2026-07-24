@@ -45,8 +45,11 @@ report, and tests/golden/run.sh will run it against any qconform binary.
 Layout
 ------
 
-  src/                 the checker
+  src/                 the checker, and nothing else
   documentation/       format specifications and JSON Schemas
+  tests/unit/          unit tests
   tests/golden/        differential corpus (inputs + frozen expected reports)
+  tests/tripwires.sh   invariant checks over src/ and the built binary
   tests/difftest.py    compares two implementations over corpus + mutations
-  tools/               descriptor authoring, survey, and export (Python)
+  tools/               the Python that produced the artifacts here; see
+                       tools/README.txt. Not needed to build or test.
