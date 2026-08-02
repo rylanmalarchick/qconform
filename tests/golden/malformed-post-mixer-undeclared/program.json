@@ -7,19 +7,15 @@
    "unit": {
     "num": 1,
     "den": 430080000
-   },
-   "mixer_frequency": {
-    "num": 430080000,
-    "den": 1
    }
   }
  ],
  "frames": [
   {
-   "name": "f5",
+   "name": "f0",
    "channel": "gen5",
    "frequency": {
-    "num": 1720320000,
+    "num": 0,
     "den": 1
    },
    "phase": {
@@ -42,7 +38,7 @@
   {
    "id": 0,
    "kind": "play",
-   "frame": "f5",
+   "frame": "f0",
    "waveform": "w0",
    "duration": 60
   }

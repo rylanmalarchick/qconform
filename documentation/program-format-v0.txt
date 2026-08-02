@@ -48,6 +48,16 @@ channels
   which is {"num": 1, "den": 1000000000}. Conversion to descriptor ticks
   happens at check time. A duration that does not convert exactly is a
   grid rejection, not an input error.
+- mixer_frequency: the digital mixer setting on this channel, as a
+  rational number of Hz. It is signed, because a mixer can sit below the
+  band as easily as above it. Declare it only when the channel has a
+  mixer.
+  A descriptor constraint marked post_mixer is checked against the
+  frequency the device sees, which is the requested frequency minus this
+  value. An interpolated QICK generator works that way. A program that
+  plays on such a channel and declares no mixer_frequency is a validation
+  error: the checker cannot know the band, and assuming zero would accept
+  programs the toolchain refuses.
 - sample_unit: seconds per waveform sample on this channel. It must be
   strictly positive, on the same terms as unit. It is required only when
   a samples waveform plays here. The timing unit and the sample rate
@@ -130,8 +140,12 @@ validation errors vs rejections
 Malformed input is a tool error (exit 3; see report-format-v0.txt):
 duplicate ids or names, dangling frame/channel/waveform references,
 non-canonical rationals, non-positive unit or sample_unit, unknown
-fields or kinds, missing sample_unit under a samples waveform. A well-formed program that violates device
-limits is never a tool error; it produces rejections.
+fields or kinds, missing sample_unit under a samples waveform, and a
+missing mixer_frequency on a channel whose descriptor constraint is
+post_mixer.
+
+A well-formed program that violates a device limit is never a tool
+error. It produces rejections.
 
 example: QICK-flavored (unit = one tProc tick)
 ----------------------------------------------

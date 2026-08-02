@@ -69,9 +69,13 @@ CASES = {
     # catalog: int4 (interpolated) enforces +-f_dds/2 fatally
     "freq-out-of-band-int4": (QCE_DESC, {
         "format": "qconform-program", "format_version": 0,
-        "channels": [{"name": "gen5", "unit": {"num": 1, "den": 430080000}}],
+        "channels": [{"name": "gen5", "unit": {"num": 1, "den": 430080000},
+                      "mixer_frequency": {"num": 430080000, "den": 1}}],
+        # 1720.32 MHz requested, mixer 430.08, so the device sees 1290.24 and
+        # refuses it. The survey catalog has this exact row: freq axis,
+        # "full f_dds", outcome reject.
         "frames": [{"name": "f5", "channel": "gen5",
-                    "frequency": {"num": 1290240000, "den": 1},
+                    "frequency": {"num": 1720320000, "den": 1},
                     "phase": {"num": 0, "den": 1}}],
         "waveforms": [{"name": "w0", "kind": "const",
                        "amplitude": {"num": 1, "den": 2}}],
@@ -83,7 +87,8 @@ CASES = {
     "envelope-over-memory": (QCE_DESC, {
         "format": "qconform-program", "format_version": 0,
         "channels": [{"name": "gen6", "unit": {"num": 1, "den": 430080000},
-                      "sample_unit": {"num": 1, "den": 430080000}}],
+                      "sample_unit": {"num": 1, "den": 430080000},
+                      "mixer_frequency": {"num": 430080000, "den": 1}}],
         "frames": [{"name": "f6", "channel": "gen6",
                     "frequency": {"num": 0, "den": 1},
                     "phase": {"num": 0, "den": 1}}],
@@ -266,6 +271,30 @@ def main():
             sys.exit(f"{case}: exit {r.returncode}; wanted 3, empty stdout")
         manifest.append((case, f"descriptors/{desc_file}", f"{case}/program.json", 3, "-"))
         summary.append(f"{case}: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
+
+    # gen5 is an int4 whose frequency_range is post_mixer. Without a declared
+    # mixer the checker cannot know the band the device sees, and guessing
+    # zero is what let it accept programs the toolchain refuses.
+    d = HERE / "malformed-post-mixer-undeclared"
+    d.mkdir(exist_ok=True)
+    (d / "program.json").write_text(json.dumps({
+        "format": "qconform-program", "format_version": 0,
+        "channels": [{"name": "gen5", "unit": {"num": 1, "den": 430080000}}],
+        "frames": [{"name": "f0", "channel": "gen5",
+                    "frequency": {"num": 0, "den": 1},
+                    "phase": {"num": 0, "den": 1}}],
+        "waveforms": [{"name": "w0", "kind": "const",
+                       "amplitude": {"num": 1, "den": 2}}],
+        "elements": [{"id": 0, "kind": "play", "frame": "f0",
+                      "waveform": "w0", "duration": 60}],
+    }, indent=1) + "\n")
+    r = subprocess.run([str(QCONFORM), str(HERE / QCE_DESC), str(d / "program.json")],
+                       capture_output=True)
+    if r.returncode != 3 or r.stdout:
+        sys.exit(f"post-mixer-undeclared: exit {r.returncode}; wanted 3, empty stdout")
+    manifest.append(("malformed-post-mixer-undeclared", QCE_DESC,
+                     "malformed-post-mixer-undeclared/program.json", 3, "-"))
+    summary.append(f"malformed-post-mixer-undeclared: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
 
     d = HERE / "malformed-overflow-cost-descriptor"
     d.mkdir(exist_ok=True)

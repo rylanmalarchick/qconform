@@ -213,13 +213,39 @@ static const CapChannel *desc_channel_of_frame(Check *k, uint32_t frame) {
 
 static bool check_frequency(Check *k, uint32_t frame, Rat freq, int64_t element) {
     const CapChannel *dc = desc_channel_of_frame(k, frame);
+    const IrChannel *pc = &k->prog->channels[k->prog->frames[frame].channel];
     const Constraint *c = find_constraint(dc, QC_RULE_frequency_range);
+    Rat band_freq = freq;
     bool below, above;
 
     if (c == NULL) return true;
+
+    /* A constraint marked post_mixer is checked against the frequency the
+     * device sees, which is the requested frequency minus the channel's
+     * mixer. An interpolated generator works this way, and checking the
+     * requested frequency instead accepts programs the toolchain refuses.
+     *
+     * When the descriptor says post_mixer and the program declares no mixer,
+     * the checker cannot know the offset. Treating the mixer as zero is what
+     * produces the unsound pass, so refuse instead. */
+    if (c->post_mixer) {
+        if (!pc->has_mixer_frequency)
+            return tool_error(k, "channel '" STR_FMT "': constraint %s is post_mixer, "
+                                 "but the program declares no mixer_frequency",
+                              STR_ARG(pc->name), rule_id_name(c->id));
+        {
+            Rat negated = pc->mixer_frequency;
+            if (negated.num == INT64_MIN)
+                return tool_error(k, "arithmetic overflow (mixer frequency)");
+            negated.num = -negated.num;
+            if (!rat_add(freq, negated, &band_freq))
+                return tool_error(k, "arithmetic overflow (mixer subtraction)");
+        }
+    }
+
     cover(k, QC_COV_frequency_range, QC_CSTAT_checked);
-    below = c->has_min && rat_cmp(freq, c->min) < 0;
-    above = c->has_max && rat_cmp(freq, c->max) > 0;
+    below = c->has_min && rat_cmp(band_freq, c->min) < 0;
+    above = c->has_max && rat_cmp(band_freq, c->max) > 0;
     if (below || above) {
         Rejection r;
         r.rule = QC_COV_frequency_range;

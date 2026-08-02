@@ -225,7 +225,8 @@ bool parse_program(Arena *a, const char *bytes, size_t len, IrProgram *out, Diag
 
     static const char *const top[] = {"format", "format_version", "channels",
                                       "frames", "waveforms", "elements", NULL};
-    static const char *const chan_fields[] = {"name", "unit", "sample_unit", NULL};
+    static const char *const chan_fields[] = {"name", "unit", "sample_unit",
+                                              "mixer_frequency", NULL};
     static const char *const frame_fields[] = {"name", "channel", "frequency", "phase", NULL};
     static const char *const wf_const_fields[] = {"name", "kind", "amplitude", NULL};
     static const char *const wf_samples_fields[] = {"name", "kind", "full_scale", "i", "q", NULL};
@@ -262,6 +263,12 @@ bool parse_program(Arena *a, const char *bytes, size_t len, IrProgram *out, Diag
         v = json_get(co, "sample_unit");
         channels[i].has_sample_unit = (v != NULL);
         if (v != NULL && !get_positive_rat(c, v, "channels[].sample_unit", &channels[i].sample_unit))
+            return false;
+        /* signed: a mixer can sit below the band as easily as above it */
+        v = json_get(co, "mixer_frequency");
+        channels[i].has_mixer_frequency = (v != NULL);
+        if (v != NULL && !get_rat(c, v, "channels[].mixer_frequency",
+                                  &channels[i].mixer_frequency))
             return false;
         chan_names[i] = name;
     }

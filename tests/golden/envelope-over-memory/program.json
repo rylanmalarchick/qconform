@@ -11,6 +11,10 @@
    "sample_unit": {
     "num": 1,
     "den": 430080000
+   },
+   "mixer_frequency": {
+    "num": 430080000,
+    "den": 1
    }
   }
  ],

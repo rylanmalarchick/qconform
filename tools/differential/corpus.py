@@ -95,10 +95,12 @@ class Descriptor:
         return list(seen.values())
 
 
-def base(channel, unit, sample_unit=None):
+def base(channel, unit, sample_unit=None, mixer_hz=None):
     ch = {"name": channel, "unit": rat(unit)}
     if sample_unit is not None:
         ch["sample_unit"] = rat(sample_unit)
+    if mixer_hz is not None:
+        ch["mixer_frequency"] = rat(mixer_hz)
     return ch
 
 
@@ -163,7 +165,7 @@ def cases_pulse_length(d, gen):
             for value, rung in ladder(limit, grid):
                 if value < 0:
                     continue
-                b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+                b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
                 b.wf_const("w0", Fraction(1, 2))
                 b.add(kind="play", frame="f0", waveform="w0", duration=value)
                 out.append((f"pulse_length_range_{which}_{rung}", b.program()))
@@ -172,7 +174,7 @@ def cases_pulse_length(d, gen):
     nominal = 60 * grid
     for offset, rung in ((1, "one_unit_off"), (grid // 2, "half_grid_off"),
                          (grid - 1, "one_below_next"), (0, "on_grid")):
-        b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", Fraction(1, 2))
         b.add(kind="play", frame="f0", waveform="w0", duration=nominal + offset)
         out.append((f"pulse_length_grid_{rung}", b.program()))
@@ -187,7 +189,7 @@ def cases_schedule_grid(d, gen):
     out = []
     for offset, rung in ((0, "on_grid"), (1, "one_unit_off"),
                          (grid // 2, "half_grid_off")):
-        b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", Fraction(1, 2))
         b.add(kind="delay", frame="f0", duration=grid * 4 + offset)
         b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
@@ -211,7 +213,7 @@ def cases_frequency(d, gen):
         limit = Fraction(c[key]["num"], c[key]["den"])
         step = res if res else Fraction(1)
         for value, rung in ladder(limit, step):
-            b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+            b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", Fraction(1, 2))
             b.add(kind="set_frequency", frame="f0", frequency=rat(value))
             b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
@@ -220,7 +222,7 @@ def cases_frequency(d, gen):
     if res is not None:
         for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
             value = res * mult
-            b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+            b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", Fraction(1, 2))
             b.add(kind="set_frequency", frame="f0", frequency=rat(value))
             b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
@@ -239,7 +241,7 @@ def cases_phase(d, gen):
     for value, rung in ((res * 1000, "on_resolution"),
                         (res / 2, "half_step_off"),
                         (res * Fraction(3, 2), "one_and_half_steps")):
-        b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", Fraction(1, 2))
         b.add(kind="shift_phase", frame="f0", phase=rat(value))
         b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
@@ -260,12 +262,12 @@ def cases_amplitude(d, gen):
             continue
         limit = Fraction(c[key]["num"], c[key]["den"])
         for value, rung in ladder(limit, res):
-            b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+            b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", rat(value)["num"] and value or Fraction(0))
             b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
             out.append((f"amplitude_range_{which}_{rung}", b.program()))
     for value, rung in ((res * 100, "on_resolution"), (res / 2, "half_step_off")):
-        b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", value)
         b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
         out.append((f"amplitude_resolution_{rung}", b.program()))
@@ -287,7 +289,7 @@ def cases_envelope(d, gen):
     out = []
 
     def envelope_program(n, amp, name):
-        b = Builder([base(gen["name"], unit, sample_unit)], gen_frames(gen["name"]))
+        b = Builder([base(gen["name"], unit, sample_unit, gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_samples("e0", [amp] * n, [0] * n)
         b.add(kind="play", frame="f0", waveform="e0", duration=60 * dgrid)
         return (name, b.program())
@@ -326,7 +328,7 @@ def cases_readout(d, gen, ro):
             if value < 0:
                 continue
             b = Builder(
-                [base(gen["name"], gunit), base(ro["name"], runit)],
+                [base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro["name"], runit)],
                 gen_frames(gen["name"], ro["name"]),
             )
             b.wf_const("w0", Fraction(1, 2))
@@ -343,7 +345,7 @@ def cases_negative(d, gen):
     dgrid = gen["duration_grid"]
     out = []
     for value, rung in ((-dgrid, "negative_duration"), (0, "zero_duration")):
-        b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", Fraction(1, 2))
         b.add(kind="play", frame="f0", waveform="w0", duration=value)
         out.append((f"negative_duration_{rung}", b.program()))
@@ -361,7 +363,7 @@ def cases_unconstrained(d, gen):
     gunit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
     runit = Fraction(ro["unit"]["num"], ro["unit"]["den"])
     b = Builder(
-        [base(gen["name"], gunit), base(ro_name, runit)],
+        [base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro_name, runit)],
         gen_frames(gen["name"], ro_name),
     )
     b.wf_const("w0", Fraction(1, 2))
@@ -385,7 +387,7 @@ def cases_budgets(d, gen):
         per = pmem["cost_model"].get("per_item", 1)
         need = (pmem["limit"] - overhead) // per
         for n, rung in ((need // 2, "half_limit"), (need + 8, "over_limit")):
-            b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+            b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", Fraction(1, 2))
             for _ in range(max(n, 1)):
                 b.add(kind="play", frame="f0", waveform="w0", duration=3 * dgrid)
@@ -395,7 +397,7 @@ def cases_budgets(d, gen):
     if wmem:
         for n, rung in ((wmem["limit"] // 2, "half_limit"),
                         (wmem["limit"] + 4, "over_limit")):
-            b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+            b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             for i in range(max(n, 1)):
                 b.wf_const(f"w{i}", Fraction(i % 32 + 1, 64))
                 b.add(kind="play", frame="f0", waveform=f"w{i}", duration=3 * dgrid)
@@ -429,7 +431,7 @@ def random_cases(d, gen, rng, count):
 
     out = []
     for i in range(count):
-        b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         n_wf = rng.randint(1, 3)
         for w in range(n_wf):
             if amp is not None and "max" in amp and "resolution" in amp:
@@ -470,9 +472,25 @@ def random_cases(d, gen, rng, count):
     return out
 
 
-def build_corpus(descriptor_path, seed, random_programs=40):
+def build_corpus(descriptor_path, seed, random_programs=40, config_path=None):
     d = Descriptor(descriptor_path)
     rng = random.Random(seed)
+
+    # A channel whose frequency_range is post_mixer must declare the mixer it
+    # is configured with. The checker refuses the program otherwise, because
+    # it cannot know the band the device sees. The value comes from the config
+    # so the program describes the same device the oracle will compile for.
+    if config_path is not None:
+        cfg = json.loads(Path(config_path).read_text())
+        for ch in d.raw["channels"]:
+            if ch["kind"] != "drive":
+                continue
+            if not any(c.get("post_mixer") for c in ch["constraints"]):
+                continue
+            idx = int(ch["name"][3:])
+            g = cfg["gens"][idx]
+            if g.get("has_mixer"):
+                ch["_mixer_hz"] = Fraction(str(g["f_dds"])) * 1_000_000 / 4
 
     cases = []
     # One representative generator per behavior class. A mux or interpolated
@@ -518,6 +536,9 @@ def main():
     ap.add_argument("descriptor")
     ap.add_argument("outdir")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--config", default=None,
+                    help="board config, needed for channels with a post_mixer "
+                         "constraint so the program can declare its mixer")
     ap.add_argument("--random", type=int, default=40,
                     help="randomized programs per generator class")
     args = ap.parse_args()
@@ -527,7 +548,7 @@ def main():
     for old in outdir.glob("*.json"):
         old.unlink()
 
-    corpus = build_corpus(args.descriptor, args.seed, args.random)
+    corpus = build_corpus(args.descriptor, args.seed, args.random, args.config)
     index = []
     for name, program in corpus:
         path = outdir / f"{name}.json"

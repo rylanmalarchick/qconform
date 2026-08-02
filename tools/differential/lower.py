@@ -43,7 +43,7 @@ def channel_index(name):
     raise ValueError(f"channel name {name!r} does not map to a vendor channel")
 
 
-def declare_kwargs(soccfg, ch):
+def declare_kwargs(soccfg, ch, mixer_hz=None):
     """Arguments declare_gen needs for this generator.
 
     A generator with a digital mixer refuses to compile without mixer_freq,
@@ -58,7 +58,11 @@ def declare_kwargs(soccfg, ch):
     g = soccfg["gens"][ch]
     kw = {"ch": ch, "nqz": 1}
     if g.get("has_mixer"):
-        kw["mixer_freq"] = g["f_dds"] / 4
+        # Use the mixer the program declares. Inventing one here would mean
+        # the checker and the vendor were describing different devices, and a
+        # post_mixer band would be checked against the wrong offset.
+        kw["mixer_freq"] = (g["f_dds"] / 4 if mixer_hz is None
+                            else float(mixer_hz) / 1_000_000)
     if "mux" in g["type"]:
         kw["mux_freqs"] = [g["f_dds"] / 8, g["f_dds"] / 16]
         if g.get("has_gain"):
@@ -203,6 +207,8 @@ def build_plan(program, descriptor, soccfg):
             "duration_grid": dc["duration_grid"],
             "schedule_grid": dc["schedule_grid"],
             "resolution": res,
+            "mixer_hz": (rat(pc["mixer_frequency"])
+                         if "mixer_frequency" in pc else None),
         }
 
     frames = {f["name"]: dict(f) for f in program["frames"]}
@@ -210,7 +216,8 @@ def build_plan(program, descriptor, soccfg):
 
     for ch_name, b in bind.items():
         if b["kind"] == "gen":
-            plan.declare_gens.append(declare_kwargs(soccfg, b["index"]))
+            plan.declare_gens.append(
+                declare_kwargs(soccfg, b["index"], b.get("mixer_hz")))
 
     # envelopes are per waveform, declared once on each channel that plays them
     declared_envelopes = set()

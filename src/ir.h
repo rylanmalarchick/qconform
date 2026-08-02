@@ -16,6 +16,12 @@ typedef struct {
     Rat unit;             /* seconds per time unit, strictly positive */
     Rat sample_unit;      /* valid only when has_sample_unit */
     bool has_sample_unit;
+    /* Digital mixer frequency in Hz, signed. Present only when the channel
+     * is configured with one. A constraint whose post_mixer is set is
+     * checked against the frequency after this is subtracted, because that
+     * is what the device sees. */
+    Rat mixer_frequency;
+    bool has_mixer_frequency;
 } IrChannel;
 
 typedef struct {

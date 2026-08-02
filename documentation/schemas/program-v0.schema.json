@@ -17,7 +17,8 @@
         "properties": {
           "name": {"$ref": "#/$defs/name"},
           "unit": {"$ref": "#/$defs/positive_rational"},
-          "sample_unit": {"$ref": "#/$defs/positive_rational"}
+          "sample_unit": {"$ref": "#/$defs/positive_rational"},
+          "mixer_frequency": {"$ref": "#/$defs/rational"}
         }
       }
     },
