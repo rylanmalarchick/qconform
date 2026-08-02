@@ -1,0 +1,90 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The checker builds with a C compiler and POSIX sh. Nothing else.
+  # Two compilers, because -Werror findings differ between them.
+  build:
+    name: ${{ matrix.cc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show compiler
+        run: ${{ matrix.cc }} --version
+
+      - name: Build and check
+        run: make check CC=${{ matrix.cc }}
+
+  # Undefined behavior in the checker changes a verdict without changing a
+  # test result, so the sanitizers run on every push and not on request.
+  sanitize:
+    name: sanitizers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and check with UBSan and ASan
+        run: make sanitize
+
+  # The descriptors in this repository claim that every constraint traces to
+  # survey evidence. That claim holds only when something checks it.
+  artifacts:
+    name: json artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the validator dependency
+        run: pip install -r tools/format/requirements.txt
+
+      - name: Validate descriptors, programs, and reports
+        run: |
+          python tools/format/validate.py \
+            documentation/examples/*.json \
+            tests/golden/descriptors/testbench.json \
+            tests/golden/descriptors/qce2025-r26.json \
+            tests/golden/descriptors/hostile-ident.json \
+            tools/descriptor/descriptors/*.json
+
+      - name: Check descriptor evidence resolves
+        run: python tools/descriptor/check_descriptor.py
+
+  # The corpus is the contract. A frozen report that the checker no longer
+  # produces is a silent break, so regenerate and require no diff.
+  corpus:
+    name: corpus regenerates clean
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: make
+
+      - name: Regenerate the golden corpus
+        run: python tests/golden/generate.py ./qconform
+
+      - name: Require no change
+        run: |
+          if ! git diff --quiet; then
+            echo "Regenerating the corpus changed tracked files:"
+            git --no-pager diff --stat
+            exit 1
+          fi
+          echo "corpus regenerates byte-identical"
