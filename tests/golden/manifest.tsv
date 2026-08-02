@@ -19,5 +19,7 @@ malformed-dup-id	descriptors/testbench.json	malformed-dup-id/program.json	3	-
 malformed-dangling-frame	descriptors/testbench.json	malformed-dangling-frame/program.json	3	-
 malformed-negative-unit	descriptors/testbench.json	malformed-negative-unit/program.json	3	-
 malformed-envelope-sample-min	descriptors/testbench.json	malformed-envelope-sample-min/program.json	3	-
+malformed-bad-severity-descriptor	descriptors/bad-severity.json	malformed-bad-severity-descriptor/program.json	3	-
+malformed-ignored-constraint-descriptor	descriptors/ignored-constraint.json	malformed-ignored-constraint-descriptor/program.json	3	-
 malformed-overflow-cost-descriptor	descriptors/overflow-cost.json	malformed-overflow-cost-descriptor/program.json	3	-
 malformed-zero-grid-descriptor	descriptors/zero-grid.json	malformed-zero-grid-descriptor/program.json	3	-

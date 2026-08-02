@@ -72,6 +72,44 @@ static bool tool_error(Check *k, const char *fmt, ...) {
 
 static void cover(Check *k, CoverageClass c, CoverageStatus s) { k->coverage[c] = s; }
 
+/* Which severities a rule can carry, and whether a descriptor may declare it.
+ *
+ * A rejection carries a repair id when, and only when, its severity is
+ * vendor_repairable. See documentation/report-format-v0.txt. Each rule decides
+ * that at the point it emits, and most rules decide it once rather than per
+ * descriptor. A descriptor that assigns a severity the rule cannot express
+ * would produce a report that breaks the format it claims to follow.
+ *
+ * Some rule ids are emitted by the checker but are never read back as a
+ * descriptor constraint. frequency_resolution and amplitude_resolution are
+ * emitted from the resolution field of the frequency_range and amplitude_range
+ * constraints. Declaring one directly does nothing. The checker refuses it
+ * rather than accept a constraint it will ignore. */
+typedef enum {
+    SEV_FATAL_ONLY,        /* the emit site never sets a repair */
+    SEV_REPAIRABLE_ONLY,   /* the emit site always sets a repair */
+    SEV_EITHER,            /* the emit site follows the declared severity */
+    SEV_NOT_DECLARABLE     /* the checker owns this rule; a descriptor may not declare it */
+} SeverityRule;
+
+static SeverityRule severity_rule_for(RuleId id) {
+    switch (id) {
+    case QC_RULE_pulse_length_range:
+    case QC_RULE_readout_length_range:
+    case QC_RULE_envelope_sample_grid:
+    case QC_RULE_envelope_amplitude:
+        return SEV_FATAL_ONLY;
+    case QC_RULE_pulse_length_grid:
+    case QC_RULE_phase_resolution:
+        return SEV_REPAIRABLE_ONLY;
+    case QC_RULE_frequency_range:
+    case QC_RULE_amplitude_range:
+        return SEV_EITHER;
+    default:
+        return SEV_NOT_DECLARABLE;
+    }
+}
+
 bool validate_descriptor(const Descriptor *d, Diag *diag) {
     size_t i, j;
     for (i = 0; i < d->n_channels; i++) {
@@ -104,6 +142,32 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
                          "descriptor channel '" STR_FMT "' constraint %s: shape %s missing its parameters",
                          STR_ARG(ch->name), rule_id_name(c->id), shape_name(c->shape));
                 return false;
+            }
+
+            switch (severity_rule_for(c->id)) {
+            case SEV_NOT_DECLARABLE:
+                diag_set(diag,
+                         "descriptor channel '" STR_FMT "' constraint %s: the checker never reads this rule as a constraint",
+                         STR_ARG(ch->name), rule_id_name(c->id));
+                return false;
+            case SEV_FATAL_ONLY:
+                if (c->severity != QC_SEV_fatal) {
+                    diag_set(diag,
+                             "descriptor channel '" STR_FMT "' constraint %s: severity must be fatal, this rule reports no repair",
+                             STR_ARG(ch->name), rule_id_name(c->id));
+                    return false;
+                }
+                break;
+            case SEV_REPAIRABLE_ONLY:
+                if (c->severity != QC_SEV_vendor_repairable) {
+                    diag_set(diag,
+                             "descriptor channel '" STR_FMT "' constraint %s: severity must be vendor_repairable, this rule always reports a repair",
+                             STR_ARG(ch->name), rule_id_name(c->id));
+                    return false;
+                }
+                break;
+            case SEV_EITHER:
+                break;
             }
         }
         if (ch->capabilities.has_envelope_sample_grid && ch->capabilities.envelope_sample_grid <= 0) {

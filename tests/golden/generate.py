@@ -177,6 +177,26 @@ def main():
     shutil.copy(ROOT / "tools/descriptor/descriptors/qick-zcu216-qce2025-r26-v0.json",
                 desc_dir / "qce2025-r26.json")
 
+    # a descriptor that gives a rule a severity its emit site cannot express.
+    # pulse_length_range never reports a repair, so vendor_repairable would
+    # produce a report that breaks report-format-v0.txt.
+    bad_sev = json.loads((desc_dir / "testbench.json").read_text())
+    for c in bad_sev["channels"][0]["constraints"]:
+        if c["id"] == "pulse_length_range":
+            c["severity"] = "vendor_repairable"
+    (desc_dir / "bad-severity.json").write_text(json.dumps(bad_sev, indent=1) + "\n")
+
+    # a descriptor declaring a rule the checker never reads as a constraint.
+    # frequency_resolution is emitted from the resolution field of
+    # frequency_range, so declaring it directly would be silently ignored.
+    ignored = json.loads((desc_dir / "testbench.json").read_text())
+    ignored["channels"][0]["constraints"].append({
+        "id": "frequency_resolution", "quantity": "frequency",
+        "shape": "range_resolution", "severity": "vendor_repairable",
+        "resolution": {"num": 25, "den": 62}, "evidence": [],
+    })
+    (desc_dir / "ignored-constraint.json").write_text(json.dumps(ignored, indent=1) + "\n")
+
     # a descriptor whose cost model overflows any real program: the budget
     # total must be refused, not wrapped. Found by the differential harness.
     big = json.loads((desc_dir / "testbench.json").read_text())
@@ -234,6 +254,18 @@ def main():
             sys.exit(f"{name}: exit {r.returncode}, stdout {len(r.stdout)}B; wanted 3, empty")
         manifest.append((name, TB_DESC, f"{name}/program.json", 3, "-"))
         summary.append(f"{name}: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
+
+    for case, desc_file in (("malformed-bad-severity-descriptor", "bad-severity.json"),
+                            ("malformed-ignored-constraint-descriptor", "ignored-constraint.json")):
+        d = HERE / case
+        d.mkdir(exist_ok=True)
+        (d / "program.json").write_text(json.dumps(valid, indent=1) + "\n")
+        r = subprocess.run([str(QCONFORM), str(desc_dir / desc_file),
+                            str(d / "program.json")], capture_output=True)
+        if r.returncode != 3 or r.stdout:
+            sys.exit(f"{case}: exit {r.returncode}; wanted 3, empty stdout")
+        manifest.append((case, f"descriptors/{desc_file}", f"{case}/program.json", 3, "-"))
+        summary.append(f"{case}: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
 
     d = HERE / "malformed-overflow-cost-descriptor"
     d.mkdir(exist_ok=True)
