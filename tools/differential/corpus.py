@@ -1,10 +1,21 @@
 """Generate the phase 5 corpus.
 
-Boundary-driven, not random. For each limit the descriptor declares, emit a
-ladder of values around it: far below, just below, exactly at, just above,
-far above. The just-below and exactly-at rungs carry the weight, because the
-gate is about programs qconform accepts and those are where an accept is most
-likely to be wrong.
+Two kinds of program, for two different jobs.
+
+Boundary ladders. For each limit the descriptor declares, emit values far
+below, just below, exactly at, just above and far above it. The just-below
+and exactly-at rungs carry the weight, because the gate is about programs
+qconform accepts and those are where an accept is most likely to be wrong.
+These find a limit that is stated wrongly.
+
+Randomized programs. The ladders probe one limit at a time and every program
+they emit was designed, so they cannot find a combination nobody thought of.
+The randomized programs compose several elements at once with values drawn
+near the limits. These find what the ladders do not imply.
+
+Both run for every distinct generator class the descriptor declares, not only
+the first channel. A mux or an interpolated generator carries different
+constraints from a v6.
 
 Seeded. The seed chooses which rungs combine and in what order. The same seed
 produces byte-identical output, so a result can be replayed.
@@ -63,6 +74,25 @@ class Descriptor:
 
     def unconstrained(self):
         return [c["name"] for c in self.raw["channels"] if not c["constraints"]]
+
+    def classes(self, kind):
+        """One representative channel per distinct behavior class.
+
+        Channels of the same vendor type with the same grids, constraints and
+        capabilities behave the same, so probing all sixteen generators on a
+        board would cost time and buy nothing. Probing one of each kind is
+        what finds a rule that only a mux or an interpolated generator can
+        reach. tools/survey/probes.py groups the same way.
+        """
+        seen = {}
+        for c in self.raw["channels"]:
+            if c["kind"] != kind:
+                continue
+            key = (c["vendor_type"], c["duration_grid"], c["schedule_grid"],
+                   tuple(sorted(x["id"] for x in c["constraints"])),
+                   tuple(sorted(c.get("capabilities", {}))))
+            seen.setdefault(key, c)
+        return list(seen.values())
 
 
 def base(channel, unit, sample_unit=None):
@@ -373,27 +403,105 @@ def cases_budgets(d, gen):
     return out
 
 
-def build_corpus(descriptor_path, seed):
+def random_cases(d, gen, rng, count):
+    """Programs the boundary ladders do not imply.
+
+    The ladders probe one limit at a time, which is what finds a limit stated
+    wrongly. They cannot find a combination nobody thought of, because every
+    program they emit was designed. These compose several elements at once,
+    with values drawn near the limits rather than uniformly, so they stay in
+    the region where an accept can be wrong.
+
+    Seeded from the caller. Nothing here reads a clock.
+    """
+    unit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
+    dgrid = gen["duration_grid"]
+    sgrid = gen["schedule_grid"]
+    plr = d.constraint(gen["name"], "pulse_length_range")
+    lo = plr.get("min_units", dgrid) if plr else dgrid
+    hi = plr.get("max_units", 4000 * dgrid) if plr else 4000 * dgrid
+    freq = d.constraint(gen["name"], "frequency_range")
+    amp = d.constraint(gen["name"], "amplitude_range")
+
+    def near_limit(limit, step):
+        """A value at, just inside, or just outside a limit."""
+        return limit + step * rng.choice((-2, -1, 0, 1, 2))
+
+    out = []
+    for i in range(count):
+        b = Builder([base(gen["name"], unit)], gen_frames(gen["name"]))
+        n_wf = rng.randint(1, 3)
+        for w in range(n_wf):
+            if amp is not None and "max" in amp and "resolution" in amp:
+                a_max = Fraction(amp["max"]["num"], amp["max"]["den"])
+                a_res = Fraction(amp["resolution"]["num"], amp["resolution"]["den"])
+                value = near_limit(a_max, a_res) * Fraction(rng.choice((1, 1, 1, -1)))
+            else:
+                value = Fraction(rng.randint(0, 100), 128)
+            b.wf_const(f"w{w}", value)
+
+        for _ in range(rng.randint(1, 6)):
+            pick = rng.random()
+            if pick < 0.55:
+                dur = rng.choice((
+                    near_limit(lo, dgrid),
+                    near_limit(hi, dgrid),
+                    rng.randint(1, 200) * dgrid + rng.choice((0, 0, 1, dgrid // 2)),
+                ))
+                b.add(kind="play", frame="f0", waveform=f"w{rng.randrange(n_wf)}",
+                      duration=max(dur, 0))
+            elif pick < 0.75:
+                b.add(kind="delay", frame="f0",
+                      duration=rng.randint(1, 50) * sgrid + rng.choice((0, 0, 1)))
+            elif pick < 0.9 and freq is not None and "max" in freq:
+                f_max = Fraction(freq["max"]["num"], freq["max"]["den"])
+                f_res = (Fraction(freq["resolution"]["num"], freq["resolution"]["den"])
+                         if "resolution" in freq else Fraction(1))
+                b.add(kind="set_frequency", frame="f0",
+                      frequency=rat(near_limit(f_max, f_res)
+                                    * Fraction(rng.choice((1, -1)))))
+            else:
+                b.add(kind="shift_phase", frame="f0",
+                      phase=rat(Fraction(rng.randint(0, 4095), 4096)))
+
+        if not any(e["kind"] == "play" for e in b.elements):
+            b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
+        out.append((f"random_{i:03d}", b.program()))
+    return out
+
+
+def build_corpus(descriptor_path, seed, random_programs=40):
     d = Descriptor(descriptor_path)
-    gen = d.gens[0]
-    ro = d.readouts[0] if d.readouts else None
+    rng = random.Random(seed)
 
     cases = []
-    cases += cases_pulse_length(d, gen)
-    cases += cases_schedule_grid(d, gen)
-    cases += cases_frequency(d, gen)
-    cases += cases_phase(d, gen)
-    cases += cases_amplitude(d, gen)
-    cases += cases_envelope(d, gen)
-    cases += cases_negative(d, gen)
-    cases += cases_budgets(d, gen)
-    cases += cases_unconstrained(d, gen)
-    if ro is not None:
-        cases += cases_readout(d, gen, ro)
+    # One representative generator per behavior class. A mux or interpolated
+    # generator declares different constraints from a v6, so a corpus that
+    # only probes gen0 cannot reach the rules the others carry.
+    for gen in d.classes("drive"):
+        tag = gen["name"]
+        per_gen = []
+        per_gen += cases_pulse_length(d, gen)
+        per_gen += cases_schedule_grid(d, gen)
+        per_gen += cases_frequency(d, gen)
+        per_gen += cases_phase(d, gen)
+        per_gen += cases_amplitude(d, gen)
+        per_gen += cases_envelope(d, gen)
+        per_gen += cases_negative(d, gen)
+        per_gen += random_cases(d, gen, random.Random(seed + hash(tag) % 9973),
+                                random_programs)
+        for ro in d.classes("readout"):
+            per_gen += cases_readout(d, gen, ro)
+        cases += [(f"{tag}__{name}", prog) for name, prog in per_gen]
 
-    # The seed fixes the order. Nothing else here consumes randomness, so a
-    # rerun with the same seed writes byte-identical files.
-    rng = random.Random(seed)
+    # Budgets and the unconstrained channel are whole-program properties, so
+    # one generator is enough for them.
+    gen0 = d.classes("drive")[0]
+    cases += cases_budgets(d, gen0)
+    cases += cases_unconstrained(d, gen0)
+
+    # The seed fixes the order. Nothing else consumes randomness at this
+    # point, so a rerun with the same seed writes byte-identical files.
     rng.shuffle(cases)
 
     seen = {}
@@ -410,6 +518,8 @@ def main():
     ap.add_argument("descriptor")
     ap.add_argument("outdir")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--random", type=int, default=40,
+                    help="randomized programs per generator class")
     args = ap.parse_args()
 
     outdir = Path(args.outdir)
@@ -417,7 +527,7 @@ def main():
     for old in outdir.glob("*.json"):
         old.unlink()
 
-    corpus = build_corpus(args.descriptor, args.seed)
+    corpus = build_corpus(args.descriptor, args.seed, args.random)
     index = []
     for name, program in corpus:
         path = outdir / f"{name}.json"

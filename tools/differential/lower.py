@@ -312,6 +312,15 @@ def build_plan(program, descriptor, soccfg):
             raise LoweringError(f"element {eid}: unsupported kind {kind!r}")
         if b["kind"] != "gen":
             raise LoweringError(f"element {eid}: play on a readout channel")
+        # A muxed generator plays a tone table and requires a mask naming the
+        # tones. The qconform program format has no way to say which tones a
+        # play uses, so this lowering cannot express a mux pulse. Refusing is
+        # the honest answer; guessing a mask would test a program the input
+        # did not describe.
+        if "mux" in soccfg["gens"][b["index"]].get("type", ""):
+            raise LoweringError(
+                f"element {eid}: {soccfg['gens'][b['index']]['type']} is a "
+                f"muxed generator; the program format cannot name its tones")
 
         wf = waveforms[el["waveform"]]
         amp = None
