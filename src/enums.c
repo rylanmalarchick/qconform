@@ -13,8 +13,12 @@ _Static_assert((int)QC_RULE_negative_time == (int)QC_COV_negative_time, "");
 _Static_assert((int)QC_COV_pmem_words == QC_RULE_ID_COUNT,
                "the budget classes must follow the rule registry, not interleave with it");
 
-/* Name tables. Each is generated from the same registry as its enum, so an
- * entry cannot exist in one and not the other. */
+/* Name tables. Each comes from the same registry as its enum, so an entry
+ * cannot exist in one and not the other.
+ *
+ * Some tables have no name accessor. The report echoes only a few of these
+ * enumerations, but every table still serves its *_from_name lookup, so all
+ * fourteen registries stay uniform. */
 
 #define X(n) #n,
 static const char *const severity_names[] = {QC_SEVERITIES(X)};
@@ -57,14 +61,10 @@ static bool lookup_value(const char *const *table, int count, const char *s,
 
 QC_NAME_FN(severity_name, Severity, severity_names, QC_SEVERITY_COUNT)
 QC_NAME_FN(quantity_name, Quantity, quantity_names, QC_QUANTITY_COUNT)
-QC_NAME_FN(round_mode_name, RoundMode, round_mode_names, QC_ROUND_MODE_COUNT)
-QC_NAME_FN(frames_mode_name, FramesMode, frames_mode_names, QC_FRAMES_MODE_COUNT)
-QC_NAME_FN(channel_kind_name, ChannelKind, channel_kind_names, QC_CHANNEL_KIND_COUNT)
 QC_NAME_FN(shape_name, Shape, shape_names, QC_SHAPE_COUNT)
 QC_NAME_FN(rule_id_name, RuleId, rule_id_names, QC_RULE_ID_COUNT)
 QC_NAME_FN(repair_id_name, RepairId, repair_id_names, QC_REPAIR_ID_COUNT)
 QC_NAME_FN(budget_id_name, BudgetId, budget_id_names, QC_BUDGET_ID_COUNT)
-QC_NAME_FN(cost_kind_name, CostKind, cost_kind_names, QC_COST_KIND_COUNT)
 QC_NAME_FN(verdict_name, Verdict, verdict_names, QC_VERDICT_COUNT)
 QC_NAME_FN(budget_verdict_name, BudgetVerdict, budget_verdict_names, QC_BUDGET_VERDICT_COUNT)
 QC_NAME_FN(coverage_status_name, CoverageStatus, coverage_status_names, QC_COVERAGE_STATUS_COUNT)

@@ -148,7 +148,7 @@ TEST(member_order_is_input_order) {
 }
 
 TEST(duplicate_keys_last_wins) {
-    /* Matches std.json's map semantics; see the comment on json_get. */
+    /* Matches the previous implementation. See the comment on json_get. */
     JsonValue *v = parse("{\"a\": 1, \"a\": 2}");
     CHECK(v != NULL);
     CHECK_I64(v->as.object.len, 2);

@@ -80,16 +80,6 @@ void *arena_array(Arena *a, size_t count, size_t size) {
     return arena_alloc(a, count * size, MAX_ALIGN);
 }
 
-char *arena_strndup(Arena *a, const char *s, size_t n) {
-    char *p;
-    if (n == SIZE_MAX) return NULL;
-    p = arena_alloc(a, n + 1, 1);
-    if (p == NULL) return NULL;
-    if (n != 0) memcpy(p, s, n);
-    p[n] = '\0';
-    return p;
-}
-
 void arena_destroy(Arena *a) {
     Block *b;
     if (a == NULL) return;

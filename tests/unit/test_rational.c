@@ -1,10 +1,15 @@
-/* S2 gate: the rational core and the two porting hazards.
+/* The rational core, and the two hazards the port had to handle.
  *
- * The first six tests are the Zig rational.zig tests transliterated. The rest
- * exist because C's defaults differ from Zig's in ways that would produce a
- * wrong verdict rather than a crash, and because -O2 is entitled to delete an
- * overflow check that depends on undefined behavior. Run this at -O0, -O2,
- * and under UBSan/ASan; -O2 is the run that matters for abs_i64.
+ * The first six tests come from the Zig implementation this file replaced.
+ * The rest exist because two C defaults produce a wrong verdict instead of a
+ * crash. A compiler at -O2 may also delete an overflow check that depends on
+ * undefined behavior.
+ *
+ * Run this at -O0, at -O2, and under UBSan and ASan. The -O2 run is the one
+ * that matters for abs_i64.
+ *
+ * The Zig implementation is archived at
+ * desktop:/mnt/four/archive/qconform-zig-2026-07-24/.
  */
 
 #include "../../src/arena.c"
@@ -16,7 +21,7 @@ static Rat rat(int64_t n, int64_t d) {
     return r;
 }
 
-/* --- transliterated from rational.zig ------------------------------------ */
+/* --- carried over from the previous implementation ----------------------- */
 
 TEST(canonical) {
     CHECK(rat_is_canonical(rat(1, 2)));
@@ -75,9 +80,9 @@ TEST(overflow_detected) {
 /* --- H1: floored vs truncated division ----------------------------------- */
 
 TEST(h1_floor_helpers_are_not_c_defaults) {
-    /* This is the whole hazard in four lines: C's / and % disagree with the
-     * semantics check.zig was written against, on exactly the negative
-     * operands a bad time base makes reachable. */
+    /* The whole hazard, in four lines. C's / and % disagree with the rounding
+     * the checker needs. They disagree only on negative operands, which a bad
+     * time base makes reachable. */
     CHECK_I64(floor_div(-7, 2), -4);
     CHECK_I64(floor_mod(-7, 2), 1);
     CHECK_I64(-7 / 2, -3);
@@ -137,12 +142,12 @@ TEST(h2_int64_min_through_reduce) {
     Rat out;
     /* reduce() normalizes through the unsigned magnitude and only then casts
      * back, so |INT64_MIN| == 2^63 does not fit and every arithmetic entry
-     * point refuses it. Verified to match rational.zig, which casts the same
-     * way (std.math.cast(i64, un / g) orelse error.Overflow).
+     * point refuses it. The previous implementation cast the same way and
+     * refused it too.
      *
-     * The useful consequence: INT64_MIN is accepted by the parser as a
-     * canonical numerator but can never be computed with, so it cannot wrap
-     * into a wrong verdict — it can only become a tool error. */
+     * This has a useful consequence. The parser accepts INT64_MIN as a
+     * canonical numerator, but no arithmetic can use it. It therefore cannot
+     * wrap into a wrong verdict. It can only become a tool error. */
     CHECK(!rat_mul(rat(INT64_MIN, 1), rat(1, 1), &out));
     CHECK(!rat_mul_int(rat(INT64_MIN, 1), 2, &out));
     CHECK(!rat_div(rat(INT64_MIN, 1), rat(-1, 1), &out));
@@ -204,7 +209,6 @@ TEST(arena_basics) {
     Arena *a = arena_new();
     unsigned char *p;
     int64_t *arr;
-    char *s;
     size_t i;
 
     CHECK(a != NULL);
@@ -219,9 +223,6 @@ TEST(arena_basics) {
     for (i = 0; i < 1000; i++) CHECK_I64(arr[i], 0);
     for (i = 0; i < 1000; i++) arr[i] = (int64_t)i;
     CHECK_I64(arr[999], 999);
-
-    s = arena_strndup(a, "gen0-and-more", 4);
-    CHECK_STR(s, "gen0");
 
     /* allocation larger than a block still succeeds */
     p = arena_alloc(a, 1024u * 1024u, 16);

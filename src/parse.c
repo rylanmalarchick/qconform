@@ -6,10 +6,13 @@
 
 #include "json.h"
 
-/* Diagnostic strings are part of the contract: the corpus records stderr for
- * every exit-3 case, and the C and Zig implementations must agree on which
- * message fires for which input. Wording and check ORDER are therefore both
- * load-bearing — this file follows src/parse.zig statement for statement. */
+/* Diagnostic strings are part of the contract. The corpus records stderr for
+ * every exit-3 case. Both the wording and the order of the checks decide which
+ * message a given input produces, so treat both as load-bearing.
+ *
+ * This file was ported from a Zig implementation, statement for statement.
+ * That implementation is archived at
+ * desktop:/mnt/four/archive/qconform-zig-2026-07-24/. */
 
 void diag_set(Diag *d, const char *fmt, ...) {
     va_list ap;
@@ -194,8 +197,8 @@ static bool unique_names(Ctx *c, const Str *names, size_t n, const char *what) {
     return true;
 }
 
-/* Any syntax error collapses to one message, matching the Zig, which gets a
- * single error out of std.json. The specific reason is still available in
+/* Any syntax error collapses to one message. The previous implementation
+ * returned a single error from its JSON library. The specific reason stays in
  * `err` and is worth surfacing if these diagnostics ever stop needing to
  * match an oracle. */
 static bool parse_root(Ctx *c, const char *bytes, size_t len, const JsonValue **out) {

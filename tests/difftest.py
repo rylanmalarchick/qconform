@@ -171,23 +171,27 @@ CLASSIFICATION = (b"float (no floats allowed)", b"number outside i64")
 
 
 def is_known_number_classification(a_err, b_err):
-    """The documented behavioural differences between the two number readers.
+    """Two documented differences between number readers.
 
-    Both stem from std.json classifying a number token by trying conversions,
-    where the C reader classifies by the token's shape and never converts:
+    Both appeared when this checker was ported from Zig. The Zig reader used
+    the standard library, which classifies a number token by trying
+    conversions. The C reader classifies by the shape of the token and never
+    converts. The two disagree on exactly two inputs:
 
-      -0      std.json parses it as f64 to preserve negative zero, so it
-              reports a float. The JSON grammar makes "-0" an integer literal
-              and program-format-v0.txt says every number is an integer, so
-              the C reader yields the integer 0. The C is spec-correct here.
+      -0      The Zig reader parsed it as a float to keep negative zero, and
+              reported a float. The JSON grammar makes "-0" an integer
+              literal, and program-format-v0.txt says every number is an
+              integer. The C reader returns the integer 0, which the
+              specification describes. The corpus pins this behavior.
 
-      1e400   overflows f64, so std.json falls back to reporting it outside
-              i64; the C reader calls it a float on sight. Both reject.
+      1e400   The value is outside the range of a 64-bit float, so the Zig
+              reader reported it as outside i64. The C reader calls it a
+              float on sight. Both reject the input.
 
-    Matching std.json exactly would mean reimplementing its float behaviour
-    inside a program that deliberately contains no floating point. These are
-    counted and reported separately rather than silently tolerated, and the
-    C behaviour is pinned by its own corpus case once the Zig is retired.
+    Matching the old reader exactly would mean reimplementing float behavior
+    inside a program that contains no floating point on purpose. This function
+    counts and reports these cases separately. It does not tolerate them
+    silently.
     """
     if a_err == b_err:
         return False

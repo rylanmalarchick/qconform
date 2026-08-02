@@ -5,11 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* This file follows src/check.zig statement for statement. Two C defaults are
- * wrong for it and are never used here: bare / and % on signed values (see
- * floor_div/floor_mod in intmath.h) and llabs (see abs_i64). Both differ from
- * the Zig semantics only on negative operands, which is exactly where a
- * wrong answer would be silent. */
+/* Two C defaults are wrong for this file and never appear in it. Bare / and %
+ * on signed values truncate toward zero. This checker rounds toward negative
+ * infinity, so it uses floor_div and floor_mod from intmath.h. llabs is
+ * undefined at INT64_MIN, so it uses abs_i64.
+ *
+ * Both defaults differ only on negative operands. That is where a wrong answer
+ * is silent, so the difference matters more than its size suggests.
+ *
+ * This file was ported from a Zig implementation, statement for statement.
+ * That implementation is archived at
+ * desktop:/mnt/four/archive/qconform-zig-2026-07-24/. */
 
 typedef struct {
     Rejection rej;
@@ -43,8 +49,8 @@ static bool sink_add(Sink *s, Rejection r) {
     return true;
 }
 
-/* Shared state for one check() run, so the rule interpreters do not each take
- * a dozen parameters the way their Zig counterparts do. */
+/* Shared state for one check() run. Without it each rule interpreter would
+ * take a dozen parameters. */
 typedef struct {
     Arena *arena;
     const IrProgram *prog;

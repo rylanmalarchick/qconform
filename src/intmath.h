@@ -1,24 +1,30 @@
 #ifndef QCONFORM_INTMATH_H
 #define QCONFORM_INTMATH_H
 
-/* Signed integer primitives with the semantics the checker was written
- * against. Two of these exist because C's defaults differ from Zig's in ways
- * that produce a wrong verdict rather than a crash:
+/* Signed integer primitives with the semantics the checker needs. Two of them
+ * exist because the C default gives a wrong verdict instead of a crash.
  *
- *   abs_i64  - Zig's @abs on i64 yields u64, so INT64_MIN is representable.
- *              llabs(INT64_MIN) is undefined, and at -O2 the compiler is
- *              entitled to delete any overflow check that depends on it.
- *              A descriptor may legally contain {"num": INT64_MIN, "den": 1}.
+ *   abs_i64  - The magnitude of INT64_MIN is 2^63, which no int64_t holds.
+ *              llabs(INT64_MIN) is undefined. At -O2 a compiler may delete any
+ *              overflow check that depends on it. A descriptor can legally
+ *              contain {"num": INT64_MIN, "den": 1}, so this case is reachable
+ *              from an input file. abs_i64 returns the magnitude as a uint64_t
+ *              and stays defined.
  *
  *   floor_div / floor_mod
- *            - Zig's @divFloor/@mod round toward negative infinity and yield
- *              a non-negative remainder. C's / and % truncate toward zero and
- *              give the remainder the dividend's sign. For -7/2 that is
- *              (-4, 1) against (-3, -1), which changes which branch
- *              round_nearest_even takes.
+ *            - The checker rounds toward negative infinity and needs a
+ *              remainder that takes the sign of the divisor. C's / and %
+ *              truncate toward zero and give the remainder the sign of the
+ *              dividend. For -7 over 2 the two rules give (-4, 1) and
+ *              (-3, -1). That changes which branch rat_round_nearest_even
+ *              takes, and no diagnostic reports the difference.
  *
- * Bare / and % on signed values are banned in check.c; see the tripwire in
- * the Makefile's `check` target.
+ * check.c must not use bare / or % on signed values. tests/tripwires.sh
+ * enforces this, and `make check` runs it.
+ *
+ * This checker was ported from a Zig implementation, which had these
+ * semantics built in. That implementation is archived at
+ * desktop:/mnt/four/archive/qconform-zig-2026-07-24/.
  */
 
 #include <stdint.h>

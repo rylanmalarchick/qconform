@@ -1,16 +1,26 @@
-"""Validate qconform JSON artifacts: schema plus the rules JSON Schema
-cannot express. Prototypes the Zig core's input validation and serves as
-its test oracle.
+"""Validate a qconform JSON artifact against its schema and the rules that
+JSON Schema cannot state.
+
+Use this when you author a descriptor, a program, or an exporter. The checker
+in src/ applies the same rules. This script reports them one file at a time,
+which is easier to work from than a single exit code.
 
 Usage: python validate.py <file.json> [...]
-The format is detected from the "format" field. Exit 0 = all valid.
+The script reads the "format" field to pick the schema. Exit 0 means every
+file is valid.
 
-Beyond-schema checks (all formats): no floats anywhere (any JSON number
-with a fractional part is rejected at parse), integers within i64,
-rationals canonical (den > 0, gcd(|num|, den) == 1).
-Program-specific: unique names per array, unique element ids, no
-dangling frame/channel/waveform references, samples i/q equal length,
-sample_unit present on channels playing samples waveforms.
+Checks for every format:
+  - no floats anywhere. Any JSON number with a fraction is an error.
+  - every integer fits in i64.
+  - every rational is canonical. den > 0, and gcd(|num|, den) == 1.
+  - unit and sample_unit are strictly positive.
+
+Checks for programs:
+  - names are unique inside each array.
+  - element ids are unique.
+  - no frame, channel, or waveform reference dangles.
+  - the i and q sample arrays have equal length.
+  - a channel that plays a samples waveform declares sample_unit.
 """
 
 import json

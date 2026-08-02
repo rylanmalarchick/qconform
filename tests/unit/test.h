@@ -3,7 +3,7 @@
 
 /* Minimal assert harness. Test files #include the .c files under test
  * directly, so file-private (static) functions are reachable — the same
- * access the Zig `test` blocks had. */
+ * access the previous implementation's test blocks had. */
 
 #include <stdio.h>
 #include <string.h>

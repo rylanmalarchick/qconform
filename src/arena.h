@@ -27,10 +27,6 @@ void *arena_alloc(Arena *a, size_t n, size_t align);
  * failure or on count * size overflow. */
 void *arena_array(Arena *a, size_t count, size_t size);
 
-/* Copy n bytes into the arena, plus a NUL the caller may ignore, so parsed
- * strings can be handed to printf-family functions. NULL on failure. */
-char *arena_strndup(Arena *a, const char *s, size_t n);
-
 /* Release every block. Called once, at exit. */
 void arena_destroy(Arena *a);
 

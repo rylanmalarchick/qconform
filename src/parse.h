@@ -17,7 +17,7 @@
 #include "capability.h"
 #include "ir.h"
 
-/* Diagnostic buffer. Fixed size, matching the Zig: a diagnostic longer than
+/* Diagnostic buffer. Fixed size: a diagnostic longer than
  * this is truncated rather than allocated, because it is on the failure path
  * and the failure path must not itself fail. */
 typedef struct {

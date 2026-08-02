@@ -3,17 +3,18 @@
 
 /* Every enumeration the formats serialize, as X-macro registries.
  *
- * Each registry is written once and generates three things: the C enum, the
- * name table used for output, and the name lookup used for input. They cannot
- * drift from one another, which is what the Zig got for free from @tagName
- * and std.meta.stringToEnum.
+ * Each registry appears once and generates three things: the C enum, the name
+ * table used for output, and the name lookup used for input. The three cannot
+ * drift apart, because one list produces all of them.
  *
- * Ordinals are internal. Ids serialize as these names, never as numbers, and
- * the registries are append-only: a rule id is never renamed, renumbered, or
- * reused, and a retired id keeps its slot reserved (report-format-v0.txt).
- * Ordinal ORDER is still load-bearing in two places — the report lists
- * coverage classes in registry order, and rejections sort by rule ordinal —
- * so appending is safe but reordering is not.
+ * Ordinals are internal. Ids serialize as these names, never as numbers. The
+ * registries are append-only. A rule id is never renamed, renumbered, or
+ * reused, and a retired id keeps its slot reserved. See
+ * documentation/report-format-v0.txt.
+ *
+ * Ordinal order is load-bearing in two places. The report lists coverage
+ * classes in registry order, and rejections sort by rule ordinal. Adding an
+ * entry at the end is safe. Reordering is not.
  */
 
 #include <stdbool.h>
@@ -66,6 +67,9 @@
     X(envelope_memory)      \
     X(schedule_grid)        \
     X(negative_duration)    \
+    /* negative_time is reserved. Once a channel unit must be positive, the
+       frame clock cannot go negative, so nothing emits this rule. The registry
+       is append-only and a retired id keeps its slot, so it stays here. */ \
     X(negative_time)
 
 #define QC_REPAIR_IDS(X)  \
@@ -176,14 +180,10 @@ typedef enum { QC_COVERAGE_CLASSES(X) QC_COVERAGE_CLASS_COUNT } CoverageClass;
 
 const char *severity_name(Severity v);
 const char *quantity_name(Quantity v);
-const char *round_mode_name(RoundMode v);
-const char *frames_mode_name(FramesMode v);
-const char *channel_kind_name(ChannelKind v);
 const char *shape_name(Shape v);
 const char *rule_id_name(RuleId v);
 const char *repair_id_name(RepairId v);
 const char *budget_id_name(BudgetId v);
-const char *cost_kind_name(CostKind v);
 const char *verdict_name(Verdict v);
 const char *budget_verdict_name(BudgetVerdict v);
 const char *coverage_status_name(CoverageStatus v);

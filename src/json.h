@@ -37,7 +37,7 @@ typedef enum {
      * The token is recognized and classified but never converted, so no
      * floating-point conversion exists in the process. Carrying the two cases
      * as distinct kinds lets the typed accessors in parse.c report them with
-     * the offending field's path, exactly as the Zig implementation does. */
+     * the offending field's path, as the previous implementation did. */
     JSON_FLOAT,
     JSON_BIGINT,
     JSON_STRING,
