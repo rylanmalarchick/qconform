@@ -46,7 +46,8 @@ Layout
 ------
 
   src/                 the checker, and nothing else
-  documentation/       format specifications and JSON Schemas
+  documentation/       format specifications, JSON Schemas, and the
+                       port notes explaining the arithmetic helpers
   tests/unit/          unit tests
   tests/golden/        differential corpus (inputs + frozen expected reports)
   tests/tripwires.sh   invariant checks over src/ and the built binary

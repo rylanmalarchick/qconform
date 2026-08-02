@@ -28,88 +28,132 @@ the same discipline.
 
 rejection
 ---------
-  {"rule": "grid_multiple", "severity": "fatal", "element": 0,
-   "quantity": "time",
-   "value": {"num": 3, "den": 29950000},
-   "limit": {"num": 1, "den": 149750000}}
+Every example below is real output. The corpus case that produces it is
+named in brackets.
+
+A fatal rejection carries no repair [below-min-length]:
+
+  {"rule": "pulse_length_range", "severity": "fatal", "element": 0,
+   "quantity": "time", "value": {"num": 1, "den": 299520000},
+   "limit": {"num": 1, "den": 199680000}}
+
+A vendor_repairable rejection names the repair [freq-alias-v6]:
+
+  {"rule": "frequency_range", "severity": "vendor_repairable",
+   "repair": "alias_mod_f_dds", "element": 0, "quantity": "frequency",
+   "value": {"num": 7188480000, "den": 1},
+   "limit": {"num": 4792320000, "den": 1}}
 
 - rule: rule id
-- severity: fatal | vendor_repairable
-- repair: present iff severity is vendor_repairable; the repair id
-  names what the vendor stack silently does (e.g. quantize_duration,
-  zero_pad_envelope). Whether a repair preserves experiment semantics
-  is documented per repair id in the rule catalog, not restated per
-  rejection.
+- severity: fatal or vendor_repairable
+- repair: present when, and only when, severity is vendor_repairable.
+  The repair id names what the vendor stack does silently, such as
+  quantize_duration. The rule catalog records whether a repair keeps
+  experiment semantics. A rejection does not restate that.
+  A checker enforces this pairing at descriptor load. Some rules never
+  report a repair and others always do, so a descriptor cannot give a
+  rule a severity the rule cannot express.
 - element: the element id from the program file
-- quantity: time | frequency | phase | amplitude | count
-- value, limit: offending value and device limit as exact rationals in
-  the SI base unit of the quantity: seconds, Hz, turns, full-scale
-  fraction, dimensionless count. Temporal values are reported in
-  seconds, converted exactly from ticks, so a report reads the same
-  under any descriptor.
+- quantity: time, frequency, phase, amplitude, or count
+- value, limit: the offending value and the device limit, as exact
+  rationals in the SI base unit of the quantity. The units are seconds,
+  Hz, turns, full-scale fraction, and dimensionless count. A temporal
+  value is converted exactly from ticks to seconds, so a report reads
+  the same under any descriptor.
 
-Ordering is deterministic: rules in catalog order; within a rule,
-elements in file order. Identical input yields byte-identical output.
+Ordering is deterministic. Rules appear in catalog order. Inside one
+rule, elements appear in file order. The same input always produces
+byte-identical output.
 
 budgets (class B)
 -----------------
-  {"budget": "instruction_memory", "verdict": "indeterminate",
-   "lower_bound": 9000, "upper_bound": 14000, "limit": 12288}
+Real output [below-min-length]:
 
-- fits: upper_bound <= limit; stays out of the rejection list
-- violates: lower_bound > limit; also emitted as a fatal rejection with
-  quantity count
-- indeterminate: the limit falls between the bounds; reported here,
-  never a rejection. A fatal reject only ever comes from a proven lower
-  bound, not from a conservative estimate.
+  {"budget": "pmem_words", "verdict": "fits",
+   "lower_bound": 15, "upper_bound": 16, "limit": 4096}
+
+- fits: upper_bound is at most the limit. The budget stays out of the
+  rejection list.
+- violates: lower_bound is above the limit. The budget also appears as a
+  fatal rejection with quantity count.
+- indeterminate: the limit falls between the two bounds. The budget
+  appears here and never as a rejection.
+
+A fatal rejection comes only from a proven lower bound. A conservative
+estimate never produces one.
 
 coverage manifest
 -----------------
-  [{"class": "timing_grid", "status": "checked"},
-   {"class": "instruction_memory", "status": "indeterminate"},
-   {"class": "rtio_slack", "status": "unchecked"}]
+The manifest lists every class the checker knows, in registry order, so
+its length does not depend on the program. Real output, abridged
+[below-min-length]:
 
-status: checked | not_applicable | unchecked | indeterminate.
-pass means exactly: no violation found within the classes marked
-checked, against the echoed descriptor at its pinned versions. Nothing
-more. not_applicable marks a class the program does not exercise; a
-vacuous pass and an unchecked class are different statements.
+  [{"class": "pulse_length_range", "status": "checked"},
+   {"class": "readout_length_range", "status": "not_applicable"},
+   {"class": "envelope_memory", "status": "not_applicable"},
+   {"class": "pmem_words", "status": "checked"},
+   {"class": "unconstrained_channel", "status": "not_applicable"}]
+
+A status is checked, not_applicable, unchecked, or indeterminate.
+
+A verdict of pass means one thing. The checker found no violation in the
+classes marked checked, against the echoed descriptor at its pinned
+versions. It means nothing more.
+
+not_applicable marks a class the program does not exercise. unchecked
+marks a class the descriptor declares but does not constrain. A vacuous
+pass and an unchecked class are different statements.
 
 descriptor echo
 ---------------
   "descriptor": {"name": "qick-zcu216-testbench",
-                 "firmware": "2025-08-29",
+                 "firmware": "Fri Aug 29 12:51:57 2025",
                  "software": "qick-0.2.418",
                  "descriptor_version": "0"}
 
-Opaque echo of the descriptor's identification block; its detailed
-shape is fixed by the descriptor schema (phase 3). The report always
-states what it checked against.
+The report echoes the descriptor identification block without changing
+it. The descriptor schema fixes the shape. The report always states what
+it checked against.
 
-top level and example
----------------------
+Every string here comes from the descriptor, so a writer escapes the
+full set that JSON requires. That is the quote, the backslash, and every
+character below U+0020.
+
+top level
+---------
+This is the complete report for one corpus case, byte for byte. Run
+tests/golden/run.sh to reproduce it [below-min-length].
+
 {
-  "format": "qconform-report",
-  "format_version": 0,
-  "verdict": "fail",
-  "descriptor": {"name": "qick-zcu216-testbench",
-                 "firmware": "2025-08-29",
-                 "software": "qick-0.2.418",
-                 "descriptor_version": "0"},
-  "rejections": [
-    {"rule": "grid_multiple", "severity": "fatal", "element": 0,
-     "quantity": "time",
-     "value": {"num": 3, "den": 29950000},
-     "limit": {"num": 1, "den": 149750000}}
-  ],
-  "budgets": [
-    {"budget": "instruction_memory", "verdict": "indeterminate",
-     "lower_bound": 9000, "upper_bound": 14000, "limit": 12288}
-  ],
-  "coverage": [
-    {"class": "timing_grid", "status": "checked"},
-    {"class": "frequency_range", "status": "not_applicable"},
-    {"class": "instruction_memory", "status": "indeterminate"},
-    {"class": "rtio_slack", "status": "unchecked"}
-  ]
+ "format": "qconform-report",
+ "format_version": 0,
+ "verdict": "fail",
+ "descriptor": {"name": "qick-zcu216-testbench", "firmware": "Fri Aug 29 12:51:57 2025", "software": "qick-0.2.418", "descriptor_version": "0"},
+ "rejections": [
+  {"rule": "pulse_length_range", "severity": "fatal", "element": 0, "quantity": "time", "value": {"num": 1, "den": 299520000}, "limit": {"num": 1, "den": 199680000}}
+ ],
+ "budgets": [
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 15, "upper_bound": 16, "limit": 4096},
+  {"budget": "wmem_words", "verdict": "fits", "lower_bound": 1, "upper_bound": 1, "limit": 1024}
+ ],
+ "coverage": [
+  {"class": "pulse_length_range", "status": "checked"},
+  {"class": "pulse_length_grid", "status": "checked"},
+  {"class": "readout_length_range", "status": "not_applicable"},
+  {"class": "frequency_range", "status": "checked"},
+  {"class": "frequency_resolution", "status": "checked"},
+  {"class": "phase_resolution", "status": "checked"},
+  {"class": "amplitude_range", "status": "checked"},
+  {"class": "amplitude_resolution", "status": "checked"},
+  {"class": "envelope_sample_grid", "status": "not_applicable"},
+  {"class": "envelope_amplitude", "status": "not_applicable"},
+  {"class": "envelope_memory", "status": "not_applicable"},
+  {"class": "schedule_grid", "status": "checked"},
+  {"class": "negative_duration", "status": "checked"},
+  {"class": "negative_time", "status": "not_applicable"},
+  {"class": "pmem_words", "status": "checked"},
+  {"class": "wmem_words", "status": "checked"},
+  {"class": "loop_registers", "status": "not_applicable"},
+  {"class": "unconstrained_channel", "status": "not_applicable"}
+ ]
 }

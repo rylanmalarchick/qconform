@@ -39,19 +39,20 @@ channels
    "sample_unit": {"num": 1, "den": 9584000000}}
 
 - name: the binding key against the device descriptor at check time
-- unit: the channel's time base, an exact rational number of seconds
-  per time unit, strictly positive (num > 0); every duration on the
-  channel is an integer count of this unit. A non-positive time base is
-  a validation error, not a rejection: it would run the frame clock
-  backwards. Exporters emit the unit they know exactly (QICK: one tProc
-  tick; Qblox: 1 ns = {"num": 1, "den": 1000000000}). Conversion to
-  descriptor ticks happens at check time; a duration that does not
-  convert exactly is a grid rejection, not an input error.
-- sample_unit: seconds per waveform sample on this channel, strictly
-  positive on the same terms as unit; required only if a samples
-  waveform plays here. Timing unit and sample rate
-  differ on real hardware (QICK generators run many samples per tProc
-  tick), so they are declared separately.
+- unit: the time base of the channel, as an exact rational number of
+  seconds per time unit. It must be strictly positive, so num is above
+  zero. Every duration on the channel is an integer count of this unit.
+  A non-positive time base is a validation error and not a rejection,
+  because it would run the frame clock backwards. An exporter emits the
+  unit it knows exactly. QICK uses one tProc tick. Qblox uses 1 ns,
+  which is {"num": 1, "den": 1000000000}. Conversion to descriptor ticks
+  happens at check time. A duration that does not convert exactly is a
+  grid rejection, not an input error.
+- sample_unit: seconds per waveform sample on this channel. It must be
+  strictly positive, on the same terms as unit. It is required only when
+  a samples waveform plays here. The timing unit and the sample rate
+  differ on real hardware, because a QICK generator runs many samples
+  per tProc tick, so the format declares them separately.
 
 frames
 ------
@@ -74,7 +75,12 @@ waveforms
   {"name": "arb", "kind": "samples", "full_scale": 32767,
    "i": [0, 16384, 32767], "q": [0, 0, 0]}
 
-- amplitude: dimensionless full-scale fraction, rational in [-1, 1]
+- amplitude: a dimensionless full-scale fraction, as a rational. The
+  nominal range is -1 to 1. A value outside that range is not a
+  validation error. The vendor toolchain accepts it and truncates the
+  gain, so the checker reports it under the amplitude_range rule
+  instead. Deleting that finding would remove the reason the checker
+  exists.
 - samples: integer DAC-code arrays; full_scale declares the code that
   means 1.0; i and q have equal length; one entry per sample_unit
 - parametric kinds (gaussian, drag, flat_top) are reserved for a later

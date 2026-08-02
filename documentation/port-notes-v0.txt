@@ -1,0 +1,124 @@
+qconform port notes
+===================
+
+Why parts of the checker look the way they do. Written 2026-08-02, after
+the checker moved from Zig to C99.
+
+Read this before you change the arithmetic in src/rational.c or
+src/check.c. Two of the helpers in src/intmath.h exist for reasons that
+are not visible from the code that calls them.
+
+
+why the checker moved to C99
+----------------------------
+The Zig implementation stopped building. Between Zig 0.16.0 and
+0.17-dev the standard library removed b.args from std.Build, which broke
+`zig build` and with it the corpus gate. A reference implementation has
+to build years from now, on a machine nobody has configured. A dev
+nightly cannot carry that.
+
+The C implementation needs a C compiler and POSIX sh. `make` and
+`make check` install nothing.
+
+The Zig implementation is archived at
+desktop:/mnt/four/archive/qconform-zig-2026-07-24/, with a checksum. It
+is kept so the equivalence result below can be reproduced.
+
+
+two arithmetic hazards
+----------------------
+C's defaults are wrong for this checker in two places. Both produce a
+wrong verdict rather than a crash, and neither shows up in a passing
+test unless a test looks for it. src/intmath.h holds the replacements.
+
+1. Division rounding.
+
+   The checker rounds toward negative infinity and needs a remainder
+   that takes the sign of the divisor. C's / and % truncate toward zero
+   and give the remainder the sign of the dividend. For -7 over 2 the
+   two rules give (-4, 1) and (-3, -1).
+
+   That changes which branch rat_round_nearest_even takes, which changes
+   a quantized clock value, which changes a report. Nothing warns.
+
+   Use floor_div and floor_mod. tests/tripwires.sh fails the build if
+   src/check.c uses bare / or % on a signed value, and `make check` runs
+   it.
+
+2. Absolute value at INT64_MIN.
+
+   The magnitude of INT64_MIN is 2^63, which no int64_t holds.
+   llabs(INT64_MIN) is undefined. A compiler at -O2 may delete an
+   overflow check that depends on it.
+
+   This is reachable from an input file. A descriptor may legally
+   contain {"num": -9223372036854775808, "den": 1}, and the parser
+   accepts it as a canonical numerator.
+
+   Use abs_i64, which returns the magnitude as a uint64_t. Every
+   arithmetic entry point then refuses the value instead of wrapping, so
+   INT64_MIN can become a tool error but never a wrong verdict.
+
+Run the unit tests at -O0, at -O2, and under UBSan and ASan. `make
+sanitize` does the last of these. The -O2 run is the one that matters
+for the second hazard.
+
+
+defects the port found
+----------------------
+Six, none of them reachable from the corpus as it stood. Each now has a
+corpus case.
+
+1. A program channel unit was never checked for sign. A negative time
+   base ran the frame clock backwards and produced a verdict instead of
+   a tool error. Malformed input must never produce a verdict.
+
+2. The report escaped only the quote and the backslash. A control
+   character in a vendor string produced invalid JSON. The software
+   field was worse. It was composed from two strings and skipped the
+   escaper completely.
+
+3. The envelope peak scan aborted the checker. It cast the magnitude of
+   a sample to int64_t, and a sample of INT64_MIN does not fit. The
+   process died with SIGABRT, which is not one of the four exit codes
+   this format defines. 2^63 is not representable as a rational
+   numerator either, so the checker now reports a tool error.
+
+4. The budget cost model multiplied descriptor-supplied coefficients
+   without checking for overflow.
+
+5. A descriptor could give a rule a severity the rule cannot express.
+   Most rules decide once whether they report a repair, so a mismatched
+   severity produced a report that broke this format. The checker now
+   refuses the descriptor at load.
+
+6. A descriptor could declare frequency_resolution or
+   amplitude_resolution as a constraint. The checker reads resolution
+   from the frequency_range and amplitude_range constraints, so the
+   declaration did nothing at all. A silently ignored constraint is the
+   failure the evidence gate exists to prevent.
+
+Defects 3 and 4 were found by differential testing, not by reading.
+
+
+the equivalence result
+----------------------
+The C implementation was compared against the Zig implementation over
+21,267 inputs. The comparison covered the exit code, stdout byte for
+byte, and stderr. It found no divergence.
+
+The inputs were the golden corpus, the worked examples, and generated
+mutations of both. Mutations were weighted toward negative values, the
+i64 boundaries, floats, and type swaps, because those reach the hazards
+above. tests/difftest.py is the harness and takes two binaries.
+
+Three differences were found, documented, and kept. All three come from
+number classification. The Zig reader classified a number token by
+trying conversions. The C reader classifies by the shape of the token
+and never converts. See the docstring in tests/difftest.py. The corpus
+pins the C behavior for "-0", which the JSON grammar makes an integer
+literal.
+
+This comparison is repeatable. Extract the archive, build it with the
+Zig version its README names, and run tests/difftest.py against both
+binaries.
