@@ -57,13 +57,6 @@ TO_REQUEST_UNITS = {
     "gain": lambda v: Fraction(v),                       # full-scale fraction
 }
 
-# Rules whose repair changes something this readback cannot see. The start
-# time of a pulse lives in the instruction stream, not on the pulse, so a
-# schedule_grid repair is invisible here. Saying the vendor did not repair
-# would be a claim the instrument cannot support.
-UNOBSERVABLE_RULES = {"schedule_grid"}
-
-
 def readback_outcome(prog, plan):
     """Split compiled into accept or accept_round.
 
@@ -101,6 +94,85 @@ def readback_outcome(prog, plan):
                     "readback": str(got),
                 })
     return ("accept_round" if changed else "accept"), changed
+
+
+def scheduled_times(prog, soccfg):
+    """The time each output actually lands on, from the instruction stream.
+
+    A start time is not stored on the pulse. It lives in the compiled
+    instruction stream, which is why an earlier version of this harness could
+    not see a schedule_grid repair at all. tools/exporter/qick_export.py
+    recovers it the same way: TIME with inc_ref accumulates a reference, and
+    each WPORT_WR or TRIG carries an offset from it, both in tProc ticks.
+
+    The vendor timeline does not start where the program does. A reference
+    increment for the constructor's final_delay is emitted before the first
+    output, so raw absolute ticks sit a fixed offset above the requested
+    times. The exporter models the same offset as a leading delay element.
+    Subtracting the reference accumulated before the first output puts both
+    timelines on the same origin.
+
+    Returns {(channel, kind): [ticks from the program origin, in order]}.
+    """
+    gen_by_port, ro_by_trig = {}, {}
+    for ch in sorted(prog.gen_chs):
+        gen_by_port[str(soccfg["gens"][ch]["tproc_ch"])] = ch
+    for ch in sorted(prog.ro_chs):
+        ro_by_trig[str(soccfg["readouts"][ch]["trigger_port"])] = ch
+
+    out = {}
+    ref_ticks = 0
+    baseline = None
+    for ins in prog.prog_list:
+        cmd = ins["CMD"]
+        is_gen = cmd == "WPORT_WR" and ins["DST"] in gen_by_port
+        is_ro = (cmd == "TRIG" and ins.get("SRC") == "set"
+                 and ins["DST"] in ro_by_trig)
+
+        if cmd == "TIME" and ins.get("C_OP") == "inc_ref":
+            ref_ticks += int(ins["LIT"].lstrip("#"))
+            continue
+        if not (is_gen or is_ro):
+            continue
+
+        if baseline is None:
+            baseline = ref_ticks
+        t_abs = ref_ticks + int(ins["TIME"].lstrip("@")) - baseline
+        key = ((gen_by_port[ins["DST"]], "gen") if is_gen
+               else (ro_by_trig[ins["DST"]], "ro"))
+        out.setdefault(key, []).append(t_abs)
+    return out
+
+
+def start_time_changes(prog, plan, soccfg):
+    """Compare every requested start time against the time the vendor chose.
+
+    Asks the same two questions the duration comparison asks. Was the request
+    already a whole number of tProc ticks, and did the vendor land on a
+    different tick. Either one means the vendor moved the pulse.
+    """
+    actual = scheduled_times(prog, soccfg)
+    seen = {}
+    changed = []
+    for ch, kind, requested_s, grid_s in plan.schedule:
+        key = (ch, kind)
+        i = seen.get(key, 0)
+        seen[key] = i + 1
+        ticks = actual.get(key, [])
+        if i >= len(ticks) or not grid_s or grid_s <= 0:
+            continue
+        got_s = Fraction(ticks[i]) * grid_s
+        want_ticks = requested_s / grid_s
+        off_grid = want_ticks.denominator != 1
+        moved = round_half_even(want_ticks) != ticks[i]
+        if off_grid or moved:
+            changed.append({
+                "quantity": "start_time",
+                "channel": f"{kind}{ch}",
+                "requested_ticks": str(want_ticks),
+                "scheduled_ticks": ticks[i],
+            })
+    return changed
 
 
 def raw_registers(prog, plan):
@@ -179,7 +251,9 @@ def main():
         prog, outcome, detail = compile_plan(plan, soccfg)
         if outcome == "compiled":
             outcome, changed = readback_outcome(prog, plan)
+            changed = changed + start_time_changes(prog, plan, soccfg)
             if changed:
+                outcome = "accept_round"
                 row["vendor_changed"] = changed
             row["vendor_registers"] = raw_registers(prog, plan)
         elif detail:
@@ -187,6 +261,8 @@ def main():
 
         row["vendor_outcome"] = outcome
         row["lowering_lost_cells"] = plan.lost_cells()
+        if plan.barrier_roundings:
+            row["barrier_roundings"] = plan.barrier_roundings
         rows.append(row)
 
     out = Path(args.out)

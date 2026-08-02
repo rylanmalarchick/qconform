@@ -29,9 +29,9 @@ import collections
 import json
 from pathlib import Path
 
-# A repair to these is invisible to the readback in run.py. The start time of
-# a pulse lives in the instruction stream rather than on the pulse object.
-UNOBSERVABLE_RULES = {"schedule_grid"}
+# Repairs the harness cannot observe. Empty: run.py now recovers start times
+# from the compiled instruction stream, so schedule_grid is observable too.
+UNOBSERVABLE_RULES = set()
 
 ACCEPTED = ("pass", "pass_with_repairs")
 REFUSED = ("reject", "crash")
@@ -100,6 +100,15 @@ def disposition(row, behaviors):
         return "agree", "both say the vendor repairs this"
 
     if verdict == "pass_with_repairs" and outcome == "accept":
+        if rules == {"schedule_grid"} and row.get("barrier_roundings"):
+            # The checker fired schedule_grid because a barrier did not align
+            # exactly on a member channel's lattice. Both the checker and the
+            # vendor round to the same tick there, so the start time compares
+            # equal after the fact. The rounding record is the evidence that
+            # the repair happened rather than being over-predicted.
+            n = len(row["barrier_roundings"])
+            return "agree", (f"barrier alignment rounded on {n} frame(s); "
+                             f"vendor landed on the same tick")
         if rules and rules <= UNOBSERVABLE_RULES:
             return "unobserved", f"repair predicted to {sorted(rules)}, not readable back"
         if documented:

@@ -137,6 +137,17 @@ class Plan:
         self.pulse_grid = {}
         self.readoutconfigs = []    # (ch, name, freq_mhz, length_us)
         self.body = []              # ('pulse'|'trigger', ...)
+        # (vendor channel, kind, requested start in seconds, schedule grid in
+        # seconds), in program order. run.py compares these against the times
+        # the compiled instruction stream actually carries.
+        self.schedule = []
+        # Barriers whose alignment did not land exactly on a member channel's
+        # lattice. The lowering rounds there, and so does the checker, so by
+        # the time a start time is compared the repair has already been
+        # applied on both sides and looks like no change. Recording the
+        # rounding is what keeps that case distinguishable from a real
+        # over-prediction.
+        self.barrier_roundings = []
         self.losses = []
 
     def loss_rows(self):
@@ -234,7 +245,15 @@ def build_plan(program, descriptor, soccfg):
             )
             for m in members:
                 unit = bind[state[m]["channel"]]["prog_unit"]
-                state[m]["clock"] = round_half_even(latest / unit)
+                exact = latest / unit
+                if exact.denominator != 1:
+                    plan.barrier_roundings.append({
+                        "element": eid,
+                        "frame": m,
+                        "exact_units": str(exact),
+                        "rounded_units": round_half_even(exact),
+                    })
+                state[m]["clock"] = round_half_even(exact)
             continue
 
         if kind == "shift_phase":
@@ -284,6 +303,8 @@ def build_plan(program, descriptor, soccfg):
             plan.readoutconfigs.append((b["index"], cfg_name,
                                         float(st["freq"] / 1_000_000), dur_us))
             plan.body.append(("trigger", b["index"], cfg_name, start_us))
+            plan.schedule.append((b["index"], "ro", start_s,
+                                  grid_seconds(fname, "schedule_grid")))
             st["clock"] += el["duration"]
             continue
 
@@ -344,6 +365,8 @@ def build_plan(program, descriptor, soccfg):
                 observed["gain"] = (amp, b["resolution"].get("amplitude"))
             plan.pulse_grid[pulse_name] = observed
         plan.body.append(("pulse", b["index"], pulse_name, start_us))
+        plan.schedule.append((b["index"], "gen", start_s,
+                              grid_seconds(fname, "schedule_grid")))
         st["clock"] += el["duration"]
 
     return plan
