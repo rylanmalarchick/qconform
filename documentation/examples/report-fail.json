@@ -1,25 +1,33 @@
 {
-  "format": "qconform-report",
-  "format_version": 0,
-  "verdict": "fail",
-  "descriptor": {"name": "qick-zcu216-testbench",
-                 "firmware": "2025-08-29",
-                 "software": "qick-0.2.418",
-                 "descriptor_version": "0"},
-  "rejections": [
-    {"rule": "grid_multiple", "severity": "fatal", "element": 0,
-     "quantity": "time",
-     "value": {"num": 3, "den": 29950000},
-     "limit": {"num": 1, "den": 149750000}}
-  ],
-  "budgets": [
-    {"budget": "instruction_memory", "verdict": "indeterminate",
-     "lower_bound": 9000, "upper_bound": 14000, "limit": 12288}
-  ],
-  "coverage": [
-    {"class": "timing_grid", "status": "checked"},
-    {"class": "frequency_range", "status": "not_applicable"},
-    {"class": "instruction_memory", "status": "indeterminate"},
-    {"class": "rtio_slack", "status": "unchecked"}
-  ]
+ "format": "qconform-report",
+ "format_version": 0,
+ "verdict": "fail",
+ "descriptor": {"name": "qick-zcu216-testbench", "firmware": "Fri Aug 29 12:51:57 2025", "software": "qick-0.2.418", "descriptor_version": "0"},
+ "rejections": [
+  {"rule": "envelope_sample_grid", "severity": "fatal", "element": 0, "quantity": "count", "value": {"num": 100, "den": 1}, "limit": {"num": 16, "den": 1}}
+ ],
+ "budgets": [
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 15, "upper_bound": 16, "limit": 4096},
+  {"budget": "wmem_words", "verdict": "fits", "lower_bound": 1, "upper_bound": 1, "limit": 1024}
+ ],
+ "coverage": [
+  {"class": "pulse_length_range", "status": "checked"},
+  {"class": "pulse_length_grid", "status": "checked"},
+  {"class": "readout_length_range", "status": "not_applicable"},
+  {"class": "frequency_range", "status": "checked"},
+  {"class": "frequency_resolution", "status": "checked"},
+  {"class": "phase_resolution", "status": "checked"},
+  {"class": "amplitude_range", "status": "not_applicable"},
+  {"class": "amplitude_resolution", "status": "not_applicable"},
+  {"class": "envelope_sample_grid", "status": "checked"},
+  {"class": "envelope_amplitude", "status": "checked"},
+  {"class": "envelope_memory", "status": "checked"},
+  {"class": "schedule_grid", "status": "checked"},
+  {"class": "negative_duration", "status": "checked"},
+  {"class": "negative_time", "status": "not_applicable"},
+  {"class": "pmem_words", "status": "checked"},
+  {"class": "wmem_words", "status": "checked"},
+  {"class": "loop_registers", "status": "not_applicable"},
+  {"class": "unconstrained_channel", "status": "not_applicable"}
+ ]
 }
