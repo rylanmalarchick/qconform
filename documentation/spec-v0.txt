@@ -1,0 +1,163 @@
+qconform specification v0
+=========================
+
+What the checker decides, what each decision means, and what the answer is
+worth. Draft v0, 2026-08-02. Read program-format-v0.txt,
+descriptor-format-v0.txt and report-format-v0.txt first. This file states the
+rules and the soundness claim. Those three state the data.
+
+
+1. what the checker decides
+---------------------------
+The checker takes one capability descriptor and one pulse program. It decides
+whether the device the descriptor describes can realize the program.
+
+It answers with one of four exit codes.
+
+  0  pass                every checked rule holds
+  1  fail                at least one fatal rejection
+  2  pass_with_repairs   rejections, all vendor_repairable
+  3  tool error          the question could not be asked
+
+Exit 0 and exit 2 are both realizable. Exit 2 says the toolchain will change
+the program before running it, and names what it changes.
+
+Exit 3 is not a verdict. It means the input was malformed, the descriptor was
+invalid, or the checker met an arithmetic condition it refuses to guess
+through. A tool error is never a statement about the device.
+
+
+2. the rules
+------------
+Fourteen rules, in registry order. The registry is append-only: an id is never
+renamed, renumbered or reused, and a retired id keeps its slot.
+
+  R1   pulse_length_range      a play on a drive channel, in channel units,
+                               outside the declared min or max
+  R2   pulse_length_grid       a play duration not a whole number of channel
+                               cycles
+  R3   readout_length_range    a capture outside the declared min or max
+  R4   frequency_range         a frame frequency outside the declared band.
+                               Where the constraint is post_mixer, the band is
+                               compared against the frequency minus the
+                               channel mixer, because that is what the device
+                               receives
+  R5   frequency_resolution    a frequency that is not a whole multiple of the
+                               declared step
+  R6   phase_resolution        a phase that is not a whole multiple of the
+                               declared step
+  R7   amplitude_range         a constant amplitude outside the declared range
+  R8   amplitude_resolution    an amplitude that is not a whole multiple of
+                               the declared step
+  R9   envelope_sample_grid    a sample count that is not a whole multiple of
+                               the declared grid
+  R10  envelope_amplitude      a sample whose magnitude exceeds the declared
+                               maximum
+  R11  envelope_memory         envelopes on one channel exceeding its memory
+  R12  schedule_grid           an output starting off the timing grid, or a
+                               barrier that does not align exactly on a member
+                               channel lattice
+  R13  negative_duration       a duration below zero
+  R14  negative_time           reserved. A channel unit must be positive, a
+                               negative duration does not advance the clock,
+                               and a barrier takes a maximum over values that
+                               are already at least zero, so the frame clock
+                               cannot go negative. Nothing emits this rule
+
+Three budget classes carry whole-program limits: pmem_words, wmem_words and
+loop_registers. A budget reports fits, violates or indeterminate. A violation
+is fatal. An indeterminate budget is never a rejection, because a fatal answer
+must come from a proven lower bound and not from an estimate.
+
+
+3. severity, and what a repair means
+------------------------------------
+Every rejection is fatal or vendor_repairable.
+
+  fatal              the toolchain refuses the program, or accepts it and
+                     fails later at board load
+  vendor_repairable  the toolchain accepts the program and changes it
+
+A vendor_repairable rejection names the repair. A fatal one does not. The
+checker enforces that pairing when it loads a descriptor: a rule whose emit
+site never reports a repair must be declared fatal, and one that always
+reports a repair must be declared vendor_repairable.
+
+A repair is not a warning about style. It says the program that runs is not
+the program that was written.
+
+
+4. coverage, and what pass does not mean
+----------------------------------------
+Every report carries a coverage manifest naming all eighteen classes as
+checked, not_applicable, unchecked or indeterminate.
+
+pass means exactly this: no violation was found among the classes marked
+checked, against the echoed descriptor at its pinned versions. It means
+nothing else.
+
+  not_applicable   the program does not exercise the class
+  unchecked        the descriptor declares the channel but constrains
+                   nothing on it, so the checker verified nothing there
+  indeterminate    a budget whose limit falls between the bounds
+
+A channel with no constraints is declared, not checked. The manifest says so
+rather than letting a silent pass imply otherwise.
+
+
+5. soundness
+------------
+The claim is one direction only.
+
+  If the checker returns pass or pass_with_repairs, the vendor toolchain
+  compiles the program.
+
+It is relative to a descriptor at its pinned firmware and library versions. A
+descriptor with different pins is a different descriptor and carries no claim
+from this one.
+
+The converse does not hold and is not claimed. The checker may refuse a
+program the toolchain compiles. Three such cases are known, and the descriptor
+documents each one as a vendor_behavior.
+
+  an out-of-band frequency that the device aliases
+  a gain past full scale that the device cannot represent
+  an envelope past channel memory that compiles and fails at board load
+
+In each the toolchain accepts and the hardware does not. Refusing is the
+useful answer.
+
+Measured against asm_v2 on 2026-08-02, qick 0.2.418:
+
+  descriptor        programs   unsound passes   coverage
+  testbench              110                0      15/15
+  qce2025-r26            286                0      15/15
+
+Coverage counts a class as covered when the corpus contains a program where it
+fires and a program where it is checked and does not fire. Fifteen of the
+eighteen classes are reachable. negative_time and loop_registers are
+unreachable by construction, stated in rule R14 and in section 2.
+unconstrained_channel reports unchecked by definition and so cannot fire.
+
+The evidence is tools/differential/results/. The method is
+tools/differential/, and tests/golden/run.sh runs the frozen corpus against
+any implementation of this specification.
+
+
+6. what bounds the claim
+------------------------
+Three limits, stated because a soundness claim with unstated limits is worth
+less than a narrower one that names them.
+
+The corpus is boundary-driven from the descriptor and supplemented with seeded
+randomized programs. It finds what the declared limits imply and what random
+composition reaches. It does not prove absence.
+
+Muxed generators and static readouts are outside the evidence. The program
+format cannot name the tones of a muxed generator. The differential harness
+refuses to lower a program that plays on one, rather than guess a tone mask.
+Descriptors declare those channels, and the measurement above does not cover
+them.
+
+The claim covers one vendor. asm_v2 is the only oracle this specification has
+been measured against.
