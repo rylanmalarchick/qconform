@@ -4,7 +4,8 @@
  "verdict": "fail",
  "descriptor": {"name": "qick-zcu216-qce2025-r26", "firmware": "Sat Aug 16 12:14:08 2025", "software": "qick-0.2.418", "descriptor_version": "0"},
  "rejections": [
-  {"rule": "frequency_range", "severity": "fatal", "element": 0, "quantity": "frequency", "value": {"num": 1720320000, "den": 1}, "limit": {"num": 860160000, "den": 1}}
+  {"rule": "frequency_range", "severity": "fatal", "element": 0, "quantity": "frequency", "value": {"num": 1720320000, "den": 1}, "limit": {"num": 860160000, "den": 1}},
+  {"rule": "amplitude_resolution", "severity": "vendor_repairable", "repair": "trunc_gain", "element": 0, "quantity": "amplitude", "value": {"num": 1, "den": 2}, "limit": {"num": 5, "den": 147447}}
  ],
  "budgets": [
   {"budget": "pmem_words", "verdict": "fits", "lower_bound": 15, "upper_bound": 16, "limit": 4096},

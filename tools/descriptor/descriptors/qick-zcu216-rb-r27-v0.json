@@ -147,6 +147,12 @@
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
        "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
+       "outcome": "accept"
       }
      ]
     },

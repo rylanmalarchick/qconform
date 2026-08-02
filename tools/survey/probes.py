@@ -214,4 +214,30 @@ def build_probes(soccfg, synthetic_variants=True):
                        'param': 'revision', 'requested': 20,
                        'note': 'tproc revision outside ASM_REVISIONS (synthetic config)'})
 
+    probes.extend(gain_lsb_probes(soccfg))
+
     return probes
+
+
+def gain_lsb_probes(soccfg):
+    """Find the smallest gain step that moves the raw register.
+
+    The gain axis probes round-trip error at a few notable values. It cannot
+    show the granularity, because none of its values sits one step from its
+    neighbour. These walk k/maxv for small k, so the register either advances
+    by one each time or does not.
+
+    A v6 advances every step. An interpolated generator reports maxv_scale
+    below 1 and skips, which is the whole point of the probe.
+    """
+    out = []
+    for cls in gen_classes(soccfg):
+        ch, g = cls["ch"], cls["gcfg"]
+        for k in range(0, 9):
+            out.append({
+                "axis": "gain_lsb", "kind": "const", "gen_ch": ch,
+                "gen_type": g["type"], "param": "gain",
+                "requested": k / g["maxv"],
+                "note": f"k={k} of maxv, maxv_scale={g.get('maxv_scale', 1.0)}",
+            })
+    return out

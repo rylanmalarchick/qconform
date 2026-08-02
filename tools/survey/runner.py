@@ -242,9 +242,9 @@ def main():
             'qick_version': qick.__version__,
             'numpy_version': np.__version__}
 
-    ALL_AXES = ('length', 'freq', 'gain', 'phase', 'phrst', 'envelope',
-                'mux', 'budget_wmem', 'budget_pmem', 'budget_regs',
-                'readout', 'timing', 'channels', 'config')
+    ALL_AXES = ('length', 'freq', 'gain', 'gain_lsb', 'phase', 'phrst',
+                'envelope', 'mux', 'budget_wmem', 'budget_pmem',
+                'budget_regs', 'readout', 'timing', 'channels', 'config')
     by_axis = {}
     for probe in build_probes(soccfg._cfg):
         row = run_probe(soccfg, probe)

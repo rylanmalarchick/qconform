@@ -147,6 +147,12 @@
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
        "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
+       "outcome": "accept"
       }
      ]
     },
@@ -388,6 +394,12 @@
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
        "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
+       "outcome": "accept"
       }
      ]
     },
@@ -629,6 +641,12 @@
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
        "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
+       "outcome": "accept"
       }
      ]
     },
@@ -870,6 +888,12 @@
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
        "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
+       "outcome": "accept"
       }
      ]
     },
@@ -1197,14 +1221,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -1424,14 +1454,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -1651,14 +1687,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -1878,14 +1920,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -2105,14 +2153,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -2332,14 +2386,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -2559,14 +2619,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -2786,14 +2852,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -3013,14 +3085,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -3240,14 +3318,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]
@@ -3467,14 +3551,20 @@
       "den": 1
      },
      "resolution": {
-      "num": 1,
-      "den": 32766
+      "num": 5,
+      "den": 147447
      },
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
        "axis": "gain",
        "note_contains": "raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "gain_lsb",
+       "note_contains": "of maxv, maxv_scale",
        "outcome": "accept_round"
       }
      ]

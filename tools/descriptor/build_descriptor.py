@@ -145,8 +145,21 @@ def gen_channel(i, g, f_time):
             "id": "amplitude_range", "quantity": "amplitude",
             "shape": "range_resolution", "severity": "vendor_repairable",
             "min": rat(Fraction(-1)), "max": rat(Fraction(1)),
-            "resolution": rat(Fraction(1, g["maxv"])),
-            "evidence": [ev(ec, "gain", "raw +0.6 (trunc vs round)", "accept_round")],
+            # The gain register is trunc(gain * maxv * maxv_scale), so the
+            # achievable step is 1/(maxv * maxv_scale) and not 1/maxv. An
+            # interpolated generator reports maxv_scale 0.9 while a v6 reports
+            # 1.0, so reading maxv alone gave every int4 channel the v6 number
+            # and the checker predicted no repair where the toolchain rounds.
+            "resolution": rat(Fraction(1, g["maxv"])
+                              / Fraction(str(g.get("maxv_scale", 1.0)))),
+            # A scaled channel skips registers as k walks, so its gain_lsb
+            # rows round. An unscaled one advances every step and they accept.
+            # Cite the outcome the channel actually produces.
+            "evidence": [ev(ec, "gain", "raw +0.6 (trunc vs round)", "accept_round"),
+                         ev(ec, "gain_lsb", "of maxv, maxv_scale",
+                            "accept_round"
+                            if Fraction(str(g.get("maxv_scale", 1.0))) != 1
+                            else "accept")],
         })
         vb.append({
             "id": "gain_over_full_scale",
