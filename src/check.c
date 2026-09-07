@@ -98,6 +98,12 @@ static SeverityRule severity_rule_for(RuleId id) {
     case QC_RULE_readout_length_range:
     case QC_RULE_envelope_sample_grid:
     case QC_RULE_envelope_amplitude:
+    /* Neither ever reports a repair. A mask naming a tone the table does not
+     * declare is refused by the toolchain. A table longer than the generator
+     * has is accepted by the toolchain and cannot be honored by the hardware,
+     * which is a vendor_behavior and not a repair. */
+    case QC_RULE_mux_tone_mask:
+    case QC_RULE_mux_tone_count:
         return SEV_FATAL_ONLY;
     case QC_RULE_pulse_length_grid:
     case QC_RULE_phase_resolution:
@@ -127,7 +133,14 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
             bool ok;
             switch (c->shape) {
             case QC_SHAPE_range_units:
-                ok = c->has_min_units || c->has_max_units || c->id == QC_RULE_pulse_length_grid;
+                /* Three rules carry a severity and no parameter, because their
+                 * limit comes from outside the constraint: the channel grid for
+                 * pulse_length_grid, the program's own tone table for
+                 * mux_tone_mask, and capabilities.n_tones for mux_tone_count. */
+                ok = c->has_min_units || c->has_max_units
+                     || c->id == QC_RULE_pulse_length_grid
+                     || c->id == QC_RULE_mux_tone_mask
+                     || c->id == QC_RULE_mux_tone_count;
                 break;
             case QC_SHAPE_range_resolution:
                 ok = c->has_min || c->has_max || c->has_resolution;
@@ -211,9 +224,11 @@ static const CapChannel *desc_channel_of_frame(Check *k, uint32_t frame) {
     return &k->desc->channels[k->bind[k->prog->frames[frame].channel]];
 }
 
-static bool check_frequency(Check *k, uint32_t frame, Rat freq, int64_t element) {
-    const CapChannel *dc = desc_channel_of_frame(k, frame);
-    const IrChannel *pc = &k->prog->channels[k->prog->frames[frame].channel];
+/* The quantity checks take the two channels rather than a frame, because a
+ * muxed generator carries its frequency, phase and amplitude in a tone table
+ * and not in a frame. A tone and a frame reach the same rules this way. */
+static bool check_frequency_on(Check *k, const CapChannel *dc, const IrChannel *pc,
+                               Rat freq, int64_t element) {
     const Constraint *c = find_constraint(dc, QC_RULE_frequency_range);
     Rat band_freq = freq;
     bool below, above;
@@ -280,8 +295,13 @@ static bool check_frequency(Check *k, uint32_t frame, Rat freq, int64_t element)
     return true;
 }
 
-static bool check_phase(Check *k, uint32_t frame, Rat phase, int64_t element) {
-    const CapChannel *dc = desc_channel_of_frame(k, frame);
+static bool check_frequency(Check *k, uint32_t frame, Rat freq, int64_t element) {
+    return check_frequency_on(k, desc_channel_of_frame(k, frame),
+                              &k->prog->channels[k->prog->frames[frame].channel],
+                              freq, element);
+}
+
+static bool check_phase_on(Check *k, const CapChannel *dc, Rat phase, int64_t element) {
     const Constraint *c = find_constraint(dc, QC_RULE_phase_resolution);
     int64_t q;
     bool exact;
@@ -305,52 +325,144 @@ static bool check_phase(Check *k, uint32_t frame, Rat phase, int64_t element) {
     return true;
 }
 
+static bool check_phase(Check *k, uint32_t frame, Rat phase, int64_t element) {
+    return check_phase_on(k, desc_channel_of_frame(k, frame), phase, element);
+}
+
+static bool check_amplitude(Check *k, const CapChannel *dc, Rat amp, int64_t element) {
+    const Constraint *c = find_constraint(dc, QC_RULE_amplitude_range);
+    bool below, above;
+
+    if (c == NULL) return true;
+    cover(k, QC_COV_amplitude_range, QC_CSTAT_checked);
+    below = c->has_min && rat_cmp(amp, c->min) < 0;
+    above = c->has_max && rat_cmp(amp, c->max) > 0;
+    if (below || above) {
+        Rejection r;
+        r.rule = QC_COV_amplitude_range;
+        r.severity = c->severity;
+        r.has_repair = (c->severity == QC_SEV_vendor_repairable);
+        r.repair = QC_REPAIR_trunc_gain;
+        r.element = element;
+        r.quantity = QC_QTY_amplitude;
+        r.value = amp;
+        r.limit = below ? c->min : c->max;
+        if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+    }
+    if (c->has_resolution) {
+        int64_t q;
+        bool exact;
+        cover(k, QC_COV_amplitude_resolution, QC_CSTAT_checked);
+        if (!rat_exact_div(amp, c->resolution, &q, &exact))
+            return tool_error(k, "arithmetic overflow (amplitude resolution)");
+        if (!exact) {
+            Rejection r;
+            r.rule = QC_COV_amplitude_resolution;
+            r.severity = QC_SEV_vendor_repairable;
+            r.has_repair = true;
+            r.repair = QC_REPAIR_trunc_gain;
+            r.element = element;
+            r.quantity = QC_QTY_amplitude;
+            r.value = amp;
+            r.limit = c->resolution;
+            if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+        }
+    }
+    return true;
+}
+
+/* A muxed generator carries its frequency, phase and amplitude in a tone
+ * table rather than in a frame, so each tone goes through the same three
+ * rules a frame would. The table is program state and is checked once per
+ * channel, attributed to the first play that sounds it.
+ *
+ * The count limit is capabilities.n_tones. That is the field the toolchain
+ * itself gates on, and it was declared, parsed and read by nothing until this
+ * rule. The toolchain does not bound the table against it and compiles a
+ * table the hardware cannot hold, so this rule is fatal and the descriptor
+ * records the silent acceptance as a vendor_behavior.
+ */
+/* A tone table is fixed for the whole program: the toolchain declares it once
+ * and a mux pulse then names tones with a mask and carries no frequency or
+ * phase of its own. Retuning such a frame describes something the device
+ * cannot do, so it is refused rather than checked against a frame value the
+ * device never sees. */
+static bool mux_frame_is_retunable(Check *k, uint32_t frame, int64_t element,
+                                   const char *what) {
+    const IrChannel *pc = &k->prog->channels[k->prog->frames[frame].channel];
+    if (pc->n_tones == 0) return true;
+    return tool_error(k, "element %lld: %s on frame '" STR_FMT "', whose channel '"
+                         STR_FMT "' declares a tone table",
+                      (long long)element, what, STR_ARG(k->prog->frames[frame].name),
+                      STR_ARG(pc->name));
+}
+
+static bool check_tones(Check *k, const CapChannel *dc, const IrChannel *pc,
+                        int64_t element) {
+    const Constraint *cnt = find_constraint(dc, QC_RULE_mux_tone_count);
+    size_t t;
+
+    if (pc->n_tones == 0) return true;
+
+    if (cnt != NULL && dc->capabilities.has_n_tones) {
+        cover(k, QC_COV_mux_tone_count, QC_CSTAT_checked);
+        if ((int64_t)pc->n_tones > dc->capabilities.n_tones) {
+            Rejection r;
+            r.rule = QC_COV_mux_tone_count;
+            r.severity = cnt->severity;
+            r.has_repair = false;
+            r.repair = QC_REPAIR_trunc_gain;
+            r.element = element;
+            r.quantity = QC_QTY_count;
+            r.value = rat_from_int((int64_t)pc->n_tones);
+            r.limit = rat_from_int(dc->capabilities.n_tones);
+            if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+        }
+    }
+
+    for (t = 0; t < pc->n_tones; t++) {
+        if (!check_frequency_on(k, dc, pc, pc->tones[t].frequency, element)) return false;
+        if (!check_phase_on(k, dc, pc->tones[t].phase, element)) return false;
+        if (!check_amplitude(k, dc, pc->tones[t].amplitude, element)) return false;
+    }
+    return true;
+}
+
+/* A mask names tones by index into the program's own table. An index the
+ * table does not declare is what the toolchain refuses. */
+static bool check_mask(Check *k, const CapChannel *dc, const IrChannel *pc,
+                       const int64_t *mask, size_t mask_len, int64_t element) {
+    const Constraint *c = find_constraint(dc, QC_RULE_mux_tone_mask);
+    size_t m;
+
+    if (c == NULL) return true;
+    cover(k, QC_COV_mux_tone_mask, QC_CSTAT_checked);
+    for (m = 0; m < mask_len; m++) {
+        if (mask[m] < (int64_t)pc->n_tones) continue;
+        {
+            Rejection r;
+            r.rule = QC_COV_mux_tone_mask;
+            r.severity = c->severity;
+            r.has_repair = false;
+            r.repair = QC_REPAIR_trunc_gain;
+            r.element = element;
+            r.quantity = QC_QTY_count;
+            r.value = rat_from_int(mask[m]);
+            r.limit = rat_from_int((int64_t)pc->n_tones);
+            if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+        }
+    }
+    return true;
+}
+
 static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t element,
                            bool *env_seen, int64_t *env_used, size_t n_wf) {
     uint32_t pci = k->prog->frames[frame].channel;
     const CapChannel *dc = &k->desc->channels[k->bind[pci]];
     const IrWaveform *w = &k->prog->waveforms[wf];
 
-    if (w->kind == WF_CONST) {
-        const Constraint *c = find_constraint(dc, QC_RULE_amplitude_range);
-        bool below, above;
-        if (c == NULL) return true;
-        cover(k, QC_COV_amplitude_range, QC_CSTAT_checked);
-        below = c->has_min && rat_cmp(w->as.constant.amplitude, c->min) < 0;
-        above = c->has_max && rat_cmp(w->as.constant.amplitude, c->max) > 0;
-        if (below || above) {
-            Rejection r;
-            r.rule = QC_COV_amplitude_range;
-            r.severity = c->severity;
-            r.has_repair = (c->severity == QC_SEV_vendor_repairable);
-            r.repair = QC_REPAIR_trunc_gain;
-            r.element = element;
-            r.quantity = QC_QTY_amplitude;
-            r.value = w->as.constant.amplitude;
-            r.limit = below ? c->min : c->max;
-            if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
-        }
-        if (c->has_resolution) {
-            int64_t q;
-            bool exact;
-            cover(k, QC_COV_amplitude_resolution, QC_CSTAT_checked);
-            if (!rat_exact_div(w->as.constant.amplitude, c->resolution, &q, &exact))
-                return tool_error(k, "arithmetic overflow (amplitude resolution)");
-            if (!exact) {
-                Rejection r;
-                r.rule = QC_COV_amplitude_resolution;
-                r.severity = QC_SEV_vendor_repairable;
-                r.has_repair = true;
-                r.repair = QC_REPAIR_trunc_gain;
-                r.element = element;
-                r.quantity = QC_QTY_amplitude;
-                r.value = w->as.constant.amplitude;
-                r.limit = c->resolution;
-                if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
-            }
-        }
-        return true;
-    }
+    if (w->kind == WF_CONST)
+        return check_amplitude(k, dc, w->as.constant.amplitude, element);
 
     /* samples */
     {
@@ -575,7 +687,7 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
     uint32_t *bind;
     Rat *factor;
     FrameState *states;
-    bool *env_seen, *wf_played;
+    bool *env_seen, *wf_played, *tones_checked;
     int64_t *env_used;
     BudgetResult *budgets;
     size_t n_budgets = 0;
@@ -639,7 +751,10 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
     env_seen = arena_array(a, prog->n_channels * prog->n_waveforms + 1, sizeof *env_seen);
     env_used = arena_array(a, prog->n_channels + 1, sizeof *env_used);
     wf_played = arena_array(a, prog->n_waveforms + 1, sizeof *wf_played);
-    if (env_seen == NULL || env_used == NULL || wf_played == NULL)
+    /* A tone table belongs to a channel, so it is checked once and not once
+     * per play that sounds it. */
+    tones_checked = arena_array(a, prog->n_channels + 1, sizeof *tones_checked);
+    if (env_seen == NULL || env_used == NULL || wf_played == NULL || tones_checked == NULL)
         return tool_error(k, "out of memory");
 
     for (i = 0; i < prog->n_elements; i++) {
@@ -701,6 +816,8 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
 
         case EL_SHIFT_PHASE: {
             FrameState *st = &states[el->as.shift_phase.frame];
+            if (!mux_frame_is_retunable(k, el->as.shift_phase.frame, el->id, "shift_phase"))
+                return false;
             if (!rat_add(st->phase, el->as.shift_phase.phase, &st->phase))
                 return tool_error(k, "arithmetic overflow (phase accumulation)");
             if (!check_phase(k, el->as.shift_phase.frame, el->as.shift_phase.phase, el->id))
@@ -710,6 +827,8 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
 
         case EL_SET_FREQUENCY: {
             FrameState *st = &states[el->as.set_frequency.frame];
+            if (!mux_frame_is_retunable(k, el->as.set_frequency.frame, el->id, "set_frequency"))
+                return false;
             st->frequency = el->as.set_frequency.frequency;
             st->freq_checked = false;
             if (!check_frequency(k, el->as.set_frequency.frame,
@@ -740,14 +859,18 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
             else
                 n_captures++;
 
-            /* lazy initial frame-state checks, attributed to first use */
-            if (!st->freq_checked) {
-                if (!check_frequency(k, frame, st->frequency, el->id)) return false;
-                st->freq_checked = true;
-            }
-            if (!st->phase_checked) {
-                if (!check_phase(k, frame, st->phase, el->id)) return false;
-                st->phase_checked = true;
+            /* lazy initial frame-state checks, attributed to first use. A
+             * channel with a tone table carries its frequency and phase there,
+             * so its frames have none to check. */
+            if (prog->channels[prog->frames[frame].channel].n_tones == 0) {
+                if (!st->freq_checked) {
+                    if (!check_frequency(k, frame, st->frequency, el->id)) return false;
+                    st->freq_checked = true;
+                }
+                if (!st->phase_checked) {
+                    if (!check_phase(k, frame, st->phase, el->id)) return false;
+                    st->phase_checked = true;
+                }
             }
 
             /* schedule grid on the start time */
@@ -768,10 +891,23 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
             if (!advance(k, states, frame, dur, el->id, true, &units)) return false;
 
             if (is_play) {
-                uint32_t wf = el->as.play.waveform;
-                wf_played[wf] = true;
-                if (!check_waveform(k, frame, wf, el->id, env_seen, env_used, prog->n_waveforms))
-                    return false;
+                uint32_t pci = prog->frames[frame].channel;
+                const IrChannel *pc = &prog->channels[pci];
+                if (pc->n_tones > 0) {
+                    if (!tones_checked[pci]) {
+                        if (!check_tones(k, dc, pc, el->id)) return false;
+                        tones_checked[pci] = true;
+                    }
+                    if (!check_mask(k, dc, pc, el->as.play.mask,
+                                    el->as.play.mask_len, el->id))
+                        return false;
+                } else {
+                    uint32_t wf = el->as.play.waveform;
+                    wf_played[wf] = true;
+                    if (!check_waveform(k, frame, wf, el->id, env_seen, env_used,
+                                        prog->n_waveforms))
+                        return false;
+                }
             }
             break;
         }

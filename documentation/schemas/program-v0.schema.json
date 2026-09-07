@@ -18,7 +18,9 @@
           "name": {"$ref": "#/$defs/name"},
           "unit": {"$ref": "#/$defs/positive_rational"},
           "sample_unit": {"$ref": "#/$defs/positive_rational"},
-          "mixer_frequency": {"$ref": "#/$defs/rational"}
+          "mixer_frequency": {"$ref": "#/$defs/rational"},
+          "tones": {"type": "array", "minItems": 1,
+                    "items": {"$ref": "#/$defs/tone"}}
         }
       }
     },
@@ -84,6 +86,19 @@
           {
             "type": "object",
             "additionalProperties": false,
+            "required": ["id", "kind", "frame", "mask", "duration"],
+            "properties": {
+              "id": {"$ref": "#/$defs/id"},
+              "kind": {"const": "play"},
+              "frame": {"$ref": "#/$defs/name"},
+              "mask": {"type": "array", "minItems": 1,
+                       "items": {"type": "integer", "minimum": 0}},
+              "duration": {"$ref": "#/$defs/duration"}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
             "required": ["id", "kind", "frame", "duration"],
             "properties": {
               "id": {"$ref": "#/$defs/id"},
@@ -139,6 +154,16 @@
       "properties": {
         "num": {"type": "integer"},
         "den": {"type": "integer", "exclusiveMinimum": 0}
+      }
+    },
+    "tone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frequency", "phase", "amplitude"],
+      "properties": {
+        "frequency": {"$ref": "#/$defs/rational"},
+        "phase": {"$ref": "#/$defs/rational"},
+        "amplitude": {"$ref": "#/$defs/rational"}
       }
     },
     "positive_rational": {

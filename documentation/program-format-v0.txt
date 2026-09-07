@@ -58,6 +58,21 @@ channels
   plays on such a channel and declares no mixer_frequency is a validation
   error: the checker cannot know the band, and assuming zero would accept
   programs the toolchain refuses.
+- tones: the tone table of a muxed generator, an ordered list of
+  {frequency, phase, amplitude}. Declare it only on a channel that is
+  muxed, and never empty.
+  A muxed generator plays a fixed table and a pulse selects from it, so
+  the frequency, phase and amplitude it sounds belong to the channel and
+  not to a frame or a waveform. Frequency is absolute Hz and is treated
+  exactly as a frame frequency is, so a post_mixer constraint subtracts
+  mixer_frequency from it. Phase is in turns and amplitude is a fraction
+  of full scale, on the same terms as a frame phase and a const waveform.
+  A channel that declares a table takes mask plays and no waveform plays,
+  and a channel without one takes the reverse. Getting that pairing wrong
+  is a validation error.
+  A frame on such a channel carries no frequency or phase the device
+  sees, so set_frequency and shift_phase on it are validation errors
+  rather than checks against a value the device never receives.
 - sample_unit: seconds per waveform sample on this channel. It must be
   strictly positive, on the same terms as unit. It is required only when
   a samples waveform plays here. The timing unit and the sample rate
@@ -114,6 +129,15 @@ Every element has:
   {"id": 0, "kind": "play", "frame": "q0_xy",
    "waveform": "flat", "duration": 60}
 
+  {"id": 0, "kind": "play", "frame": "mux0",
+   "mask": [0, 2], "duration": 60}
+
+A play carries a waveform, or a mask, never both. mask is a non-empty
+list of indices into the tone table of the play's channel, and names the
+tones that sound. An index the table does not declare is a rejection and
+not a validation error, because it is the limit the toolchain itself
+enforces. A repeated index sounds the tone once.
+
   {"id": 1, "kind": "capture", "frame": "r0_ro", "duration": 1200}
 
   {"id": 2, "kind": "delay", "frame": "q0_xy", "duration": 100}
@@ -142,7 +166,10 @@ duplicate ids or names, dangling frame/channel/waveform references,
 non-canonical rationals, non-positive unit or sample_unit, unknown
 fields or kinds, missing sample_unit under a samples waveform, and a
 missing mixer_frequency on a channel whose descriptor constraint is
-post_mixer.
+post_mixer, a play that carries both a waveform and a mask or neither,
+an empty tones list or an empty mask, a negative mask index, and
+set_frequency or shift_phase on a frame whose channel declares a tone
+table.
 
 A well-formed program that violates a device limit is never a tool
 error. It produces rejections.

@@ -11,11 +11,26 @@
 #include "str.h"
 #include "rational.h"
 
+/* One entry of a muxed generator's tone table. A mux pulse carries only a
+ * mask and a length, so the frequency, phase and amplitude it plays are these,
+ * fixed for the whole program. The frequency is absolute, the same convention
+ * as a frame's, so a post_mixer constraint subtracts the channel mixer from it
+ * exactly as it does for a frame. */
+typedef struct {
+    Rat frequency;        /* Hz, absolute */
+    Rat phase;            /* turns */
+    Rat amplitude;        /* dimensionless fraction of full scale */
+} IrTone;
+
 typedef struct {
     Str name;
     Rat unit;             /* seconds per time unit, strictly positive */
     Rat sample_unit;      /* valid only when has_sample_unit */
     bool has_sample_unit;
+    /* The tone table, empty on a channel that is not muxed. A channel with a
+     * table takes mask plays and no waveform plays, and the reverse. */
+    const IrTone *tones;
+    size_t n_tones;
     /* Digital mixer frequency in Hz, signed. Present only when the channel
      * is configured with one. A constraint whose post_mixer is set is
      * checked against the frequency after this is subtracted, because that
@@ -66,8 +81,12 @@ typedef struct {
     union {
         struct {
             uint32_t frame;
+            /* waveform is meaningful only when mask_len is zero. A play on a
+             * channel with a tone table names tones instead. */
             uint32_t waveform;
             int64_t duration;
+            const int64_t *mask;
+            size_t mask_len;
         } play;
         struct {
             uint32_t frame;

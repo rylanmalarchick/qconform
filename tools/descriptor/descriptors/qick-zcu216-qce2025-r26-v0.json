@@ -1064,9 +1064,200 @@
        "outcome": "accept"
       }
      ]
+    },
+    {
+     "id": "frequency_range",
+     "quantity": "frequency",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -860160000,
+      "den": 1
+     },
+     "max": {
+      "num": 860160000,
+      "den": 1
+     },
+     "resolution": {
+      "num": 13125,
+      "den": 32768
+     },
+     "post_mixer": true,
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone just over upper edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone at 1.5x f_dds",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone quantization +0.3 step",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "phase_resolution",
+     "quantity": "phase",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "resolution": {
+      "num": 1,
+      "den": 4294967296
+     },
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone phase quantization +0.3 step",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "amplitude_range",
+     "quantity": "amplitude",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "min": {
+      "num": -1,
+      "den": 1
+     },
+     "max": {
+      "num": 1,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 32766
+     },
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone k=1 of maxv (mux gain lsb)",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone raw +0.6 (trunc vs round)",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "mux_tone_mask",
+     "quantity": "count",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "mask tone index == n_tones with n_tones declared",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "mask names the last declared tone",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "mux_tone_count",
+     "quantity": "count",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone table exactly n_tones",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone table over n_tones",
+       "outcome": "accept"
+      }
+     ]
     }
    ],
    "vendor_behavior": [
+    {
+     "id": "mux_tone_nyquist_image_fold",
+     "vendor_action": "a tone below the lower band edge is remapped to its Nyquist image and compiled; freq_rounded reports the request, so the readback hides it",
+     "qconform_severity": "fatal",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone just under lower edge",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone well under lower edge",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "mux_tone_count_unchecked",
+     "vendor_action": "a tone table longer than n_tones compiles; nothing compares the table against the hardware",
+     "qconform_severity": "fatal",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone table over n_tones",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "gain_over_full_scale",
+     "vendor_action": "tone gain beyond +/-1.0 accepted; raw register exceeds maxv (hardware behavior undetermined)",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "tone gain over full scale",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "mux_mask_duplicate_tone_ignored",
+     "vendor_action": "a mask naming one tone twice compiles unchanged, because the mask is a bitmask",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": true,
+     "evidence": [
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "mux",
+       "note_contains": "mask names one tone twice",
+       "outcome": "accept"
+      }
+     ]
+    },
     {
      "id": "mux_length_near_max_assembler_error",
      "vendor_action": "length near 2**32-1 cycles is inside the documented range but fails in the assembler with a cryptic error",

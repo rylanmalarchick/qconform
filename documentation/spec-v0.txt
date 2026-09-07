@@ -29,7 +29,7 @@ through. A tool error is never a statement about the device.
 
 2. the rules
 ------------
-Fourteen rules, in registry order. The registry is append-only: an id is never
+Sixteen rules, in registry order. The registry is append-only: an id is never
 renamed, renumbered or reused, and a retired id keeps its slot.
 
   R1   pulse_length_range      a play on a drive channel, in channel units,
@@ -63,6 +63,17 @@ renamed, renumbered or reused, and a retired id keeps its slot.
                                and a barrier takes a maximum over values that
                                are already at least zero, so the frame clock
                                cannot go negative. Nothing emits this rule
+  R15  mux_tone_mask           a play whose mask names a tone index its
+                               channel's tone table does not declare
+  R16  mux_tone_count          a tone table longer than the channel's declared
+                               n_tones. The toolchain compiles such a table,
+                               so this is the one rule whose fatal severity
+                               rests on the hardware and not on a refusal
+
+A muxed generator carries its frequency, phase and amplitude in a tone table
+rather than in a frame, so R4 through R8 apply once per declared tone. They
+are the same rules and the same coverage classes; only the value they read
+comes from elsewhere.
 
 Three budget classes carry whole-program limits: pmem_words, wmem_words and
 loop_registers. A budget reports fits, violates or indeterminate. A violation
@@ -89,7 +100,7 @@ the program that was written.
 
 4. coverage, and what pass does not mean
 ----------------------------------------
-Every report carries a coverage manifest naming all eighteen classes as
+Every report carries a coverage manifest naming all twenty classes as
 checked, not_applicable, unchecked or indeterminate.
 
 pass means exactly this: no violation was found among the classes marked

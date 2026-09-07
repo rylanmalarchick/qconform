@@ -52,6 +52,33 @@ def play(id_, dur, wf="w0"):
             "waveform": wf, "duration": dur}
 
 
+# gen4 on qce2025-r26 is the muxed generator: n_tones 8, mixer at f_dds/4,
+# so a tone is in band when frequency - 430080000 lands within +-860160000.
+MUX_UNIT = {"num": 1, "den": 430080000}
+
+
+def mux_tone(hz, num=1, den=2):
+    return {"frequency": {"num": hz, "den": 1},
+            "phase": {"num": 0, "den": 1},
+            "amplitude": {"num": num, "den": den}}
+
+
+def mux_program(tones, mask, elements=None):
+    return {
+        "format": "qconform-program", "format_version": 0,
+        "channels": [{"name": "gen4", "unit": MUX_UNIT,
+                      "mixer_frequency": {"num": 430080000, "den": 1},
+                      "tones": tones}],
+        "frames": [{"name": "f4", "channel": "gen4",
+                    "frequency": {"num": 0, "den": 1},
+                    "phase": {"num": 0, "den": 1}}],
+        "waveforms": [],
+        "elements": elements if elements is not None else
+                    [{"id": 0, "kind": "play", "frame": "f4",
+                      "mask": mask, "duration": 100}],
+    }
+
+
 # case name -> (descriptor, program dict or raw bytes, expected exit code)
 CASES = {
     # exported Ramsey program, exporter output is realizable by construction
@@ -66,6 +93,21 @@ CASES = {
         [{"id": 0, "kind": "set_frequency", "frame": "f0",
           "frequency": {"num": 7188480000, "den": 1}},
          play(1, 60 * 28)]), 2),
+    # mux tones sit on their limits, so every per-tone rule is checked and
+    # holds. Tone frequencies are on the resolution grid: 430080000 is the
+    # mixer, so the device sees 0, and 860160000 is 2**30 steps of f_dds/2**32.
+    "mux-tones-pass": (QCE_DESC, mux_program(
+        [mux_tone(430080000), mux_tone(860160000)], [0, 1]), 0),
+    # catalog: mux axis, "mask tone index == n_tones with n_tones declared",
+    # outcome reject. The mask names a tone the table does not declare.
+    "mux-mask-out-of-range": (QCE_DESC, mux_program(
+        [mux_tone(430080000), mux_tone(860160000)], [2]), 1),
+    # catalog: mux axis, "tone table over n_tones", outcome accept. The
+    # toolchain compiles a table longer than the generator has, so this is
+    # fatal on the hardware and the descriptor records the silent acceptance
+    # as mux_tone_count_unchecked.
+    "mux-tones-over-n-tones": (QCE_DESC, mux_program(
+        [mux_tone(430080000)] * 9, [0]), 1),
     # catalog: int4 (interpolated) enforces +-f_dds/2 fatally
     "freq-out-of-band-int4": (QCE_DESC, {
         "format": "qconform-program", "format_version": 0,
@@ -295,6 +337,39 @@ def main():
     manifest.append(("malformed-post-mixer-undeclared", QCE_DESC,
                      "malformed-post-mixer-undeclared/program.json", 3, "-"))
     summary.append(f"malformed-post-mixer-undeclared: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
+
+    # Three ways to get the tone table wrong. Each is a validation error and
+    # not a rejection: they describe a program the device has no reading of,
+    # rather than one it would refuse.
+    for case, prog, why in [
+            ("malformed-mux-play-has-waveform",
+             {**mux_program([mux_tone(430080000)], [0]),
+              "waveforms": [{"name": "w0", "kind": "const",
+                             "amplitude": {"num": 1, "den": 2}}]},
+             "a play on a tone-table channel carries a mask, never a waveform"),
+            ("malformed-mux-play-has-no-mask",
+             mux_program([mux_tone(430080000)], [0], elements=[
+                 {"id": 0, "kind": "play", "frame": "f4", "duration": 100}]),
+             "a play on a tone-table channel requires a mask"),
+            ("malformed-mux-frame-retuned",
+             mux_program([mux_tone(430080000)], [0], elements=[
+                 {"id": 0, "kind": "set_frequency", "frame": "f4",
+                  "frequency": {"num": 430080000, "den": 1}},
+                 {"id": 1, "kind": "play", "frame": "f4",
+                  "mask": [0], "duration": 100}]),
+             "a tone table is fixed, so its frame cannot be retuned")]:
+        if case == "malformed-mux-play-has-waveform":
+            prog["elements"][0]["waveform"] = "w0"
+        d = HERE / case
+        d.mkdir(exist_ok=True)
+        (d / "program.json").write_text(json.dumps(prog, indent=1) + "\n")
+        r = subprocess.run([str(QCONFORM), str(HERE / QCE_DESC), str(d / "program.json")],
+                           capture_output=True)
+        if r.returncode != 3 or r.stdout:
+            sys.exit(f"{case}: exit {r.returncode}; wanted 3, empty stdout")
+        manifest.append((case, QCE_DESC, f"{case}/program.json", 3, "-"))
+        summary.append(f"{case}: exit 3 ({why}), "
+                       f"stderr: {r.stderr.decode().strip()[:70]}")
 
     d = HERE / "malformed-overflow-cost-descriptor"
     d.mkdir(exist_ok=True)

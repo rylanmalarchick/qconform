@@ -226,12 +226,14 @@ bool parse_program(Arena *a, const char *bytes, size_t len, IrProgram *out, Diag
     static const char *const top[] = {"format", "format_version", "channels",
                                       "frames", "waveforms", "elements", NULL};
     static const char *const chan_fields[] = {"name", "unit", "sample_unit",
-                                              "mixer_frequency", NULL};
+                                              "mixer_frequency", "tones", NULL};
+    static const char *const tone_fields[] = {"frequency", "phase", "amplitude", NULL};
     static const char *const frame_fields[] = {"name", "channel", "frequency", "phase", NULL};
     static const char *const wf_const_fields[] = {"name", "kind", "amplitude", NULL};
     static const char *const wf_samples_fields[] = {"name", "kind", "full_scale", "i", "q", NULL};
     static const char *const el_barrier_fields[] = {"id", "kind", "frames", NULL};
-    static const char *const el_play_fields[] = {"id", "kind", "frame", "waveform", "duration", NULL};
+    static const char *const el_play_fields[] = {"id", "kind", "frame", "waveform",
+                                                "mask", "duration", NULL};
     static const char *const el_dur_fields[] = {"id", "kind", "frame", "duration", NULL};
     static const char *const el_phase_fields[] = {"id", "kind", "frame", "phase", NULL};
     static const char *const el_freq_fields[] = {"id", "kind", "frame", "frequency", NULL};
@@ -270,6 +272,37 @@ bool parse_program(Arena *a, const char *bytes, size_t len, IrProgram *out, Diag
         if (v != NULL && !get_rat(c, v, "channels[].mixer_frequency",
                                   &channels[i].mixer_frequency))
             return false;
+        /* The tone table of a muxed generator. Absent on every other channel,
+         * and an empty table is refused: a channel that declares one must be
+         * able to sound something. */
+        channels[i].tones = NULL;
+        channels[i].n_tones = 0;
+        v = json_get(co, "tones");
+        if (v != NULL) {
+            const JsonValue *ta = NULL;
+            IrTone *tones = NULL;
+            size_t t;
+            if (!get_array(c, v, "channels[].tones", &ta)) return false;
+            if (ta->as.array.len == 0)
+                return fail(c, "channel '" STR_FMT "': tones must not be empty",
+                            STR_ARG(name));
+            tones = arena_array(a, ta->as.array.len, sizeof *tones);
+            if (tones == NULL) return fail(c, "out of memory");
+            for (t = 0; t < ta->as.array.len; t++) {
+                const JsonValue *to = NULL, *tv = NULL;
+                if (!get_object(c, ta->as.array.items[t], "channels[].tones[]", &to))
+                    return false;
+                if (!known(c, to, tone_fields, "channels[].tones[]")) return false;
+                if (!require_field(c, to, "frequency", "tones[]", &tv)) return false;
+                if (!get_rat(c, tv, "tones[].frequency", &tones[t].frequency)) return false;
+                if (!require_field(c, to, "phase", "tones[]", &tv)) return false;
+                if (!get_rat(c, tv, "tones[].phase", &tones[t].phase)) return false;
+                if (!require_field(c, to, "amplitude", "tones[]", &tv)) return false;
+                if (!get_rat(c, tv, "tones[].amplitude", &tones[t].amplitude)) return false;
+            }
+            channels[i].tones = tones;
+            channels[i].n_tones = ta->as.array.len;
+        }
         chan_names[i] = name;
     }
     out->channels = channels;
@@ -417,19 +450,66 @@ bool parse_program(Arena *a, const char *bytes, size_t len, IrProgram *out, Diag
         if (str_eq_lit(kind, "play")) {
             Str wname = {NULL, 0};
             uint32_t wf = 0;
+            const IrChannel *pch = &channels[frames[frame].channel];
+            const JsonValue *mv = NULL;
             if (!known(c, eo, el_play_fields, "elements[]")) return false;
-            if (!require_field(c, eo, "waveform", "play", &v)) return false;
-            if (!get_name(c, v, "play.waveform", &wname)) return false;
-            if (!find_name(wf_names, out->n_waveforms, wname, &wf))
-                return fail(c, "element %lld: dangling waveform '" STR_FMT "'",
-                            (long long)id, STR_ARG(wname));
-            if (waveforms[wf].kind == WF_SAMPLES && !channels[frames[frame].channel].has_sample_unit)
-                return fail(c, "element %lld: samples waveform on channel '" STR_FMT
-                               "' with no sample_unit",
-                            (long long)id, STR_ARG(channels[frames[frame].channel].name));
             elements[i].kind = EL_PLAY;
             elements[i].as.play.frame = frame;
-            elements[i].as.play.waveform = wf;
+            elements[i].as.play.waveform = 0;
+            elements[i].as.play.mask = NULL;
+            elements[i].as.play.mask_len = 0;
+            mv = json_get(eo, "mask");
+            /* A channel with a tone table takes mask plays and no waveform
+             * plays, and one without takes the reverse. The toolchain enforces
+             * the same split: a muxed pulse accepts style, mask and length and
+             * refuses freq, phase and gain, which live in the table. */
+            if (pch->n_tones > 0) {
+                const JsonValue *ma = NULL;
+                int64_t *mask = NULL;
+                size_t k;
+                if (json_get(eo, "waveform") != NULL)
+                    return fail(c, "element %lld: channel '" STR_FMT "' declares a tone "
+                                   "table, so this play names tones with mask and "
+                                   "carries no waveform",
+                                (long long)id, STR_ARG(pch->name));
+                if (mv == NULL)
+                    return fail(c, "element %lld: channel '" STR_FMT "' declares a tone "
+                                   "table, so this play requires mask",
+                                (long long)id, STR_ARG(pch->name));
+                if (!get_array(c, mv, "play.mask", &ma)) return false;
+                if (ma->as.array.len == 0)
+                    return fail(c, "element %lld: mask must name at least one tone",
+                                (long long)id);
+                mask = arena_array(a, ma->as.array.len, sizeof *mask);
+                if (mask == NULL) return fail(c, "out of memory");
+                for (k = 0; k < ma->as.array.len; k++) {
+                    if (!get_int(c, ma->as.array.items[k], "play.mask[]", &mask[k]))
+                        return false;
+                    /* A tone index is a non-negative integer by the format. An
+                     * index the table does not declare is a device limit and a
+                     * rejection, not a malformed program. */
+                    if (mask[k] < 0)
+                        return fail(c, "element %lld: mask index %lld is negative",
+                                    (long long)id, (long long)mask[k]);
+                }
+                elements[i].as.play.mask = mask;
+                elements[i].as.play.mask_len = ma->as.array.len;
+            } else {
+                if (mv != NULL)
+                    return fail(c, "element %lld: channel '" STR_FMT "' declares no tone "
+                                   "table, so this play carries no mask",
+                                (long long)id, STR_ARG(pch->name));
+                if (!require_field(c, eo, "waveform", "play", &v)) return false;
+                if (!get_name(c, v, "play.waveform", &wname)) return false;
+                if (!find_name(wf_names, out->n_waveforms, wname, &wf))
+                    return fail(c, "element %lld: dangling waveform '" STR_FMT "'",
+                                (long long)id, STR_ARG(wname));
+                if (waveforms[wf].kind == WF_SAMPLES && !pch->has_sample_unit)
+                    return fail(c, "element %lld: samples waveform on channel '" STR_FMT
+                                   "' with no sample_unit",
+                                (long long)id, STR_ARG(pch->name));
+                elements[i].as.play.waveform = wf;
+            }
             if (!require_field(c, eo, "duration", "play", &v)) return false;
             if (!get_int(c, v, "play.duration", &elements[i].as.play.duration)) return false;
         } else if (str_eq_lit(kind, "capture") || str_eq_lit(kind, "delay")) {

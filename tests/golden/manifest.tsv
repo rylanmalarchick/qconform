@@ -8,6 +8,9 @@ ramsey-pass	descriptors/testbench.json	ramsey-pass/program.json	0	ramsey-pass/ex
 below-min-length	descriptors/testbench.json	below-min-length/program.json	1	below-min-length/expected.json
 off-grid-duration	descriptors/testbench.json	off-grid-duration/program.json	2	off-grid-duration/expected.json
 freq-alias-v6	descriptors/testbench.json	freq-alias-v6/program.json	2	freq-alias-v6/expected.json
+mux-tones-pass	descriptors/qce2025-r26.json	mux-tones-pass/program.json	0	mux-tones-pass/expected.json
+mux-mask-out-of-range	descriptors/qce2025-r26.json	mux-mask-out-of-range/program.json	1	mux-mask-out-of-range/expected.json
+mux-tones-over-n-tones	descriptors/qce2025-r26.json	mux-tones-over-n-tones/program.json	1	mux-tones-over-n-tones/expected.json
 freq-out-of-band-int4	descriptors/qce2025-r26.json	freq-out-of-band-int4/program.json	1	freq-out-of-band-int4/expected.json
 envelope-over-memory	descriptors/qce2025-r26.json	envelope-over-memory/program.json	1	envelope-over-memory/expected.json
 envelope-off-sample-grid	descriptors/testbench.json	envelope-off-sample-grid/program.json	1	envelope-off-sample-grid/expected.json
@@ -22,5 +25,8 @@ malformed-envelope-sample-min	descriptors/testbench.json	malformed-envelope-samp
 malformed-bad-severity-descriptor	descriptors/bad-severity.json	malformed-bad-severity-descriptor/program.json	3	-
 malformed-ignored-constraint-descriptor	descriptors/ignored-constraint.json	malformed-ignored-constraint-descriptor/program.json	3	-
 malformed-post-mixer-undeclared	descriptors/qce2025-r26.json	malformed-post-mixer-undeclared/program.json	3	-
+malformed-mux-play-has-waveform	descriptors/qce2025-r26.json	malformed-mux-play-has-waveform/program.json	3	-
+malformed-mux-play-has-no-mask	descriptors/qce2025-r26.json	malformed-mux-play-has-no-mask/program.json	3	-
+malformed-mux-frame-retuned	descriptors/qce2025-r26.json	malformed-mux-frame-retuned/program.json	3	-
 malformed-overflow-cost-descriptor	descriptors/overflow-cost.json	malformed-overflow-cost-descriptor/program.json	3	-
 malformed-zero-grid-descriptor	descriptors/zero-grid.json	malformed-zero-grid-descriptor/program.json	3	-

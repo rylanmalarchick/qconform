@@ -90,14 +90,33 @@ def check_program(doc, errs):
             if fr not in frames:
                 errs.append(f"element {e['id']}: dangling frame {fr}")
         if e["kind"] == "play":
-            w = wfs.get(e["waveform"])
-            if w is None:
-                errs.append(f"element {e['id']}: dangling waveform {e['waveform']}")
-            elif w["kind"] == "samples":
-                ch = chans[frames[e["frame"]]["channel"]]
-                if "sample_unit" not in ch:
-                    errs.append(f"element {e['id']}: samples waveform on channel "
-                                f"{ch['name']} which declares no sample_unit")
+            ch = chans[frames[e["frame"]]["channel"]] if e.get("frame") in frames else None
+            tones = (ch or {}).get("tones")
+            # A channel with a tone table takes mask plays and no waveform
+            # plays, and one without takes the reverse. The schema states the
+            # split per element; this states it against the channel.
+            if tones is not None:
+                if "waveform" in e:
+                    errs.append(f"element {e['id']}: channel {ch['name']} declares a "
+                                f"tone table, so this play carries no waveform")
+                if "mask" not in e:
+                    errs.append(f"element {e['id']}: channel {ch['name']} declares a "
+                                f"tone table, so this play requires mask")
+            else:
+                if "mask" in e:
+                    errs.append(f"element {e['id']}: channel "
+                                f"{(ch or {}).get('name')} declares no tone table, "
+                                f"so this play carries no mask")
+                if "waveform" not in e:
+                    errs.append(f"element {e['id']}: play requires waveform")
+                    continue
+                w = wfs.get(e["waveform"])
+                if w is None:
+                    errs.append(f"element {e['id']}: dangling waveform {e['waveform']}")
+                elif w["kind"] == "samples":
+                    if ch is not None and "sample_unit" not in ch:
+                        errs.append(f"element {e['id']}: samples waveform on channel "
+                                    f"{ch['name']} which declares no sample_unit")
 
 
 SCHEMA_BY_FORMAT = {

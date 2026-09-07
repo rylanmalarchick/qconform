@@ -70,7 +70,13 @@
     /* negative_time is reserved. Once a channel unit must be positive, the
        frame clock cannot go negative, so nothing emits this rule. The registry
        is append-only and a retired id keeps its slot, so it stays here. */ \
-    X(negative_time)
+    X(negative_time)                                                        \
+    /* A muxed generator plays a tone table and a pulse names tones with a
+       mask. Both limits come from outside the constraint: the mask is bounded
+       by the program's own tone table, and the table by capabilities.n_tones.
+       So both constraints carry a severity and no parameter. */ \
+    X(mux_tone_mask)                                                        \
+    X(mux_tone_count)
 
 #define QC_REPAIR_IDS(X)  \
     X(quantize_duration)  \

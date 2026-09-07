@@ -30,7 +30,11 @@ TEST(known_names_and_ordinals) {
     /* ordinal order is load-bearing for the coverage list and the sort */
     CHECK_I64(QC_RULE_pulse_length_range, 0);
     CHECK_I64(QC_RULE_negative_time, 13);
-    CHECK_I64(QC_COV_pmem_words, 14);
+    /* the two mux rules were appended after negative_time, which is the only
+     * place a rule may go: the retired slot keeps its ordinal */
+    CHECK_I64(QC_RULE_mux_tone_mask, 14);
+    CHECK_I64(QC_RULE_mux_tone_count, 15);
+    CHECK_I64(QC_COV_pmem_words, 16);
 }
 
 TEST(lookup_rejects_unknown_and_respects_length) {

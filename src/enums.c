@@ -5,7 +5,7 @@
 /* The rule registry is a prefix of the coverage registry, in order. If either
  * list is reordered or a rule is inserted anywhere but the end, one of these
  * fails at compile time rather than silently mislabelling every report. */
-_Static_assert(QC_RULE_ID_COUNT == 14, "rule registry is append-only: adding a rule is deliberate");
+_Static_assert(QC_RULE_ID_COUNT == 16, "rule registry is append-only: adding a rule is deliberate");
 _Static_assert(QC_COVERAGE_CLASS_COUNT == QC_RULE_ID_COUNT + 4,
                "coverage classes are the rule registry plus the four budget classes");
 _Static_assert((int)QC_RULE_pulse_length_range == (int)QC_COV_pulse_length_range, "");

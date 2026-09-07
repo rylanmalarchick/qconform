@@ -171,6 +171,98 @@ def gen_channel(i, g, f_time):
         })
     else:
         ch["capabilities"]["n_tones"] = g["n_tones"]
+
+        # A mux pulse carries only style, mask and length, so frequency, gain
+        # and phase belong to the tone table and are checked per tone.
+        #
+        # FATAL, and the direction matters. Above the band the vendor refuses.
+        # Below it the vendor folds the tone onto its Nyquist image and
+        # compiles, which is recorded below as a vendor_behavior. Declaring
+        # this vendor_repairable would pass programs the vendor refuses.
+        cons.append({
+            "id": "frequency_range", "quantity": "frequency",
+            "shape": "range_resolution", "severity": "fatal",
+            "min": rat(-f_dds_hz / 2), "max": rat(f_dds_hz / 2),
+            "resolution": rat(freq_res), "post_mixer": True,
+            "evidence": [ev(ec, "mux", "tone just over upper edge", "reject"),
+                         ev(ec, "mux", "tone at 1.5x f_dds", "reject"),
+                         ev(ec, "mux", "tone quantization +0.3 step",
+                            "accept_round")],
+        })
+        cons.append({
+            "id": "phase_resolution", "quantity": "phase",
+            "shape": "range_resolution", "severity": "vendor_repairable",
+            "resolution": rat(Fraction(1, 2**B_PHASE)),
+            "evidence": [ev(ec, "mux", "tone phase quantization +0.3 step",
+                            "accept_round")],
+        })
+        # The mux gain register is round(gain * maxv). It rounds and applies
+        # no maxv_scale, where the non-mux path truncates and applies one, so
+        # the step is 1/maxv and this channel does not share it with an int4
+        # that reports the same maxv.
+        cons.append({
+            "id": "amplitude_range", "quantity": "amplitude",
+            "shape": "range_resolution", "severity": "vendor_repairable",
+            "min": rat(Fraction(-1)), "max": rat(Fraction(1)),
+            "resolution": rat(Fraction(1, g["maxv"])),
+            "evidence": [ev(ec, "mux", "tone k=1 of maxv (mux gain lsb)",
+                            "accept"),
+                         ev(ec, "mux", "tone raw +0.6 (trunc vs round)",
+                            "accept_round")],
+        })
+        # Both carry no parameter. The mask limit is the program's own tone
+        # table length, and the tone count limit is capabilities.n_tones.
+        cons.append({
+            "id": "mux_tone_mask", "quantity": "count",
+            "shape": "range_units", "severity": "fatal",
+            "evidence": [ev(ec, "mux",
+                            "mask tone index == n_tones with n_tones declared",
+                            "reject"),
+                         ev(ec, "mux", "mask names the last declared tone",
+                            "accept")],
+        })
+        cons.append({
+            "id": "mux_tone_count", "quantity": "count",
+            "shape": "range_units", "severity": "fatal",
+            "evidence": [ev(ec, "mux", "tone table exactly n_tones", "accept"),
+                         ev(ec, "mux", "tone table over n_tones", "accept")],
+        })
+        vb.append({
+            "id": "mux_tone_nyquist_image_fold",
+            "vendor_action": "a tone below the lower band edge is remapped to "
+                             "its Nyquist image and compiled; freq_rounded "
+                             "reports the request, so the readback hides it",
+            "qconform_severity": "fatal",
+            "semantics_preserving": False,
+            "evidence": [ev(ec, "mux", "tone just under lower edge",
+                            "accept_round"),
+                         ev(ec, "mux", "tone well under lower edge",
+                            "accept_round")],
+        })
+        vb.append({
+            "id": "mux_tone_count_unchecked",
+            "vendor_action": "a tone table longer than n_tones compiles; "
+                             "nothing compares the table against the hardware",
+            "qconform_severity": "fatal",
+            "semantics_preserving": False,
+            "evidence": [ev(ec, "mux", "tone table over n_tones", "accept")],
+        })
+        vb.append({
+            "id": "gain_over_full_scale",
+            "vendor_action": "tone gain beyond +/-1.0 accepted; raw register "
+                             "exceeds maxv (hardware behavior undetermined)",
+            "qconform_severity": "vendor_repairable",
+            "semantics_preserving": False,
+            "evidence": [ev(ec, "mux", "tone gain over full scale", "accept")],
+        })
+        vb.append({
+            "id": "mux_mask_duplicate_tone_ignored",
+            "vendor_action": "a mask naming one tone twice compiles unchanged, "
+                             "because the mask is a bitmask",
+            "qconform_severity": "vendor_repairable",
+            "semantics_preserving": True,
+            "evidence": [ev(ec, "mux", "mask names one tone twice", "accept")],
+        })
         vb.append({
             "id": "mux_length_near_max_assembler_error",
             "vendor_action": "length near 2**32-1 cycles is inside the documented "

@@ -1,0 +1,73 @@
+{
+ "format": "qconform-program",
+ "format_version": 0,
+ "channels": [
+  {
+   "name": "gen4",
+   "unit": {
+    "num": 1,
+    "den": 430080000
+   },
+   "mixer_frequency": {
+    "num": 430080000,
+    "den": 1
+   },
+   "tones": [
+    {
+     "frequency": {
+      "num": 430080000,
+      "den": 1
+     },
+     "phase": {
+      "num": 0,
+      "den": 1
+     },
+     "amplitude": {
+      "num": 1,
+      "den": 2
+     }
+    },
+    {
+     "frequency": {
+      "num": 860160000,
+      "den": 1
+     },
+     "phase": {
+      "num": 0,
+      "den": 1
+     },
+     "amplitude": {
+      "num": 1,
+      "den": 2
+     }
+    }
+   ]
+  }
+ ],
+ "frames": [
+  {
+   "name": "f4",
+   "channel": "gen4",
+   "frequency": {
+    "num": 0,
+    "den": 1
+   },
+   "phase": {
+    "num": 0,
+    "den": 1
+   }
+  }
+ ],
+ "waveforms": [],
+ "elements": [
+  {
+   "id": 0,
+   "kind": "play",
+   "frame": "f4",
+   "mask": [
+    2
+   ],
+   "duration": 100
+  }
+ ]
+}
