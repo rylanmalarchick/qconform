@@ -26,7 +26,14 @@ from qick.asm_v2 import AveragerProgramV2
 
 from probes import build_probes
 
-READBACK_EPS = 0.0    # exact float compare; any quantization counts as a round
+READBACK_EPS = 0.0
+
+# A mux tone param is read back from the declared tone table, not from the
+# pulse. A param that is in neither this map nor the non-numeric list in
+# classify() is graded against an absent readback and silently reports accept.
+MUX_TONE_PARAMS = {'mux_freq': 'freq_rounded',
+                   'mux_gain': 'gain_rounded',
+                   'mux_phase': 'phase_rounded'}    # exact float compare; any quantization counts as a round
 
 
 class LogCapture(logging.Handler):
@@ -39,17 +46,29 @@ class LogCapture(logging.Handler):
         self.records.append(re.sub(r'0x[0-9a-f]+', '0x_', record.getMessage()))
 
 
-def declare_kwargs(soccfg, ch):
+def default_tones(g):
+    """The two-tone table every mux probe used before tone probes existed.
+
+    Kept as the default so the rows that predate the tone axis stay
+    byte-identical.
+    """
+    return {'freqs': [g['f_dds'] / 8, g['f_dds'] / 16],
+            'gains': [0.5, 0.4],
+            'phases': [0.0, 0.0]}
+
+
+def declare_kwargs(soccfg, ch, tones=None):
     g = soccfg['gens'][ch]
     kw = {'ch': ch, 'nqz': 1}
     if g.get('has_mixer'):
         kw['mixer_freq'] = g['f_dds'] / 4
     if 'mux' in g['type']:
-        kw['mux_freqs'] = [g['f_dds'] / 8, g['f_dds'] / 16]
-        if g.get('has_gain'):
-            kw['mux_gains'] = [0.5, 0.4]
-        if g.get('has_phase'):
-            kw['mux_phases'] = [0.0, 0.0]
+        t = default_tones(g) if tones is None else tones
+        kw['mux_freqs'] = t['freqs']
+        if g.get('has_gain') and t.get('gains') is not None:
+            kw['mux_gains'] = t['gains']
+        if g.get('has_phase') and t.get('phases') is not None:
+            kw['mux_phases'] = t['phases']
     return kw
 
 
@@ -82,6 +101,15 @@ class ProbeProgram(AveragerProgramV2):
             elif p['param'] == 'phrst':
                 pulse['phrst'] = p['requested']
             self.add_pulse(ch=ch, name='p', **pulse)
+
+        elif kind == 'mux_tones':
+            # The tone table is what carries frequency, gain and phase on a
+            # muxed generator. A mux pulse takes only style, mask and length,
+            # so a tone is probed by declaring it and reading the table back,
+            # not by varying the pulse.
+            self.declare_gen(**declare_kwargs(soccfg, ch, p['tones']))
+            self.add_pulse(ch=ch, name='p', style='const',
+                           mask=p.get('mask', [0]), length=nominal_len)
 
         elif kind in ('arb', 'env_two'):
             self.declare_gen(**declare_kwargs(soccfg, ch))
@@ -170,6 +198,25 @@ def observe(prog, probe):
             obs['wave_raw'] = {k: int(w[k]) for k in
                                ('freq', 'phase', 'gain', 'length')
                                if not hasattr(w[k], 'spans')}
+    if probe['kind'] == 'mux_tones':
+        # calc_muxgen_regs quantizes each tone at declare time and keeps both
+        # the rounded value and the register. get_pulse_param cannot see them:
+        # a mux pulse carries a mask, not a tone. The declared count is
+        # recorded on every tone probe, because a probe that declares more
+        # tones than the generator has needs to show that it did.
+        try:
+            tones = prog.gen_chs[probe['gen_ch']]['mux_tones']
+            t = tones[probe.get('tone_index', 0)]
+        except (KeyError, IndexError, TypeError):
+            tones, t = None, None
+        if t is not None:
+            key = MUX_TONE_PARAMS.get(param)
+            if key is not None and key in t:
+                obs['readback'] = float(t[key])
+            obs['tone_raw'] = {k: int(t[k]) for k in
+                               ('freq_int', 'gain_int', 'phase_int') if k in t}
+        if tones is not None:
+            obs['n_tones_declared'] = len(tones)
     if probe['kind'] == 'many_waveforms':
         obs['n_waves'] = len(prog.waves)
     if probe['axis'] in ('budget_pmem', 'budget_regs', 'envelope'):
@@ -188,7 +235,8 @@ def classify(probe, obs):
     rb = obs.get('readback')
     if rb is None or probe['param'] in ('phrst', 'mask', 'n_waveforms',
                                         'n_pulses', 'n_loops', 'revision',
-                                        'env_samples', 'env_maxv', 't'):
+                                        'env_samples', 'env_maxv', 't',
+                                        'n_tones', 'tone_list_len'):
         return 'accept'
     if req == 0:
         return 'accept' if abs(rb) < 1e-12 else 'accept_round'

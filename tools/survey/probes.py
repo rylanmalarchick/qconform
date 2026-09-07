@@ -161,7 +161,8 @@ def build_probes(soccfg, synthetic_variants=True):
         if mux:
             probes.append({**base, 'axis': 'mux', 'kind': 'mux_const',
                            'param': 'mask', 'requested': 8,
-                           'note': 'mask tone index == n_tones (out of range)'})
+                           'note': 'mask tone index 8 with 2 tones declared '
+                                   '(out of range)'})
             probes.append({**base, 'axis': 'phrst', 'kind': 'mux_const',
                            'param': 'phrst', 'requested': 1,
                            'note': 'phrst on mux gen (expect unsupported)'})
@@ -215,6 +216,7 @@ def build_probes(soccfg, synthetic_variants=True):
                        'note': 'tproc revision outside ASM_REVISIONS (synthetic config)'})
 
     probes.extend(gain_lsb_probes(soccfg))
+    probes.extend(mux_tone_probes(soccfg))
 
     return probes
 
@@ -241,3 +243,125 @@ def gain_lsb_probes(soccfg):
                 "note": f"k={k} of maxv, maxv_scale={g.get('maxv_scale', 1.0)}",
             })
     return out
+
+
+def tone_table(g, n, freq=None, gains=True, phases=True, drop_gain=0):
+    """A tone table of n tones for a muxed generator.
+
+    Tone 0 carries the probed value when freq is given; the rest are spread
+    across the band so the table is a table and not one tone repeated. Values
+    come from config fields only, as everything in this file does.
+    """
+    mixer = g['f_dds'] / 4
+    freqs = [mixer + g['f_dds'] * (i + 1) / (4 * (n + 1)) for i in range(n)]
+    if freq is not None:
+        freqs[0] = freq
+    t = {'freqs': freqs}
+    t['gains'] = [0.5] * (n - drop_gain) if gains else None
+    t['phases'] = [0.0] * n if phases else None
+    return t
+
+
+def mux_tone_probes(soccfg):
+    """Probe the tone table of a muxed generator.
+
+    The mux axis had one row. It exercised a mask index against the two-tone
+    table declare_kwargs happens to build, and nothing else: the freq, gain and
+    phase axes are all gated on `not mux`, so a muxed generator's tone values
+    were unprobed. A mux pulse carries only style, mask and length, so the
+    frequency, gain and phase of a mux channel live in the tone table and have
+    to be probed there.
+
+    The band is stated in absolute terms. ABSOLUTE_FREQS is true on tProc v2,
+    so a declared tone frequency is absolute and the vendor subtracts the mixer
+    itself, which puts the reachable band at mixer +/- f_dds/2.
+    """
+    out = []
+    for cls in gen_classes(soccfg):
+        ch, g = cls['ch'], cls['gcfg']
+        if 'mux' not in g['type']:
+            continue
+        base = {'axis': 'mux', 'kind': 'mux_tones', 'gen_ch': ch,
+                'gen_type': g['type'], 'tone_index': 0}
+        n = g['n_tones']
+        mixer = g['f_dds'] / 4
+        fstep = g['f_dds'] / 2**g['b_dds']
+        half = g['f_dds'] / 2
+
+        # tone frequency, absolute, against a band of mixer +/- f_dds/2
+        for v, note in [
+                (mixer, 'tone at band centre'),
+                (mixer + half / 2, 'tone mid band'),
+                (mixer + half / 2 + 0.3 * fstep, 'tone quantization +0.3 step'),
+                (mixer - half, 'tone at lower band edge'),
+                (mixer - half - fstep, 'tone just under lower edge'),
+                (mixer + half, 'tone at upper band edge'),
+                (mixer + half + fstep, 'tone just over upper edge'),
+                (mixer + 1.5 * g['f_dds'], 'tone at 1.5x f_dds'),
+                (mixer - half - g['f_dds'] / 8, 'tone well under lower edge'),
+                (mixer - 1.5 * g['f_dds'], 'tone at -1.5x f_dds')]:
+            out.append({**base, 'param': 'mux_freq', 'requested': v,
+                        'tones': tone_table(g, 2, freq=v), 'note': note})
+
+        # tone gain. The vendor rounds the mux register and applies no
+        # maxv_scale, where the non-mux path truncates and applies one, so the
+        # +0.4 and +0.6 rungs are what tell the two apart.
+        if g.get('has_gain'):
+            maxv = g['maxv']
+            for k in range(0, 5):
+                out.append({**base, 'param': 'mux_gain', 'requested': k / maxv,
+                            'tones': _gain_table(g, k / maxv),
+                            'note': f'tone k={k} of maxv (mux gain lsb)'})
+            for frac, note in [(0.4, 'tone raw +0.4 (round down)'),
+                               (0.6, 'tone raw +0.6 (trunc vs round)')]:
+                v = (4 + frac) / maxv
+                out.append({**base, 'param': 'mux_gain', 'requested': v,
+                            'tones': _gain_table(g, v), 'note': note})
+            for v, note in [(1.0, 'tone gain at full scale'),
+                            (1.0 + 4.0 / maxv, 'tone gain over full scale')]:
+                out.append({**base, 'param': 'mux_gain', 'requested': v,
+                            'tones': _gain_table(g, v), 'note': note})
+
+        # tone phase
+        if g.get('has_phase'):
+            pstep = 360.0 / 2**g['b_phase']
+            for v, note in [(0.0, 'tone phase zero'),
+                            (90.0, 'tone phase quarter turn'),
+                            (0.3 * pstep, 'tone phase quantization +0.3 step')]:
+                out.append({**base, 'param': 'mux_phase', 'requested': v,
+                            'tones': _phase_table(g, v), 'note': note})
+
+        # how many tones the table may declare
+        for count, note in [(n, 'tone table exactly n_tones'),
+                            (n + 1, 'tone table over n_tones')]:
+            out.append({**base, 'param': 'n_tones', 'requested': count,
+                        'tones': tone_table(g, count),
+                        'note': note})
+
+        # the three lists must agree in length
+        out.append({**base, 'param': 'tone_list_len', 'requested': n - 1,
+                    'tones': tone_table(g, n, drop_gain=1),
+                    'note': 'mux_gains shorter than mux_freqs'})
+
+        # mask, against a table whose length is known
+        for mask, req, note in [
+                ([0], 0, 'mask names a declared tone'),
+                ([0, 0], 0, 'mask names one tone twice'),
+                ([n - 1], n - 1, 'mask names the last declared tone'),
+                ([n], n, 'mask tone index == n_tones with n_tones declared')]:
+            out.append({**base, 'param': 'mask', 'requested': req,
+                        'tones': tone_table(g, n), 'mask': mask, 'note': note})
+
+    return out
+
+
+def _gain_table(g, v):
+    t = tone_table(g, 2)
+    t['gains'][0] = v
+    return t
+
+
+def _phase_table(g, v):
+    t = tone_table(g, 2)
+    t['phases'][0] = v
+    return t
