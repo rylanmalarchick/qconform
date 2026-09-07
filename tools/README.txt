@@ -51,3 +51,15 @@ Vendor behaviour is a function of the (firmware config, library version)
 pair, so requirements.txt files pin exact versions. A survey re-run under a
 different qick release is a different survey and produces a different
 descriptor, by design — see documentation/descriptor-format-v0.txt.
+
+The pin is checked, not asserted. Under qick 0.2.418 and numpy 2.5.1 the
+survey rewrites all 45 files in survey/catalog/ byte-identically. That is
+the test the pin has to pass, and it is how the numpy pin was corrected:
+it read 2.4.6 while every committed row recorded 2.5.1.
+
+Install the survey pins in their own environment rather than a shared one,
+because the pin is exact:
+
+  uv venv ~/.venvs/qconform-survey --python 3.12
+  uv pip install --python ~/.venvs/qconform-survey/bin/python \
+      -r tools/survey/requirements.txt
