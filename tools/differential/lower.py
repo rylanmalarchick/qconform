@@ -43,7 +43,7 @@ def channel_index(name):
     raise ValueError(f"channel name {name!r} does not map to a vendor channel")
 
 
-def declare_kwargs(soccfg, ch, mixer_hz=None):
+def declare_kwargs(soccfg, ch, mixer_hz=None, tones=None):
     """Arguments declare_gen needs for this generator.
 
     A generator with a digital mixer refuses to compile without mixer_freq,
@@ -64,11 +64,17 @@ def declare_kwargs(soccfg, ch, mixer_hz=None):
         kw["mixer_freq"] = (g["f_dds"] / 4 if mixer_hz is None
                             else float(mixer_hz) / 1_000_000)
     if "mux" in g["type"]:
-        kw["mux_freqs"] = [g["f_dds"] / 8, g["f_dds"] / 16]
+        if not tones:
+            raise LoweringError(
+                f"generator {ch} is muxed and the program declares no tones")
+        # The program's own table, for the same reason as the mixer above.
+        # Tone frequencies are absolute and the vendor subtracts the mixer
+        # itself, which is the convention the program format uses.
+        kw["mux_freqs"] = [float(t["frequency"]) / 1_000_000 for t in tones]
         if g.get("has_gain"):
-            kw["mux_gains"] = [0.5, 0.4]
+            kw["mux_gains"] = [float(t["amplitude"]) for t in tones]
         if g.get("has_phase"):
-            kw["mux_phases"] = [0.0, 0.0]
+            kw["mux_phases"] = [float(t["phase"]) * 360 for t in tones]
     return kw
 
 
@@ -139,6 +145,12 @@ class Plan:
         # name -> {quantity: (requested_exact, step)}; the step is the grid or
         # resolution the vendor quantizes that quantity to
         self.pulse_grid = {}
+        # (vendor channel, tone index) -> {quantity: (requested_exact, step)}.
+        # A tone is quantized at declare time and carries no pulse register,
+        # so its repair is readable from the tone table and not from
+        # get_pulse_param. Without this the repair is invisible and a real
+        # disagreement is recorded as the checker over-predicting.
+        self.tone_grid = {}
         self.readoutconfigs = []    # (ch, name, freq_mhz, length_us)
         self.body = []              # ('pulse'|'trigger', ...)
         # (vendor channel, kind, requested start in seconds, schedule grid in
@@ -209,6 +221,10 @@ def build_plan(program, descriptor, soccfg):
             "resolution": res,
             "mixer_hz": (rat(pc["mixer_frequency"])
                          if "mixer_frequency" in pc else None),
+            "tones": [{"frequency": rat(t["frequency"]),
+                       "phase": rat(t["phase"]),
+                       "amplitude": rat(t["amplitude"])}
+                      for t in pc.get("tones", [])],
         }
 
     frames = {f["name"]: dict(f) for f in program["frames"]}
@@ -217,7 +233,28 @@ def build_plan(program, descriptor, soccfg):
     for ch_name, b in bind.items():
         if b["kind"] == "gen":
             plan.declare_gens.append(
-                declare_kwargs(soccfg, b["index"], b.get("mixer_hz")))
+                declare_kwargs(soccfg, b["index"], b.get("mixer_hz"),
+                               b.get("tones")))
+            # A tone is quantized at declare time, not at pulse time, so the
+            # conversion loss is recorded here and once per tone.
+            for ti, t in enumerate(b.get("tones") or []):
+                mhz = float(t["frequency"]) / 1_000_000
+                plan.losses.append(Loss(f"tone{ti}_frequency", -1, t["frequency"],
+                                        Fraction(mhz) * 1_000_000,
+                                        b["resolution"].get("frequency")))
+                deg = float(t["phase"]) * 360
+                plan.losses.append(Loss(f"tone{ti}_phase", -1, t["phase"],
+                                        Fraction(deg) / 360,
+                                        b["resolution"].get("phase")))
+                amp = float(t["amplitude"])
+                plan.losses.append(Loss(f"tone{ti}_amplitude", -1, t["amplitude"],
+                                        Fraction(amp),
+                                        b["resolution"].get("amplitude")))
+                plan.tone_grid[(b["index"], ti)] = {
+                    "frequency": (t["frequency"], b["resolution"].get("frequency")),
+                    "phase": (t["phase"], b["resolution"].get("phase")),
+                    "amplitude": (t["amplitude"], b["resolution"].get("amplitude")),
+                }
 
     # envelopes are per waveform, declared once on each channel that plays them
     declared_envelopes = set()
@@ -319,15 +356,31 @@ def build_plan(program, descriptor, soccfg):
             raise LoweringError(f"element {eid}: unsupported kind {kind!r}")
         if b["kind"] != "gen":
             raise LoweringError(f"element {eid}: play on a readout channel")
-        # A muxed generator plays a tone table and requires a mask naming the
-        # tones. The qconform program format has no way to say which tones a
-        # play uses, so this lowering cannot express a mux pulse. Refusing is
-        # the honest answer; guessing a mask would test a program the input
-        # did not describe.
+        # A muxed generator plays its tone table and the pulse names tones
+        # with a mask. The vendor allows style, mask and length on such a
+        # pulse and refuses freq, phase and gain, which live in the table, so
+        # this is a separate path and not the ordinary one with a mask added.
         if "mux" in soccfg["gens"][b["index"]].get("type", ""):
-            raise LoweringError(
-                f"element {eid}: {soccfg['gens'][b['index']]['type']} is a "
-                f"muxed generator; the program format cannot name its tones")
+            mask = [int(m) for m in el["mask"]]
+            kwargs = {"style": "const", "mask": mask, "length": dur_us}
+            key = (b["index"], "mux", tuple(mask), dur_us)
+            pulse_name = reused.get(key)
+            if pulse_name is None:
+                pulse_name = f"p{len(reused)}"
+                reused[key] = pulse_name
+                plan.pulses.append((b["index"], pulse_name, kwargs))
+                # A mux pulse carries no frequency, phase or gain register of
+                # its own, so length is the only quantity readable back from
+                # the pulse. The tone values were quantized at declare time
+                # and are compared from the tone table instead.
+                plan.pulse_grid[pulse_name] = {
+                    "total_length": (dur_s, grid_seconds(fname, "duration_grid")),
+                }
+            plan.body.append(("pulse", b["index"], pulse_name, start_us))
+            plan.schedule.append((b["index"], "gen", start_s,
+                                  grid_seconds(fname, "schedule_grid")))
+            st["clock"] += el["duration"]
+            continue
 
         wf = waveforms[el["waveform"]]
         amp = None
@@ -427,7 +480,7 @@ def compile_plan(plan, soccfg):
     the caller performs: this returns 'compiled', 'reject' or 'crash'.
     """
     try:
-        prog = LoweredProgram(soccfg, reps=1, final_delay=1.0, cfg={"plan": plan})
+        prog = LoweredProgram(soccfg, reps=1, final_delay=0.0, cfg={"plan": plan})
         return prog, "compiled", None
     except (RuntimeError, ValueError) as e:
         return None, "reject", {"error_type": type(e).__name__,

@@ -111,7 +111,12 @@ def build_probes(soccfg, synthetic_variants=True):
         mux = 'mux' in gt
         base = {'gen_ch': ch, 'gen_type': gt, 'dup_ch': cls['dup_ch']}
 
-        maxcyc = 2**32 if mux else 2**16
+        # The tProc time immediate is a signed 32-bit field, so the value
+        # that must fit is 2**31 - 1 and not the 2**32 the mux pulse-length
+        # check itself allows. Probing to 2**32 recorded a max boundary that
+        # rejects, which is how the descriptor came to declare a maximum the
+        # toolchain refuses.
+        maxcyc = 2**31 if mux else 2**16
         for v, note in length_values(gcfg['f_fabric'], maxcyc):
             style = 'mux_const' if mux else 'const'
             probes.append({**base, 'axis': 'length', 'kind': style,

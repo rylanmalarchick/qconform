@@ -255,7 +255,7 @@ def run_probe(soccfg, probe):
             bad = copy.deepcopy(soccfg._cfg)
             bad['tprocs'][0]['revision'] = probe['requested']
             soccfg = QickConfig(bad)
-        prog = ProbeProgram(soccfg, reps=1, final_delay=1.0, cfg={'probe': probe})
+        prog = ProbeProgram(soccfg, reps=1, final_delay=0.0, cfg={'probe': probe})
         prog.compile()
         obs = observe(prog, probe)
         row['outcome'] = classify(probe, obs)

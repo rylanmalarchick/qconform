@@ -1029,7 +1029,7 @@
      "shape": "range_units",
      "severity": "fatal",
      "min_units": 3,
-     "max_units": 4294967295,
+     "max_units": 2147483647,
      "evidence": [
       {
        "config": "zcu216-qce2025-r26",
@@ -1255,20 +1255,6 @@
        "axis": "mux",
        "note_contains": "mask names one tone twice",
        "outcome": "accept"
-      }
-     ]
-    },
-    {
-     "id": "mux_length_near_max_assembler_error",
-     "vendor_action": "length near 2**32-1 cycles is inside the documented range but fails in the assembler with a cryptic error",
-     "qconform_severity": "fatal",
-     "semantics_preserving": false,
-     "evidence": [
-      {
-       "config": "zcu216-qce2025-r26",
-       "axis": "length",
-       "note_contains": "max boundary",
-       "outcome": "reject"
       }
      ]
     },

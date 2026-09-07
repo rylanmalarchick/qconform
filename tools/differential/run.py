@@ -57,6 +57,29 @@ TO_REQUEST_UNITS = {
     "gain": lambda v: Fraction(v),                       # full-scale fraction
 }
 
+def same_grid_cell(requested, got, step, quantity):
+    """Did the vendor change this value, in the units the program asked for.
+
+    Two questions, never one: was the request already a whole multiple of the
+    step, and did the readback land on the same multiple. Comparing the
+    rounded request against the readback alone is tautological, because
+    rounding the request is exactly what the vendor does.
+
+    Phase is periodic, so both sides are reduced to one turn first. A tone
+    asked for at 1 + 1/2**31 turns reads back as 1/2**31, which is the same
+    angle. Calling that a repair is the harness measuring itself.
+    """
+    if quantity == "phase":
+        requested = requested % 1
+        got = got % 1
+    if step and step > 0:
+        want_steps = requested / step
+        got_steps = got / step
+        return not (want_steps.denominator != 1
+                    or round_half_even(want_steps) != round_half_even(got_steps))
+    return requested == got
+
+
 def readback_outcome(prog, plan):
     """Split compiled into accept or accept_round.
 
@@ -78,22 +101,51 @@ def readback_outcome(prog, plan):
             except (KeyError, ValueError, TypeError):
                 continue
             got = TO_REQUEST_UNITS[quantity](raw)
-            if step and step > 0:
-                want_steps = requested / step
-                got_steps = got / step
-                off_grid = want_steps.denominator != 1
-                moved = round_half_even(want_steps) != round_half_even(got_steps)
-                same = not (off_grid or moved)
-            else:
-                same = requested == got
-            if not same:
+            if not same_grid_cell(requested, got, step, quantity):
                 changed.append({
                     "pulse": name,
                     "quantity": quantity,
                     "requested": str(requested),
                     "readback": str(got),
                 })
+    changed += tone_changes(prog, plan)
     return ("accept_round" if changed else "accept"), changed
+
+
+# The tone table field each quantity is read back from, and the factor that
+# puts it in the units the program asked for.
+TONE_READBACK = {"frequency": ("freq_rounded", lambda v: Fraction(v) * 1_000_000),
+                 "phase": ("phase_rounded", lambda v: Fraction(v) / 360),
+                 "amplitude": ("gain_rounded", Fraction)}
+
+
+def tone_changes(prog, plan):
+    """Repairs the vendor made to a declared tone.
+
+    calc_muxgen_regs quantizes each tone when the generator is declared, and a
+    mux pulse carries a mask rather than a frequency, phase or gain, so
+    get_pulse_param cannot see the repair. The same two questions as above:
+    was the request already on the step, and did the value move.
+    """
+    changed = []
+    for (ch, ti), quantities in plan.tone_grid.items():
+        tones = prog.gen_chs.get(ch, {}).get("mux_tones") or []
+        if ti >= len(tones):
+            continue
+        t = tones[ti]
+        for quantity, (requested, step) in quantities.items():
+            key, to_request = TONE_READBACK[quantity]
+            if key not in t:
+                continue
+            got = to_request(t[key])
+            if not same_grid_cell(requested, got, step, quantity):
+                changed.append({
+                    "tone": f"gen{ch}[{ti}]",
+                    "quantity": quantity,
+                    "requested": str(requested),
+                    "readback": str(got),
+                })
+    return changed
 
 
 def scheduled_times(prog, soccfg):
@@ -190,8 +242,24 @@ def raw_registers(prog, plan):
         if not waves:
             continue
         w = waves[0]
-        out[name] = {k: int(w[k]) for k in ("freq", "phase", "gain", "length")
+        # A mux waveform carries literal zeros in freq, phase and gain: those
+        # belong to the tone table and the mask lives in conf. Recording the
+        # zeros would read as "the hardware sees zero", which is false, so a
+        # mux pulse reports only what it actually has.
+        keys = (("length",) if "mask" in kwargs
+                else ("freq", "phase", "gain", "length"))
+        out[name] = {k: int(w[k]) for k in keys
                      if k in w and not hasattr(w[k], "spans")}
+    # The tone registers, which are where a mux channel's frequency, phase and
+    # gain actually land. calc_muxgen_regs quantizes them at declare time, so
+    # they are not readable through get_pulse_param.
+    for kw in plan.declare_gens:
+        tones = prog.gen_chs.get(kw["ch"], {}).get("mux_tones")
+        if not tones:
+            continue
+        out[f"gen{kw['ch']}_tones"] = [
+            {k: int(t[k]) for k in ("freq_int", "gain_int", "phase_int") if k in t}
+            for t in tones]
     return out
 
 

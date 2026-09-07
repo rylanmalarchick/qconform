@@ -3,6 +3,7 @@
 #
 #   make            build ./qconform
 #   make check      build, run unit tests, the golden corpus, and the tripwires
+#   make differential  qconform against the QICK toolchain (needs Python)
 #   make sanitize   same, built with UBSan and ASan
 #   make clean
 #
@@ -35,7 +36,10 @@ TEST_DIR := tests/unit
 TESTS := test_rational test_json test_enums
 TEST_BINS := $(addprefix $(TEST_DIR)/,$(TESTS))
 
-.PHONY: all check test golden tripwires sanitize clean
+SURVEY_PY ?= $(HOME)/.venvs/qconform-survey/bin/python
+DIFF_OUT ?= /tmp/qconform-corpus
+
+.PHONY: all check test golden tripwires sanitize differential clean
 
 all: $(BIN)
 
@@ -67,6 +71,25 @@ check: test golden tripwires
 sanitize:
 	$(MAKE) clean
 	$(MAKE) check CFLAGS="-std=c99 -Wall -Wextra -Werror -O2 -g -fsanitize=undefined,address -fno-omit-frame-pointer"
+
+# The phase 5 evidence. Needs the survey environment, because it drives the
+# vendor toolchain; see tools/differential/README.txt. Not part of `check`:
+# it depends on a Python environment the checker itself does not need.
+differential: $(BIN)
+	@$(SURVEY_PY) tools/differential/check_lowering.py
+	@for c in testbench qce2025-r26; do \
+		echo "=== $$c ==="; \
+		$(SURVEY_PY) tools/differential/corpus.py \
+			tests/golden/descriptors/$$c.json $(DIFF_OUT)-$$c --seed 1 \
+			--config tools/survey/configs/zcu216-$$c.json; \
+		$(SURVEY_PY) tools/differential/run.py $(DIFF_OUT)-$$c \
+			tests/golden/descriptors/$$c.json \
+			tools/survey/configs/zcu216-$$c.json \
+			tools/differential/results/$$c.jsonl; \
+		$(SURVEY_PY) tools/differential/triage.py \
+			tools/differential/results/$$c.jsonl \
+			tests/golden/descriptors/$$c.json; \
+	done
 
 clean:
 	rm -f $(BIN) $(TEST_BINS)

@@ -138,17 +138,19 @@ documents each one as a vendor_behavior.
 In each the toolchain accepts and the hardware does not. Refusing is the
 useful answer.
 
-Measured against asm_v2 on 2026-08-02, qick 0.2.418:
+Measured against asm_v2 on 2026-09-06, qick 0.2.418:
 
   descriptor        programs   unsound passes   coverage
   testbench              110                0      15/15
-  qce2025-r26            286                0      15/15
+  qce2025-r26            281                0      17/17
 
 Coverage counts a class as covered when the corpus contains a program where it
-fires and a program where it is checked and does not fire. Fifteen of the
-eighteen classes are reachable. negative_time and loop_registers are
-unreachable by construction, stated in rule R14 and in section 2.
-unconstrained_channel reports unchecked by definition and so cannot fire.
+fires and a program where it is checked and does not fire. Seventeen of the
+twenty classes are reachable, and a descriptor reaches only the classes its
+channels declare: testbench has no muxed generator, so the two mux classes are
+not applicable there. negative_time and loop_registers are unreachable by
+construction, stated in rule R14 and in section 2. unconstrained_channel
+reports unchecked by definition and so cannot fire.
 
 The evidence is tools/differential/results/. The method is
 tools/differential/, and tests/golden/run.sh runs the frozen corpus against
@@ -164,11 +166,23 @@ The corpus is boundary-driven from the descriptor and supplemented with seeded
 randomized programs. It finds what the declared limits imply and what random
 composition reaches. It does not prove absence.
 
-Muxed generators and static readouts are outside the evidence. The program
-format cannot name the tones of a muxed generator. The differential harness
-refuses to lower a program that plays on one, rather than guess a tone mask.
-Descriptors declare those channels, and the measurement above does not cover
-them.
+Static readouts are outside the evidence. A pfb readout is configured outside
+the program and refuses the dynamic readout interface the harness speaks, so
+the harness declines to lower a capture on one rather than record a refusal
+the program did not cause. That is one row of 281 on qce2025-r26.
+
+One limit on a muxed generator is stated rather than checked. The tProc time
+immediate is a signed 32-bit field, and what must fit in it is the accumulated
+time and not the pulse length alone. R1 bounds the length at 2**31 - 1, which
+is exact for a pulse that starts the program. A maximal pulse that starts
+later still fits R1 and the toolchain refuses it. Bounding that needs a rule
+on accumulated time, which this version does not have.
+
+The descriptor states one device-global rounding mode per quantity, and a
+muxed generator does not follow it for amplitude: its register rounds and
+applies no maxv_scale where an interpolated generator truncates and applies
+one. The resolution each channel declares is correct and is what the rules
+read, so no verdict depends on this. The rounding block does.
 
 The claim covers one vendor. asm_v2 is the only oracle this specification has
 been measured against.

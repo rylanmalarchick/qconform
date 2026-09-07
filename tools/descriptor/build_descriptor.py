@@ -92,7 +92,12 @@ def gen_channel(i, g, f_time):
     cons = ch["constraints"]
     vb = ch["vendor_behavior"]
 
-    max_cycles = 2**32 - 1 if mux else 2**16 - 1
+    # The mux pulse-length check in the vendor allows up to 2**32, but the
+    # tProc time immediate is a signed 32-bit field, so the value that must
+    # fit is 2**31 - 1. Declaring 2**32 - 1 passed three programs the
+    # toolchain refuses; the survey's own max-boundary row rejected and was
+    # recorded as a vendor quirk instead of correcting the limit.
+    max_cycles = 2**31 - 1 if mux else 2**16 - 1
     cons.append({
         "id": "pulse_length_range", "quantity": "time", "shape": "range_units",
         "severity": "fatal",
@@ -262,14 +267,6 @@ def gen_channel(i, g, f_time):
             "qconform_severity": "vendor_repairable",
             "semantics_preserving": True,
             "evidence": [ev(ec, "mux", "mask names one tone twice", "accept")],
-        })
-        vb.append({
-            "id": "mux_length_near_max_assembler_error",
-            "vendor_action": "length near 2**32-1 cycles is inside the documented "
-                             "range but fails in the assembler with a cryptic error",
-            "qconform_severity": "fatal",
-            "semantics_preserving": False,
-            "evidence": [ev(ec, "length", "max boundary", "reject")],
         })
 
     if "maxlen" in g and not mux:

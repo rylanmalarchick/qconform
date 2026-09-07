@@ -99,12 +99,15 @@ class Descriptor:
         return list(seen.values())
 
 
-def base(channel, unit, sample_unit=None, mixer_hz=None):
+def base(channel, unit, sample_unit=None, mixer_hz=None, tones=None):
     ch = {"name": channel, "unit": rat(unit)}
     if sample_unit is not None:
         ch["sample_unit"] = rat(sample_unit)
     if mixer_hz is not None:
         ch["mixer_frequency"] = rat(mixer_hz)
+    if tones is not None:
+        ch["tones"] = [{"frequency": rat(f), "phase": rat(ph), "amplitude": rat(a)}
+                       for f, ph, a in tones]
     return ch
 
 
@@ -153,6 +156,134 @@ def gen_frames(gen, ro=None):
         frames.append({"name": "r0", "channel": ro,
                        "frequency": rat(0), "phase": rat(0)})
     return frames
+
+
+def mux_cases(d, gen, rng, count):
+    """The corpus for a muxed generator.
+
+    A mux channel carries its frequency, phase and amplitude in a tone table
+    and its pulses name tones with a mask, so the frame-based and
+    waveform-based builders do not describe it. It gets its own ladders over
+    the same limits, plus the two rules only it can reach.
+    """
+    name = gen["name"]
+    unit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
+    dgrid, sgrid = gen["duration_grid"], gen["schedule_grid"]
+    mixer = gen.get("_mixer_hz") or Fraction(0)
+    n_tones = gen.get("capabilities", {}).get("n_tones")
+    fc = d.constraint(name, "frequency_range")
+    pc = d.constraint(name, "phase_resolution")
+    ac = d.constraint(name, "amplitude_range")
+    fres = Fraction(fc["resolution"]["num"], fc["resolution"]["den"]) if fc and "resolution" in fc else None
+    pres = Fraction(pc["resolution"]["num"], pc["resolution"]["den"]) if pc and "resolution" in pc else None
+    ares = Fraction(ac["resolution"]["num"], ac["resolution"]["den"]) if ac and "resolution" in ac else None
+    out = []
+
+    # A tone that sits on every limit. Every ladder below perturbs one field
+    # of it, so a rung that fires names the one thing it changed.
+    ok_tone = (mixer, Fraction(0), Fraction(1, 2))
+
+    def prog(tones, mask, duration=None, lead=0):
+        b = Builder([base(name, unit, mixer_hz=gen.get("_mixer_hz"), tones=tones)],
+                    gen_frames(name))
+        if lead:
+            b.add(kind="delay", frame="f0", duration=lead)
+        b.add(kind="play", frame="f0", mask=mask,
+              duration=60 * dgrid if duration is None else duration)
+        return b.program()
+
+    lc = d.constraint(name, "pulse_length_range")
+    if lc is not None:
+        for limit, which in ((lc.get("min_units"), "min"), (lc.get("max_units"), "max")):
+            if limit is None:
+                continue
+            for value, rung in ladder(limit, dgrid):
+                if value < 0:
+                    continue
+                out.append((f"mux_pulse_length_range_{which}_{rung}",
+                            prog([ok_tone], [0], duration=value)))
+    for offset, rung in ((0, "on_grid"), (1, "one_unit_off"),
+                         (dgrid // 2, "half_grid_off")):
+        out.append((f"mux_pulse_length_grid_{rung}",
+                    prog([ok_tone], [0], duration=60 * dgrid + offset)))
+    for offset, rung in ((0, "on_grid"), (1, "one_unit_off"),
+                         (sgrid // 2, "half_grid_off")):
+        out.append((f"mux_schedule_grid_{rung}",
+                    prog([ok_tone], [0], lead=sgrid * 4 + offset)))
+    out.append(("mux_negative_duration", prog([ok_tone], [0], duration=-dgrid)))
+
+    # tone frequency, against the band the device sees after the mixer
+    if fc is not None:
+        step = fres if fres else Fraction(1)
+        for key, which in (("min", "min"), ("max", "max")):
+            if key not in fc:
+                continue
+            limit = Fraction(fc[key]["num"], fc[key]["den"]) + mixer
+            for value, rung in ladder(limit, step):
+                out.append((f"mux_tone_frequency_{which}_{rung}",
+                            prog([(value, Fraction(0), Fraction(1, 2))], [0])))
+        if fres is not None:
+            for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
+                out.append((f"mux_tone_frequency_resolution_{rung}",
+                            prog([(mixer + fres * mult, Fraction(0), Fraction(1, 2))], [0])))
+
+    if pres is not None:
+        for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
+            out.append((f"mux_tone_phase_resolution_{rung}",
+                        prog([(mixer, pres * mult, Fraction(1, 2))], [0])))
+
+    if ac is not None:
+        step = ares if ares else Fraction(1)
+        for key, which in (("min", "min"), ("max", "max")):
+            if key not in ac:
+                continue
+            limit = Fraction(ac[key]["num"], ac[key]["den"])
+            for value, rung in ladder(limit, step):
+                out.append((f"mux_tone_amplitude_{which}_{rung}",
+                            prog([(mixer, Fraction(0), value)], [0])))
+        if ares is not None:
+            for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
+                out.append((f"mux_tone_amplitude_resolution_{rung}",
+                            prog([(mixer, Fraction(0), ares * mult)], [0])))
+
+    # the two rules only a mux channel reaches
+    if n_tones is not None:
+        for k, rung in ((n_tones - 1, "under"), (n_tones, "at"),
+                        (n_tones + 1, "over")):
+            if k < 1:
+                continue
+            out.append((f"mux_tone_count_{rung}",
+                        prog([ok_tone] * k, [0])))
+        table = [ok_tone] * n_tones
+        for mask, rung in (([0], "first"), ([n_tones - 1], "last"),
+                           ([0, n_tones - 1], "two"), ([0, 0], "duplicate"),
+                           ([n_tones], "at_count"), ([n_tones + 3], "past_count")):
+            out.append((f"mux_tone_mask_{rung}", prog(table, mask, )))
+
+    # randomized programs: several plays, tone values drawn near the limits
+    def near_limit(limit, step):
+        """A value at, just inside, or just outside a limit."""
+        return limit + step * rng.choice((-2, -1, 0, 1, 2))
+
+    for i in range(count):
+        n = rng.randint(1, min(4, n_tones or 4))
+        tones = []
+        for _ in range(n):
+            f = mixer + (near_limit(Fraction(fc["max"]["num"], fc["max"]["den"]), fres)
+                         if fc is not None and fres is not None else Fraction(0))
+            ph = near_limit(Fraction(1), pres) if pres is not None else Fraction(0)
+            a = near_limit(Fraction(1), ares) if ares is not None else Fraction(1, 2)
+            tones.append((f, ph, a))
+        b = Builder([base(name, unit, mixer_hz=gen.get("_mixer_hz"), tones=tones)],
+                    gen_frames(name))
+        for _ in range(rng.randint(1, 4)):
+            mask = sorted(rng.sample(range(n), rng.randint(1, n)))
+            b.add(kind="play", frame="f0", mask=mask,
+                  duration=rng.randint(1, 200) * dgrid)
+            if rng.random() < 0.4:
+                b.add(kind="delay", frame="f0", duration=rng.randint(0, 10) * sgrid)
+        out.append((f"mux_random_{i:03d}", b.program()))
+    return out
 
 
 def cases_pulse_length(d, gen):
@@ -515,6 +646,12 @@ def build_corpus(descriptor_path, seed, random_programs=40, config_path=None):
     for gen in d.classes("drive"):
         tag = gen["name"]
         per_gen = []
+        # A mux channel has a tone table and mask plays, so the frame-based
+        # and waveform-based builders do not describe it and it gets its own.
+        if gen.get("capabilities", {}).get("n_tones"):
+            per_gen += mux_cases(d, gen, random.Random(tag_seed(seed, tag)), count=12)
+            cases += [(f"{tag}__{name}", prog) for name, prog in per_gen]
+            continue
         per_gen += cases_pulse_length(d, gen)
         per_gen += cases_schedule_grid(d, gen)
         per_gen += cases_frequency(d, gen)

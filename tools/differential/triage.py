@@ -45,10 +45,16 @@ REFUSED = ("reject", "crash")
 # cannot honor. A frequency past the DDS range wraps, a gain past full scale
 # stays out of range, and an envelope past memory overruns at board load. The
 # consequence is at run time, so compile-time acceptance is not disagreement.
+# One rule can have different documented behavior on different channel classes,
+# so each maps to a set and a row is vendor_lenient when the descriptor
+# declares any of them. A v6 aliases an out-of-band frequency; a mux channel
+# folds the tone onto its Nyquist image instead.
 RULE_TO_BEHAVIOR = {
-    "frequency_range": "frequency_alias_mod_f_dds",
-    "amplitude_range": "gain_over_full_scale",
-    "envelope_memory": "envelope_memory_overflow_unchecked",
+    "frequency_range": {"frequency_alias_mod_f_dds",
+                        "mux_tone_nyquist_image_fold"},
+    "amplitude_range": {"gain_over_full_scale"},
+    "envelope_memory": {"envelope_memory_overflow_unchecked"},
+    "mux_tone_count": {"mux_tone_count_unchecked"},
 }
 
 
@@ -82,8 +88,9 @@ def disposition(row, behaviors):
     if verdict == "fail" and outcome in REFUSED:
         return "agree", "both refused"
 
-    documented = sorted({RULE_TO_BEHAVIOR[r] for r in rules
-                         if RULE_TO_BEHAVIOR.get(r) in behaviors})
+    documented = sorted({b for r in rules
+                         for b in RULE_TO_BEHAVIOR.get(r, ())
+                         if b in behaviors})
 
     if verdict == "fail" and outcome in ("accept", "accept_round"):
         if documented:
