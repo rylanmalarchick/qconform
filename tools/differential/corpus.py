@@ -18,7 +18,10 @@ the first channel. A mux or an interpolated generator carries different
 constraints from a v6.
 
 Seeded. The seed chooses which rungs combine and in what order. The same seed
-produces byte-identical output, so a result can be replayed.
+produces byte-identical output, so a result can be replayed. The per-generator
+seed is derived with crc32 and not with hash(), which Python salts per process:
+seeding from hash() drew a different program body on every run while leaving the
+case names and the order stable, so the corpus looked reproducible and was not.
 
 Every program is valid against documentation/schemas/program-v0.schema.json
 and passes what parse.c enforces beyond it. A program the checker refuses as
@@ -33,6 +36,7 @@ import json
 from fractions import Fraction
 from pathlib import Path
 import random
+import zlib
 
 
 def rat(f):
@@ -472,6 +476,18 @@ def random_cases(d, gen, rng, count):
     return out
 
 
+def tag_seed(seed, tag):
+    """A per-generator seed that is the same in every process.
+
+    Python salts hash() on a string per process, so seeding from it drew a
+    different program on every run. The case names and the shuffle order were
+    stable, which is why the corpus looked reproducible: only the randomized
+    program bodies moved. crc32 is a fixed function of the bytes and has no
+    salt.
+    """
+    return seed + zlib.crc32(tag.encode("utf-8"))
+
+
 def build_corpus(descriptor_path, seed, random_programs=40, config_path=None):
     d = Descriptor(descriptor_path)
     rng = random.Random(seed)
@@ -506,7 +522,7 @@ def build_corpus(descriptor_path, seed, random_programs=40, config_path=None):
         per_gen += cases_amplitude(d, gen)
         per_gen += cases_envelope(d, gen)
         per_gen += cases_negative(d, gen)
-        per_gen += random_cases(d, gen, random.Random(seed + hash(tag) % 9973),
+        per_gen += random_cases(d, gen, random.Random(tag_seed(seed, tag)),
                                 random_programs)
         for ro in d.classes("readout"):
             per_gen += cases_readout(d, gen, ro)
