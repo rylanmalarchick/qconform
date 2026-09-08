@@ -4,16 +4,16 @@ qconform
 A vendor-neutral conformance checker for pulse-level quantum control.
 
 Given a pulse program and a device's declared capabilities, it decides whether
-the program is realizable on that device. Design-time and deterministic; no
-runtime, and no hardware ownership.
+the program is realizable on that device. The check is design-time and
+deterministic. It needs no runtime, and it owns no hardware.
 
 Build
 -----
 
   make
 
-C99, no dependencies. Any of GCC, Clang, or ICC will do; 128-bit integers are
-required, so MSVC needs clang-cl.
+C99, no dependencies. Any of GCC, Clang, or ICC will do. The code needs
+128-bit integers, so MSVC needs clang-cl.
 
 Run
 ---
@@ -52,5 +52,5 @@ Layout
   tests/golden/        differential corpus (inputs + frozen expected reports)
   tests/tripwires.sh   invariant checks over src/ and the built binary
   tests/difftest.py    compares two implementations over corpus + mutations
-  tools/               the Python that produced the artifacts here; see
+  tools/               the Python that produced the artifacts here. See
                        tools/README.txt. Not needed to build or test.

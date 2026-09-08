@@ -2,7 +2,7 @@ qconform report format v0
 =========================
 
 Versioned JSON output contract of the checker. Implementable from this
-file plus program-format-v0.txt. Draft v0, 2026-07-10; the field set
+file plus program-format-v0.txt. Draft v0, 2026-07-10. The field set
 freezes at v1. JSON conventions (no floats, canonical rationals, i64
 bounds) are the same as program-format-v0.txt.
 
@@ -17,12 +17,12 @@ verdict and exit codes
 
 A CI gate chooses its strictness: fail the build on exit >= 1, or
 tolerate named repairs by failing only on 1 and 3. Unrealizable is a
-normal result; only exit 3 is an abnormal one.
+normal result. Only exit 3 is an abnormal one.
 
 rule ids
 --------
-snake_case enum names serialized as strings; append-only. A rule id is
-never renamed, renumbered, or reused; a retired rule keeps its id
+snake_case enum names serialized as strings, append-only. A rule id is
+never renamed, renumbered, or reused. A retired rule keeps its id
 reserved. Numeric ordinals never appear in output. Repair ids follow
 the same discipline.
 

@@ -3,8 +3,8 @@ qconform capability descriptor v0
 
 Versioned JSON contract describing what a device (as driven by a pinned
 toolchain) can realize. The checker decides program realizability
-against exactly one descriptor. Draft v0, 2026-07-10; field set freezes
-at v1. JSON conventions (no floats, canonical num/den rationals, i64
+against exactly one descriptor. Draft v0, 2026-07-10. The field set
+freezes at v1. JSON conventions (no floats, canonical num/den rationals, i64
 bounds) as in program-format-v0.txt. Machine schema:
 schemas/descriptor-v0.schema.json. Worked instance:
 examples/descriptor-qick-testbench.json.
@@ -47,8 +47,8 @@ rational number of seconds, strictly positive (num > 0), chosen as
 
 both exact integers. This carries QICK's two-clock reality (e.g. gen:
 fabric 599.04 MHz vs tProc 430.08 MHz -> unit = 1/16773.12 MHz,
-duration_grid 28, schedule_grid 39; readout at 307.2 MHz -> grids 7/5
-on a 2150.4 MHz base). A single "grid" field would misstate the device:
+duration_grid 28, schedule_grid 39. A readout at 307.2 MHz gives grids
+7/5 on a 2150.4 MHz base). A single "grid" field would misstate the device:
 grids differ per quantity on one channel.
 
   {"name": "gen0", "kind": "drive", "vendor_type": "axis_signal_gen_v6",
@@ -67,22 +67,22 @@ model (fatal | vendor_repairable), and mandatory `evidence`:
 
   range_units       integer min_units/max_units in channel units
                     (pulse length, readout length)
-  range_resolution  rational min/max/resolution in SI base units;
-                    optional post_mixer: true means the toolchain
+  range_resolution  rational min/max/resolution in SI base units.
+                    Optional post_mixer: true means the toolchain
                     checks the range AFTER mixer subtraction (QICK
                     interpolated gens do)
   grid_samples      integer grid (envelope length multiple)
 
-evidence: [{"config", "axis", "note_contains", "outcome"}] -- pointers
-into the survey catalog rows that demonstrate the constraint.
-check_descriptor.py enforces that every reference resolves; a
+evidence: [{"config", "axis", "note_contains", "outcome"}]. Each entry
+points into the survey catalog rows that show the constraint.
+check_descriptor.py enforces that every reference resolves. A
 constraint without live evidence does not ship. This is what makes the
 descriptor an empirical artifact rather than transcribed documentation.
 
 vendor_behavior
 ---------------
-Documented toolchain behaviors that are NOT rejects -- the silent
-repairs and soundness gaps a checker must know about:
+Documented toolchain behaviors that are NOT rejects. These are the
+silent repairs and the soundness gaps a checker must know about:
 
   {"id": "frequency_alias_mod_f_dds",
    "vendor_action": "...", "qconform_severity": "vendor_repairable",
@@ -101,11 +101,11 @@ Whole-program resource limits with survey-calibrated cost models:
    "cost_model": {"kind": "linear", "per_item": 1, "overhead": 14},
    "evidence": [...]}
 
-kinds: linear (pmem = per_item * n + overhead; wmem likewise) and
+kinds: linear (pmem = per_item * n + overhead, and wmem likewise) and
 indeterminate_band (loop_registers: reserved_min/reserved_max bound
-the unknowable part; the checker's class B verdict goes indeterminate
-inside the band, per the report model). Cost models are pinned to the
-library version like everything else.
+the unknowable part, and the checker's class B verdict goes
+indeterminate inside the band, per the report model). Cost models are
+pinned to the library version like everything else.
 
 coverage consequences
 ---------------------

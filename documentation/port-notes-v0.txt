@@ -98,26 +98,26 @@ corpus case.
    declaration did nothing at all. A silently ignored constraint is the
    failure the evidence gate exists to prevent.
 
-Defects 3 and 4 were found by differential testing, not by reading.
+Differential testing found defects 3 and 4. Reading did not.
 
 
 the equivalence result
 ----------------------
-The C implementation was compared against the Zig implementation over
-21,267 inputs. The comparison covered the exit code, stdout byte for
-byte, and stderr. It found no divergence.
+tests/difftest.py compared the C implementation against the Zig
+implementation over 21,267 inputs. The comparison covered the exit
+code, stdout byte for byte, and stderr. It found no divergence.
 
 The inputs were the golden corpus, the worked examples, and generated
-mutations of both. Mutations were weighted toward negative values, the
-i64 boundaries, floats, and type swaps, because those reach the hazards
-above. tests/difftest.py is the harness and takes two binaries.
+mutations of both. The generator weights the mutations toward negative
+values, the i64 boundaries, floats, and type swaps, because those reach
+the hazards above. tests/difftest.py takes two binaries.
 
-Three differences were found, documented, and kept. All three come from
-number classification. The Zig reader classified a number token by
-trying conversions. The C reader classifies by the shape of the token
-and never converts. See the docstring in tests/difftest.py. The corpus
-pins the C behavior for "-0", which the JSON grammar makes an integer
-literal.
+The comparison found three differences. This file documents them, and
+the corpus keeps them. All three come from number classification. The
+Zig reader classified a number token by trying conversions. The C reader
+classifies by the shape of the token and never converts. See the
+docstring in tests/difftest.py. The corpus pins the C behavior for "-0",
+which the JSON grammar makes an integer literal.
 
 This comparison is repeatable. Extract the archive, build it with the
 Zig version its README names, and run tests/difftest.py against both

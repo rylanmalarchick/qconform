@@ -17,8 +17,8 @@ What each part is for
   survey/       The empirical constraint survey: a black-box probe harness
                 that feeds programs to the QICK asm_v2 toolchain and records
                 what it accepts, rejects, or silently repairs. Output is the
-                JSONL catalog in survey/catalog/ — the evidence every
-                descriptor constraint is required to cite. Runs against the
+                JSONL catalog in survey/catalog/. Every descriptor
+                constraint must cite a row of it. Runs against the
                 captured board configs in survey/configs/, so it needs the
                 qick package but not a board.
                 Needs: pip install -r survey/requirements.txt
@@ -47,10 +47,10 @@ What each part is for
 
 Version pinning
 ---------------
-Vendor behaviour is a function of the (firmware config, library version)
+Vendor behavior is a function of the (firmware config, library version)
 pair, so requirements.txt files pin exact versions. A survey re-run under a
 different qick release is a different survey and produces a different
-descriptor, by design — see documentation/descriptor-format-v0.txt.
+descriptor, by design. See documentation/descriptor-format-v0.txt.
 
 The pin is checked, not asserted. Under qick 0.2.418 and numpy 2.5.1 the
 survey rewrites all 45 files in survey/catalog/ byte-identically. That is

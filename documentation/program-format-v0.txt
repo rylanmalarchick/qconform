@@ -3,14 +3,14 @@ qconform program format v0
 
 Versioned JSON interchange format for pulse programs: exporters produce
 it, the checker consumes it. Implementable from this file alone.
-Draft v0, 2026-07-10; the field set freezes at v1.
+Draft v0, 2026-07-10. The field set freezes at v1.
 
 JSON conventions
 ----------------
 - UTF-8, one JSON object per file
 - no floats anywhere; every JSON number is an integer
 - non-integer quantities are rationals: {"num": N, "den": D} with N, D
-  integers, D > 0, gcd(|N|, D) = 1; the sign lives on num. A reader
+  integers, D > 0, gcd(|N|, D) = 1. The sign lives on num. A reader
   rejects non-canonical rationals.
 - integers must survive a 64-bit round-trip; values outside i64 are
   rejected. A reader that parses numbers through float64 does not
@@ -29,8 +29,8 @@ Top level
     "elements": [...]
   }
 
-A reader that sees a format_version it does not implement errors out;
-it never guesses.
+A reader that sees a format_version it does not implement errors out.
+It never guesses.
 
 channels
 --------
@@ -45,9 +45,9 @@ channels
   A non-positive time base is a validation error and not a rejection,
   because it would run the frame clock backwards. An exporter emits the
   unit it knows exactly. QICK uses one tProc tick. Qblox uses 1 ns,
-  which is {"num": 1, "den": 1000000000}. Conversion to descriptor ticks
-  happens at check time. A duration that does not convert exactly is a
-  grid rejection, not an input error.
+  which is {"num": 1, "den": 1000000000}. The checker converts to
+  descriptor ticks at check time. A duration that does not convert
+  exactly is a grid rejection, not an input error.
 - mixer_frequency: the digital mixer setting on this channel, as a
   rational number of Hz. It is signed, because a mixer can sit below the
   band as easily as above it. Declare it only when the channel has a
@@ -87,10 +87,10 @@ frames
 
 - a frame is a clock plus NCO state on one channel
 - frequency: initial value, rational Hz
-- phase: initial value, rational turns (1 turn = 2 pi rad); turns keep
+- phase: initial value, rational turns (1 turn = 2 pi rad). Turns keep
   phase arithmetic exact where radians cannot
 - targets without native frames (QICK) get one frame per channel from
-  the exporter; the descriptor declares frames native or compiled-away
+  the exporter. The descriptor declares frames native or compiled-away
 
 waveforms
 ---------
@@ -106,16 +106,16 @@ waveforms
   gain, so the checker reports it under the amplitude_range rule
   instead. Deleting that finding would remove the reason the checker
   exists.
-- samples: integer DAC-code arrays; full_scale declares the code that
-  means 1.0; i and q have equal length; one entry per sample_unit
+- samples: integer DAC-code arrays. full_scale declares the code that
+  means 1.0. i and q have equal length, one entry per sample_unit
 - parametric kinds (gaussian, drag, flat_top) are reserved for a later
-  version; v0 exporters lower them to samples
+  version. v0 exporters lower them to samples
 
 elements
 --------
-Ordered list; the order is the timing model. Time is instruction-
-ordered per frame: play, capture, and delay advance their frame's clock
-by duration; shift_phase and set_frequency take zero time; barrier
+Ordered list, and the order is the timing model. Time is instruction-
+ordered per frame. play, capture, and delay advance their frame's clock
+by duration. shift_phase and set_frequency take zero time. barrier
 aligns clocks. Absolute times are computed by the checker's resolve
 pass and never appear in the file.
 
@@ -161,7 +161,7 @@ enforces. A repeated index sounds the tone once.
 
 validation errors vs rejections
 -------------------------------
-Malformed input is a tool error (exit 3; see report-format-v0.txt):
+Malformed input is a tool error (exit 3, see report-format-v0.txt):
 duplicate ids or names, dangling frame/channel/waveform references,
 non-canonical rationals, non-positive unit or sample_unit, unknown
 fields or kinds, missing sample_unit under a samples waveform, and a

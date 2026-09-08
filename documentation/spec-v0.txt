@@ -72,7 +72,7 @@ renamed, renumbered or reused, and a retired id keeps its slot.
 
 A muxed generator carries its frequency, phase and amplitude in a tone table
 rather than in a frame, so R4 through R8 apply once per declared tone. They
-are the same rules and the same coverage classes; only the value they read
+are the same rules and the same coverage classes. Only the value they read
 comes from elsewhere.
 
 Three budget classes carry whole-program limits: pmem_words, wmem_words and
@@ -166,10 +166,11 @@ The corpus is boundary-driven from the descriptor and supplemented with seeded
 randomized programs. It finds what the declared limits imply and what random
 composition reaches. It does not prove absence.
 
-Static readouts are outside the evidence. A pfb readout is configured outside
-the program and refuses the dynamic readout interface the harness speaks, so
-the harness declines to lower a capture on one rather than record a refusal
-the program did not cause. That is one row of 281 on qce2025-r26.
+Static readouts are outside the evidence. A program does not configure a pfb
+readout, and such a readout refuses the dynamic readout interface the harness
+speaks. The harness therefore declines to lower a capture on one. Recording
+that refusal would blame the program for a limit it did not cause. That is one
+row of 281 on qce2025-r26.
 
 One limit on a muxed generator is stated rather than checked. The tProc time
 immediate is a signed 32-bit field, and what must fit in it is the accumulated
