@@ -151,6 +151,8 @@ tests/golden/run.sh to reproduce it [below-min-length].
   {"class": "schedule_grid", "status": "checked"},
   {"class": "negative_duration", "status": "checked"},
   {"class": "negative_time", "status": "not_applicable"},
+  {"class": "mux_tone_mask", "status": "not_applicable"},
+  {"class": "mux_tone_count", "status": "not_applicable"},
   {"class": "pmem_words", "status": "checked"},
   {"class": "wmem_words", "status": "checked"},
   {"class": "loop_registers", "status": "not_applicable"},
