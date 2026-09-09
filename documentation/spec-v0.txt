@@ -22,9 +22,9 @@ It answers with one of four exit codes.
 Exit 0 and exit 2 are both realizable. Exit 2 says the toolchain will change
 the program before running it, and names what it changes.
 
-Exit 3 is not a verdict. It means the input was malformed, the descriptor was
-invalid, or the checker met an arithmetic condition it refuses to guess
-through. A tool error is never a statement about the device.
+Exit 3 is not a verdict about the device. It means the input was malformed,
+the descriptor was invalid, or the checker met an arithmetic condition it
+refuses to guess through.
 
 
 2. the rules
@@ -77,8 +77,8 @@ comes from elsewhere.
 
 Three budget classes carry whole-program limits: pmem_words, wmem_words and
 loop_registers. A budget reports fits, violates or indeterminate. A violation
-is fatal. An indeterminate budget is never a rejection, because a fatal answer
-must come from a proven lower bound and not from an estimate.
+is fatal. An indeterminate budget is never a rejection: a fatal answer must
+come from a proven lower bound.
 
 
 3. severity, and what a repair means
@@ -94,8 +94,7 @@ checker enforces that pairing when it loads a descriptor: a rule whose emit
 site never reports a repair must be declared fatal, and one that always
 reports a repair must be declared vendor_repairable.
 
-A repair is not a warning about style. It says the program that runs is not
-the program that was written.
+A repair means the program that runs is not the program that was written.
 
 
 4. coverage, and what pass does not mean
@@ -112,8 +111,8 @@ nothing else.
                    nothing on it, so the checker verified nothing there
   indeterminate    a budget whose limit falls between the bounds
 
-A channel with no constraints is declared, not checked. The manifest says so
-rather than letting a silent pass imply otherwise.
+A channel with no constraints reports unchecked, so a pass over it claims
+nothing.
 
 
 5. soundness
@@ -159,8 +158,7 @@ any implementation of this specification.
 
 6. what bounds the claim
 ------------------------
-Three limits, stated because a soundness claim with unstated limits is worth
-less than a narrower one that names them.
+Three limits bound the claim.
 
 The corpus is boundary-driven from the descriptor and supplemented with seeded
 randomized programs. It finds what the declared limits imply and what random

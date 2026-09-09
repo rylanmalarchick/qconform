@@ -76,8 +76,7 @@ model (fatal | vendor_repairable), and mandatory `evidence`:
 evidence: [{"config", "axis", "note_contains", "outcome"}]. Each entry
 points into the survey catalog rows that show the constraint.
 check_descriptor.py enforces that every reference resolves. A
-constraint without live evidence does not ship. This is what makes the
-descriptor an empirical artifact rather than transcribed documentation.
+constraint without live evidence does not ship.
 
 vendor_behavior
 ---------------
@@ -109,14 +108,12 @@ pinned to the library version like everything else.
 
 coverage consequences
 ---------------------
-A channel with an empty constraints list (QICK pfb readouts in v0) is
-declared, not checked: the checker must report its constraint classes
-as unchecked, never silently passed. The descriptor is the source of
-the report's coverage manifest.
+For a channel with an empty constraints list (QICK pfb readouts in v0),
+the checker reports every constraint class as unchecked. The descriptor
+is the source of the report's coverage manifest.
 
 generation
 ----------
-Descriptors are built by tools/descriptor/build_descriptor.py from a
-captured vendor config plus the survey catalog, and gated by
-check_descriptor.py. Hand edits without evidence are a schema
-violation by policy, not just style.
+tools/descriptor/build_descriptor.py builds a descriptor from a captured
+vendor config plus the survey catalog. check_descriptor.py gates it. A
+hand edit without evidence fails that gate.

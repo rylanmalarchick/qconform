@@ -101,8 +101,7 @@ classes marked checked, against the echoed descriptor at its pinned
 versions. It means nothing more.
 
 not_applicable marks a class the program does not exercise. unchecked
-marks a class the descriptor declares but does not constrain. A vacuous
-pass and an unchecked class are different statements.
+marks a class the descriptor declares but does not constrain.
 
 descriptor echo
 ---------------
@@ -112,8 +111,7 @@ descriptor echo
                  "descriptor_version": "0"}
 
 The report echoes the descriptor identification block without changing
-it. The descriptor schema fixes the shape. The report always states what
-it checked against.
+it. The descriptor schema fixes the shape.
 
 Every string here comes from the descriptor, so a writer escapes the
 full set that JSON requires. That is the quote, the backslash, and every

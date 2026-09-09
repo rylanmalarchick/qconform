@@ -104,8 +104,7 @@ waveforms
   nominal range is -1 to 1. A value outside that range is not a
   validation error. The vendor toolchain accepts it and truncates the
   gain, so the checker reports it under the amplitude_range rule
-  instead. Deleting that finding would remove the reason the checker
-  exists.
+  instead.
 - samples: integer DAC-code arrays. full_scale declares the code that
   means 1.0. i and q have equal length, one entry per sample_unit
 - parametric kinds (gaussian, drag, flat_top) are reserved for a later

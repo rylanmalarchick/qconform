@@ -5,7 +5,7 @@ A vendor-neutral conformance checker for pulse-level quantum control.
 
 Given a pulse program and a device's declared capabilities, it decides whether
 the program is realizable on that device. The check is design-time and
-deterministic. It needs no runtime, and it owns no hardware.
+deterministic. It needs no runtime and no device.
 
 Build
 -----
@@ -27,8 +27,8 @@ The report goes to stdout as JSON. Exit codes:
   2  pass_with_repairs   (rejections, all vendor_repairable)
   3  tool error          (usage, io, malformed input, invalid descriptor)
 
-A program the device cannot realize is a normal result, reported as data.
-Only exit 3 means the tool could not answer.
+Exit 0, 1, and 2 are answers about the device. Exit 3 means the tool
+could not answer.
 
 Test
 ----
@@ -36,16 +36,16 @@ Test
   make check      unit tests, the golden corpus, and the invariant tripwires
   make sanitize   the same, built with UBSan and ASan
 
-The golden corpus is the contract, not a property of this implementation:
 tests/golden/manifest.tsv lists each case with its expected exit code and
-report, and tests/golden/run.sh will run it against any qconform binary.
+report. tests/golden/run.sh runs the corpus against any qconform binary,
+so a second implementation can be measured against the same cases.
 
   ./tests/golden/run.sh /path/to/some/other/qconform
 
 Layout
 ------
 
-  src/                 the checker, and nothing else
+  src/                 the checker
   documentation/       format specifications, JSON Schemas, and the
                        port notes explaining the arithmetic helpers
   tests/unit/          unit tests

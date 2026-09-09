@@ -27,8 +27,7 @@ What each part is for
                 survey catalog into a capability descriptor.
                 check_descriptor.py is the gate: every constraint must trace
                 to a catalog row that resolves, or the descriptor does not
-                ship. This is what makes a descriptor an empirical artifact
-                rather than transcribed documentation.
+                ship.
                 The descriptors it produces are in descriptor/descriptors/,
                 and frozen copies are what tests/golden/ runs against.
                 Needs: nothing beyond the standard library.
@@ -52,10 +51,10 @@ pair, so requirements.txt files pin exact versions. A survey re-run under a
 different qick release is a different survey and produces a different
 descriptor, by design. See documentation/descriptor-format-v0.txt.
 
-The pin is checked, not asserted. Under qick 0.2.418 and numpy 2.5.1 the
-survey rewrites all 45 files in survey/catalog/ byte-identically. That is
-the test the pin has to pass, and it is how the numpy pin was corrected:
-it read 2.4.6 while every committed row recorded 2.5.1.
+A re-run tests the pin. Under qick 0.2.418 and numpy 2.5.1 the survey
+rewrites all 45 files in survey/catalog/ byte-identically. That test is
+how the numpy pin was corrected: it read 2.4.6 while every committed row
+recorded 2.5.1.
 
 Install the survey pins in their own environment rather than a shared one,
 because the pin is exact:
