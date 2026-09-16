@@ -223,6 +223,8 @@ def main():
                 desc_dir / "testbench.json")
     shutil.copy(ROOT / "tools/descriptor/descriptors/qick-zcu216-qce2025-r26-v0.json",
                 desc_dir / "qce2025-r26.json")
+    shutil.copy(ROOT / "tools/descriptor/descriptors/qick-zcu216-rb-r27-v0.json",
+                desc_dir / "rb-r27.json")
 
     # a descriptor that gives a rule a severity its emit site cannot express.
     # pulse_length_range never reports a repair, so vendor_repairable would
