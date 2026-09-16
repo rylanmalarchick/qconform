@@ -50,6 +50,11 @@ What each part is for
                 mutation/README.txt.
                 Needs: the survey environment and a C compiler.
 
+  saturation/   Reruns the differential over many corpus seeds and records
+                whether a growing corpus finds anything new, including fault
+                injection survivors. See saturation/README.txt.
+                Needs: the survey environment.
+
   versions/     Reruns the survey and the differential under other qick
                 releases against the pinned descriptors, and compares the
                 result with the tracked evidence. See versions/README.txt.
