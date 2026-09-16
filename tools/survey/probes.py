@@ -48,9 +48,16 @@ def length_values(f_fabric, maxlen_cycles=2**16):
 
 
 def freq_values(gcfg):
-    """Frequencies in MHz probing the DDS range and quantization."""
+    """Frequencies in MHz probing the DDS range and quantization.
+
+    The notes name band positions. A generator with a digital mixer is
+    declared with mixer_freq f_dds/4 (runner.py) and the toolchain subtracts
+    it before the band check, so its requests are offset by the mixer to land
+    where the notes say. Before that offset, "upper edge" on an int4 probed
+    mid band and "lower edge" probed a full f_dds below the band."""
     f_dds = gcfg['f_dds']
     fstep = f_dds / 2**gcfg['b_dds']
+    mixer = f_dds / 4 if gcfg.get('has_mixer') else 0.0
     vals = [
         (0.0, 'zero'),
         (f_dds / 4, 'mid band'),
@@ -65,7 +72,7 @@ def freq_values(gcfg):
         (100.0 + 0.5 * fstep, 'quantization +0.5 step'),
         (100.0 + 0.7 * fstep, 'quantization +0.7 step'),
     ]
-    return vals
+    return [(v + mixer, note) for v, note in vals]
 
 
 def gain_values(maxv):
