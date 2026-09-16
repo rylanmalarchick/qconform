@@ -1,0 +1,18 @@
+rows: baseline 599, other 599
+outcome: 0
+detail: 3
+added: 0
+removed: 0
+
+by config, axis and kind
+  zcu216-qce2025-r26     config       detail   1
+  zcu216-rb-r27          config       detail   1
+  zcu216-testbench       config       detail   1
+
+detail
+  zcu216-qce2025-r26 config gen0 bad_revision revision=20 (tproc revision outside ASM_REVISIONS (synthetic config))
+    warnings: ["QICK library version mismatch: 0.2.365 remote (the board), 0.2.418 local (the PC)\n                        This may cause errors, usually KeyError in QickConfig initialization.\n                        If this happens, you must bring your versions in sync."] -> ["QICK library version mismatch: 0.2.365 remote (the board), 0.2.371 local (the PC)\n                        This may cause errors, usually KeyError in QickConfig initialization.\n                        If this happens, you must bring your versions in sync."]
+  zcu216-rb-r27 config gen0 bad_revision revision=20 (tproc revision outside ASM_REVISIONS (synthetic config))
+    warnings: ["QICK library version mismatch: 0.2.371 remote (the board), 0.2.418 local (the PC)\n                        This may cause errors, usually KeyError in QickConfig initialization.\n                        If this happens, you must bring your versions in sync."] -> null
+  zcu216-testbench config gen0 bad_revision revision=20 (tproc revision outside ASM_REVISIONS (synthetic config))
+    warnings: ["QICK library version mismatch: 0.2.367 remote (the board), 0.2.418 local (the PC)\n                        This may cause errors, usually KeyError in QickConfig initialization.\n                        If this happens, you must bring your versions in sync."] -> ["QICK library version mismatch: 0.2.367 remote (the board), 0.2.371 local (the PC)\n                        This may cause errors, usually KeyError in QickConfig initialization.\n                        If this happens, you must bring your versions in sync."]

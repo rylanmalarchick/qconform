@@ -1,0 +1,29 @@
+programs: 110
+
+disposition
+  agree            89
+  vendor_lenient   15
+  harness          5
+  unsound          1
+
+UNSOUND PASSES: 1   <- the gate
+  pmem_words_half_limit: vendor refused: integer2bin: number 2051 is bigger than 2047
+
+coverage, from the checker's own manifests
+  class                     fires  holds  covered
+  amplitude_range              26     74  yes
+  amplitude_resolution          3     97  yes
+  envelope_amplitude            2      8  yes
+  envelope_memory               1      9  yes
+  envelope_sample_grid          2      8  yes
+  frequency_range               6    104  yes
+  frequency_resolution          1    109  yes
+  negative_duration             1    109  yes
+  phase_resolution              2    108  yes
+  pmem_words                    1    109  yes
+  pulse_length_grid            15     94  yes
+  pulse_length_range           19     90  yes
+  readout_length_range          4      6  yes
+  schedule_grid                40     70  yes
+  wmem_words                    1    109  yes
+  covered on both sides: 15 of 15 exercised classes

@@ -1,0 +1,13 @@
+rows: 110
+detail toolchain: 1
+outcome toolchain: 1
+
+detail toolchain
+  pmem_words_over_limit: fail, vendor reject -> reject
+
+outcome toolchain
+  pmem_words_half_limit: pass_with_repairs, vendor accept_round -> reject
+
+new vendor messages, by count
+     1  RuntimeError: integer2bin: number 4094 is bigger than 2047
+     1  RuntimeError: integer2bin: number 2051 is bigger than 2047
