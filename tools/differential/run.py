@@ -12,6 +12,12 @@ notes/oracle-path.txt.
 
 Usage:
   python tools/differential/run.py <corpus-dir> <descriptor.json> <config.json> <out.jsonl>
+      [--oracle-descriptor <descriptor.json>]
+
+The checker reads <descriptor.json>. The lowering reads the oracle
+descriptor, which defaults to the same file. Fault injection passes a mutant
+as the first and the correct descriptor as the second, so a mutant changes
+the checker's answer and never the question put to the vendor.
 """
 
 import argparse
@@ -282,11 +288,12 @@ def main():
     ap.add_argument("descriptor")
     ap.add_argument("config")
     ap.add_argument("out")
+    ap.add_argument("--oracle-descriptor", default=None)
     args = ap.parse_args()
 
     corpus = Path(args.corpus)
     index = json.loads((corpus / "index.json").read_text())
-    descriptor = json.loads(Path(args.descriptor).read_text())
+    descriptor = json.loads(Path(args.oracle_descriptor or args.descriptor).read_text())
     soccfg = QickConfig(str(args.config))
 
     rows = []
