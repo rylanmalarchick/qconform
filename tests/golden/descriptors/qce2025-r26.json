@@ -1343,8 +1343,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -1356,6 +1356,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -1576,8 +1588,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -1589,6 +1601,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -1809,8 +1833,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -1822,6 +1846,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -2042,8 +2078,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -2055,6 +2091,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -2275,8 +2323,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -2288,6 +2336,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -2508,8 +2568,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -2521,6 +2581,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -2741,8 +2813,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -2754,6 +2826,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -2974,8 +3058,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -2987,6 +3071,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -3207,8 +3303,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -3220,6 +3316,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -3440,8 +3548,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -3453,6 +3561,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {
@@ -3673,8 +3793,8 @@
       "den": 1
      },
      "max": {
-      "num": 860160000,
-      "den": 1
+      "num": 28185722866875,
+      "den": 32768
      },
      "resolution": {
       "num": 13125,
@@ -3686,6 +3806,18 @@
        "config": "zcu216-qce2025-r26",
        "axis": "freq",
        "note_contains": "just under lower edge",
+       "outcome": "reject"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "lower edge",
+       "outcome": "accept"
+      },
+      {
+       "config": "zcu216-qce2025-r26",
+       "axis": "freq",
+       "note_contains": "upper edge",
        "outcome": "reject"
       },
       {

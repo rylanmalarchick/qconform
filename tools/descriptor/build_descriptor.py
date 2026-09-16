@@ -115,12 +115,21 @@ def gen_channel(i, g, f_time):
 
     if not mux:
         if g["interpolation"] != 1:
+            # The upper limit is one resolution step inside f_dds/2, the lower
+            # limit is exact. asm_v2 checks the band in float64 after
+            # subtracting the mixer (asm_v2.py:1778, f_dds = freq -
+            # mixer_freq), and with f_dds 1720.32 MHz, 1290.24 - 430.08 is
+            # 860.1600000000001, so a request at exactly the upper edge is
+            # refused. The lower edge survives the same arithmetic. Found by
+            # the differential once the corpus probed the post_mixer edge.
             cons.append({
                 "id": "frequency_range", "quantity": "frequency",
                 "shape": "range_resolution", "severity": "fatal",
-                "min": rat(-f_dds_hz / 2), "max": rat(f_dds_hz / 2),
+                "min": rat(-f_dds_hz / 2), "max": rat(f_dds_hz / 2 - freq_res),
                 "resolution": rat(freq_res), "post_mixer": True,
                 "evidence": [ev(ec, "freq", "just under lower edge", "reject"),
+                             ev(ec, "freq", "lower edge", "accept"),
+                             ev(ec, "freq", "upper edge", "reject"),
                              ev(ec, "freq", "1.5x f_dds", "reject")],
             })
         else:
