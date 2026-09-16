@@ -2,12 +2,16 @@ programs: 281
 
 disposition
   agree            246
-  vendor_lenient   27
+  vendor_lenient   26
+  conservative     1
   harness          7
   unsound          1
 
 UNSOUND PASSES: 1   <- the gate
   pmem_words_half_limit: vendor refused: integer2bin: number 2051 is bigger than 2047
+
+conservative (1), each needs a reason:
+  gen5__random_021: fatal rejections only on frame updates no output uses: elements [1]
 
 coverage, from the checker's own manifests
   class                     fires  holds  covered

@@ -2,10 +2,14 @@ programs: 281
 
 disposition
   agree            247
-  vendor_lenient   27
+  vendor_lenient   26
+  conservative     1
   harness          7
 
 UNSOUND PASSES: 0   <- the gate
+
+conservative (1), each needs a reason:
+  gen5__random_021: fatal rejections only on frame updates no output uses: elements [1]
 
 coverage, from the checker's own manifests
   class                     fires  holds  covered
