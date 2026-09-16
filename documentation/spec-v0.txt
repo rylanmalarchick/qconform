@@ -50,9 +50,14 @@ renamed, renumbered or reused, and a retired id keeps its slot.
   R8   amplitude_resolution    an amplitude that is not a whole multiple of
                                the declared step
   R9   envelope_sample_grid    a sample count that is not a whole multiple of
-                               the declared grid
-  R10  envelope_amplitude      a sample whose magnitude exceeds the declared
-                               maximum
+                               capabilities.envelope_sample_grid. Checked only
+                               when the constraint is declared, and the
+                               constraint's grid must equal the capability
+  R10  envelope_amplitude      a sample whose magnitude exceeds
+                               capabilities.envelope_max_abs. Checked only
+                               when the constraint is declared, and the
+                               constraint must be [-1, 1] with resolution
+                               1/envelope_max_abs
   R11  envelope_memory         envelopes on one channel exceeding its memory
   R12  schedule_grid           an output starting off the timing grid, or a
                                barrier that does not align exactly on a member

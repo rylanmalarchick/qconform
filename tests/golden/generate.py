@@ -144,6 +144,14 @@ CASES = {
         [play(0, 100 * 28, wf="e0")],
         waveforms=[{"name": "e0", "kind": "samples", "full_scale": 32766,
                     "i": [1000] * 100, "q": [0] * 100}]), 1),
+    # an on-grid envelope on a descriptor that declares neither envelope
+    # constraint: the capabilities still state the limits, but nothing says
+    # they are enforced, so both rules report unchecked. On grid, so the
+    # vendor compiles it too and check_lowering has nothing to flag.
+    "envelope-constraint-absent": ("descriptors/envelope-unconstrained.json", base_program(
+        [play(0, 96 * 28, wf="e0")],
+        waveforms=[{"name": "e0", "kind": "samples", "full_scale": 32766,
+                    "i": [1000] * 96, "q": [0] * 96}]), 0),
     # catalog: gain over full scale accepted silently (vendor_repairable)
     "amplitude-over-fullscale": (TB_DESC, base_program(
         [play(0, 60 * 28)],
@@ -246,6 +254,24 @@ def main():
     })
     (desc_dir / "ignored-constraint.json").write_text(json.dumps(ignored, indent=1) + "\n")
 
+    # envelope constraints that disagree with the capabilities they repeat.
+    # The check reads the capability, so each would be declared and ignored.
+    # Found by fault injection.
+    for fname, field, value in (("envelope-grid-disagrees.json", "grid", 32),
+                                ("envelope-amplitude-disagrees.json", "resolution",
+                                 {"num": 1, "den": 16383})):
+        env = json.loads((desc_dir / "testbench.json").read_text())
+        for c in env["channels"][0]["constraints"]:
+            if c["id"] == ("envelope_sample_grid" if field == "grid" else "envelope_amplitude"):
+                c[field] = value
+        (desc_dir / fname).write_text(json.dumps(env, indent=1) + "\n")
+
+    unconstrained = json.loads((desc_dir / "testbench.json").read_text())
+    unconstrained["channels"][0]["constraints"] = [
+        c for c in unconstrained["channels"][0]["constraints"]
+        if c["id"] not in ("envelope_sample_grid", "envelope_amplitude")]
+    (desc_dir / "envelope-unconstrained.json").write_text(json.dumps(unconstrained, indent=1) + "\n")
+
     # a descriptor whose cost model overflows any real program: the budget
     # total must be refused, not wrapped. Found by the differential harness.
     big = json.loads((desc_dir / "testbench.json").read_text())
@@ -305,7 +331,10 @@ def main():
         summary.append(f"{name}: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
 
     for case, desc_file in (("malformed-bad-severity-descriptor", "bad-severity.json"),
-                            ("malformed-ignored-constraint-descriptor", "ignored-constraint.json")):
+                            ("malformed-ignored-constraint-descriptor", "ignored-constraint.json"),
+                            ("malformed-envelope-grid-disagrees", "envelope-grid-disagrees.json"),
+                            ("malformed-envelope-amplitude-disagrees",
+                             "envelope-amplitude-disagrees.json")):
         d = HERE / case
         d.mkdir(exist_ok=True)
         (d / "program.json").write_text(json.dumps(valid, indent=1) + "\n")

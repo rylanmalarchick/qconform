@@ -60,6 +60,11 @@ grids differ per quantity on one channel.
 capabilities: phrst (bool), n_tones (mux), envelope_memory_samples,
 envelope_sample_grid, envelope_max_abs.
 
+The envelope_sample_grid and envelope_amplitude constraints restate
+envelope_sample_grid and envelope_max_abs. The checker refuses a descriptor
+where they disagree: the constraint grid must equal envelope_sample_grid, and
+envelope_amplitude must be [-1, 1] with resolution 1/envelope_max_abs.
+
 constraints
 -----------
 Typed by shape, each with a stable id, a severity from the report

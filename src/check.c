@@ -182,6 +182,42 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
             case SEV_EITHER:
                 break;
             }
+
+            /* The two envelope rules take their limits from capabilities,
+             * because the vendor states them as integers there
+             * (samps_per_clk, maxv). The constraint repeats them, as a grid
+             * and as a normalized range whose step is one integer level.
+             * The check reads only the capability, so a constraint that
+             * disagrees with it would be declared and silently ignored.
+             * Fault injection found exactly that: a constraint grid of 32
+             * against a capability of 16 changed no verdict. */
+            if (c->id == QC_RULE_envelope_sample_grid) {
+                if (!ch->capabilities.has_envelope_sample_grid
+                    || c->grid != ch->capabilities.envelope_sample_grid) {
+                    diag_set(diag,
+                             "descriptor channel '" STR_FMT "' constraint envelope_sample_grid: "
+                             "grid disagrees with capabilities.envelope_sample_grid",
+                             STR_ARG(ch->name));
+                    return false;
+                }
+            }
+            if (c->id == QC_RULE_envelope_amplitude) {
+                Rat one = {1, 1};
+                Rat minus_one = {-1, 1};
+                bool agrees = ch->capabilities.has_envelope_max_abs
+                              && ch->capabilities.envelope_max_abs > 0
+                              && c->has_min && c->has_max && c->has_resolution
+                              && rat_eq(c->min, minus_one) && rat_eq(c->max, one)
+                              && c->resolution.num == 1
+                              && c->resolution.den == ch->capabilities.envelope_max_abs;
+                if (!agrees) {
+                    diag_set(diag,
+                             "descriptor channel '" STR_FMT "' constraint envelope_amplitude: "
+                             "range must be [-1, 1] with resolution 1/capabilities.envelope_max_abs",
+                             STR_ARG(ch->name));
+                    return false;
+                }
+            }
         }
         if (ch->capabilities.has_envelope_sample_grid && ch->capabilities.envelope_sample_grid <= 0) {
             diag_set(diag, "descriptor channel '" STR_FMT "': non-positive envelope_sample_grid",
@@ -468,14 +504,20 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
     {
         int64_t n = (int64_t)w->as.samples.len;
 
-        if (dc->capabilities.has_envelope_sample_grid) {
+        /* Both envelope rules need the constraint as well as the capability.
+         * The capability is the limit, and the constraint is the evidence
+         * that the limit is enforced. Without the constraint the rule is
+         * unchecked, not enforced at a default severity. */
+        const Constraint *grid_c = find_constraint(dc, QC_RULE_envelope_sample_grid);
+        const Constraint *amp_c = find_constraint(dc, QC_RULE_envelope_amplitude);
+
+        if (dc->capabilities.has_envelope_sample_grid && grid_c != NULL) {
             int64_t grid = dc->capabilities.envelope_sample_grid;
             cover(k, QC_COV_envelope_sample_grid, QC_CSTAT_checked);
             if (floor_mod(n, grid) != 0) {
-                const Constraint *c = find_constraint(dc, QC_RULE_envelope_sample_grid);
                 Rejection r;
                 r.rule = QC_COV_envelope_sample_grid;
-                r.severity = c != NULL ? c->severity : QC_SEV_fatal;
+                r.severity = grid_c->severity;
                 r.has_repair = false;
                 r.repair = QC_REPAIR_quantize_duration;
                 r.element = element;
@@ -484,9 +526,11 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
                 r.limit = rat_from_int(grid);
                 if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
             }
+        } else if (dc->capabilities.has_envelope_sample_grid) {
+            cover(k, QC_COV_envelope_sample_grid, QC_CSTAT_unchecked);
         }
 
-        if (dc->capabilities.has_envelope_max_abs) {
+        if (dc->capabilities.has_envelope_max_abs && amp_c != NULL) {
             int64_t max_abs = dc->capabilities.envelope_max_abs;
             int64_t peak = 0;
             size_t i;
@@ -508,10 +552,9 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
                 if ((int64_t)m > peak) peak = (int64_t)m;
             }
             if (peak > max_abs) {
-                const Constraint *c = find_constraint(dc, QC_RULE_envelope_amplitude);
                 Rejection r;
                 r.rule = QC_COV_envelope_amplitude;
-                r.severity = c != NULL ? c->severity : QC_SEV_fatal;
+                r.severity = amp_c->severity;
                 r.has_repair = false;
                 r.repair = QC_REPAIR_trunc_gain;
                 r.element = element;
@@ -521,6 +564,8 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
                 r.limit = rat_from_int(max_abs);
                 if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
             }
+        } else if (dc->capabilities.has_envelope_max_abs) {
+            cover(k, QC_COV_envelope_amplitude, QC_CSTAT_unchecked);
         }
 
         if (dc->capabilities.has_envelope_memory_samples) {
