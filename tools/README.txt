@@ -44,6 +44,11 @@ What each part is for
                 descriptor or an exporter.
                 Needs: pip install -r format/requirements.txt
 
+  versions/     Reruns the survey and the differential under other qick
+                releases against the pinned descriptors, and compares the
+                result with the tracked evidence. See versions/README.txt.
+                Needs: one environment per qick release.
+
 Version pinning
 ---------------
 Vendor behavior is a function of the (firmware config, library version)
