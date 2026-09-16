@@ -1,0 +1,21 @@
+barrier programs over seeds 1-10 (from the tsv barrier columns)
+
+  config        barrier programs  with a barrier rounding  not agree
+  testbench                   10                       10          0
+  qce2025-r26                 21                       10          1
+  rb-r27                      10                       10          0
+
+The count does not grow with seeds: every barrier program comes from a
+ladder, and the randomized programs emit none. The evidence is the ladder
+set, seen once per config.
+
+Every barrier rounding row agrees: the checker's exact alignment and the
+toolchain's rounding landed on the same tick in all 30 observed cases.
+
+The one qce2025-r26 row that does not agree is unconstrained_channel_bound,
+disposition harness: it captures on the static pfb readout, which the
+lowering cannot express (not_lowerable). That is the stated static readout
+limitation, not a barrier disagreement.
+
+Not shown: barrier alignment on channel pairs the ladders do not combine,
+and barriers in randomized programs.

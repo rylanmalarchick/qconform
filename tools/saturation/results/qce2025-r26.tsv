@@ -1,0 +1,11 @@
+seed	programs_unique	unsound	missed_repair	open	conservative	vendor_lenient	harness	rule_sets	outcome_pairs	classes_both_sides	barrier_programs	barrier_roundings	barrier_not_agree
+1	273	0	0	0	1	26	7	42	7	17	21	10	1
+2	365	0	0	0	1	35	12	45	7	17	21	10	1
+3	457	0	0	0	1	46	15	47	7	17	21	10	1
+4	549	0	0	0	1	55	17	49	7	17	21	10	1
+5	641	0	0	0	2	64	20	50	7	17	21	10	1
+6	733	0	0	0	2	77	22	51	7	17	21	10	1
+7	825	0	0	0	2	85	23	51	7	17	21	10	1
+8	917	0	0	0	2	92	25	52	7	17	21	10	1
+9	1009	0	0	0	2	101	25	52	7	17	21	10	1
+10	1101	0	0	0	2	106	29	52	7	17	21	10	1
