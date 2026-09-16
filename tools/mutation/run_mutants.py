@@ -26,7 +26,12 @@ because the tripwires can catch a checker defect before any corpus runs.
 The first row per config and mode is the unmutated descriptor. It must come
 out survived with no failure rows, or the counts mean nothing.
 
-Usage: python tools/mutation/run_mutants.py <out-dir> [--jobs N] [--only ID ...]
+With --seed, both corpus modes use that seed. The ladders do not depend on
+it and the randomized programs do, so a survivor re-run at other seeds shows
+whether more random programs would catch it.
+
+Usage: python tools/mutation/run_mutants.py <out-dir> [--jobs N] [--seed S]
+           [--only ID ... | --only-file PATH]
 Needs the survey environment (qick), like tools/differential/.
 """
 
@@ -112,7 +117,7 @@ def build_worktree(out, patch):
     return wt, {"make_check_exit": check.returncode, "make_check_tail": tail}
 
 
-def one(m, mode, out, original_corpus, worktrees):
+def one(m, mode, out, original_corpus, worktrees, seed):
     config = m["config"]
     orig_desc, cfg = paths(config)
     tree = worktrees.get(m.get("patch"), (ROOT, {}))[0]
@@ -125,7 +130,7 @@ def one(m, mode, out, original_corpus, worktrees):
     else:
         corpus = out / "corpus" / config / m["id"]
         r = run([sys.executable, tree / "tools/differential/corpus.py", m["descriptor"], corpus,
-                 "--seed", "1", "--config", cfg])
+                 "--seed", str(seed), "--config", cfg])
         if r.returncode != 0:
             row["status"] = "corpus_error"
             row["error"] = r.stderr.strip().splitlines()[-1][:300] if r.stderr.strip() else ""
@@ -168,7 +173,12 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--jobs", type=int, default=16)
     ap.add_argument("--only", nargs="*", default=None)
+    ap.add_argument("--only-file", default=None, help="mutant ids, one per line")
+    ap.add_argument("--seed", type=int, default=1)
     args = ap.parse_args()
+    if args.only_file is not None:
+        args.only = [ln.strip() for ln in Path(args.only_file).read_text().splitlines()
+                     if ln.strip()]
     out = Path(args.out).resolve()
 
     manifest = build_mutants(out)
@@ -181,7 +191,7 @@ def main():
         desc, cfg = paths(config)
         target = out / "corpus" / config / "_original"
         r = run([sys.executable, ROOT / "tools/differential/corpus.py", desc, target,
-                 "--seed", "1", "--config", cfg])
+                 "--seed", str(args.seed), "--config", cfg])
         if r.returncode != 0:
             sys.exit(f"original corpus failed for {config}: {r.stderr}")
         original_corpus[config] = target
@@ -192,7 +202,7 @@ def main():
 
     jobs = [(m, mode) for m in manifest for mode in MODES]
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        summary = list(pool.map(lambda j: one(j[0], j[1], out, original_corpus, worktrees), jobs))
+        summary = list(pool.map(lambda j: one(j[0], j[1], out, original_corpus, worktrees, args.seed), jobs))
 
     base = {(r["config"], r["mode"]): r for r in summary if r["role"] == "baseline"}
     for r in summary:
