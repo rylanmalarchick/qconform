@@ -59,13 +59,14 @@ RULE_TO_BEHAVIOR = {
 
 
 def vendor_behaviors(descriptor):
-    """Rules the descriptor says the vendor handles differently from the
-    checker on purpose."""
-    out = {}
-    for ch in descriptor.get("channels", []):
-        for vb in ch.get("vendor_behavior", []):
-            out[vb["id"]] = vb
-    return out
+    """The vendor behaviors each channel declares, by channel name.
+
+    A behavior belongs to the channel that declares it. Merging them across
+    the descriptor let a v6 generator's frequency alias explain a refusal on
+    an int4 or a mux channel, which declares no such thing. Fault injection
+    found rows filed as vendor_lenient that way."""
+    return {ch["name"]: {vb["id"] for vb in ch.get("vendor_behavior", [])}
+            for ch in descriptor.get("channels", [])}
 
 
 def disposition(row, behaviors):
@@ -88,9 +89,10 @@ def disposition(row, behaviors):
     if verdict == "fail" and outcome in REFUSED:
         return "agree", "both refused"
 
+    declared = set().union(*(behaviors.get(ch, set()) for ch in row["channels"]))
     documented = sorted({b for r in rules
                          for b in RULE_TO_BEHAVIOR.get(r, ())
-                         if b in behaviors})
+                         if b in declared})
 
     if verdict == "fail" and outcome in ("accept", "accept_round"):
         if documented:
@@ -163,8 +165,12 @@ def main():
     print(f"programs: {len(rows)}")
     print()
     print("disposition")
-    for disp in ("agree", "vendor_lenient", "unobserved", "missed_repair",
-                 "harness", "open", "unsound"):
+    order = ("agree", "vendor_lenient", "unobserved", "missed_repair",
+             "harness", "open", "unsound")
+    unknown = set(by_disp) - set(order)
+    if unknown:
+        raise SystemExit(f"dispositions with no place in the summary: {sorted(unknown)}")
+    for disp in order:
         n = len(by_disp.get(disp, []))
         if n:
             print(f"  {disp:16} {n}")

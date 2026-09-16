@@ -305,6 +305,7 @@ def main():
 
         row = {
             "case": case["name"],
+            "channels": sorted(ch["name"] for ch in program["channels"]),
             "qconform_verdict": verdict,
             "qconform_rules": fired_rules(report),
             "qconform_checked": checked_classes(report),
