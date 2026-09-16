@@ -1,0 +1,475 @@
+# Fault injection survivors, sorted by hand. Checked and counted by
+# tools/mutation/explain.py table. Each block: class, modes, reason,
+# evidence, ids. A survivor id appears exactly once per mode.
+
+
+class: equivalent
+modes: original
+reason: The rounding block is descriptive. No rule reads it, so flipping a rounding mode cannot change a verdict.
+evidence: src/parse.c:678 parses rounding and src/check.c never reads it (grep); documentation/spec-v0.txt, limits section: no verdict depends on the rounding block.
+ids:
+  qce2025-r26.rounding.amplitude_flip
+  qce2025-r26.rounding.frequency_flip
+  qce2025-r26.rounding.phase_flip
+  qce2025-r26.rounding.time_flip
+  testbench.rounding.amplitude_flip
+  testbench.rounding.frequency_flip
+  testbench.rounding.phase_flip
+  testbench.rounding.time_flip
+
+class: equivalent
+modes: mutated
+reason: The rounding block is descriptive. No rule reads it, so flipping a rounding mode cannot change a verdict.
+evidence: src/parse.c:678 parses rounding and src/check.c never reads it (grep); documentation/spec-v0.txt, limits section: no verdict depends on the rounding block.
+ids:
+  qce2025-r26.rounding.amplitude_flip
+  qce2025-r26.rounding.frequency_flip
+  qce2025-r26.rounding.phase_flip
+  qce2025-r26.rounding.time_flip
+  testbench.rounding.amplitude_flip
+  testbench.rounding.frequency_flip
+  testbench.rounding.phase_flip
+  testbench.rounding.time_flip
+
+class: equivalent
+modes: original
+reason: capabilities.phrst is parsed and read by no rule.
+evidence: tests/tripwires.sh I4_EXEMPT lists phrst.
+ids:
+  qce2025-r26.gen0.capability.phrst_flip
+  qce2025-r26.gen1.capability.phrst_flip
+  qce2025-r26.gen4.capability.phrst_flip
+  qce2025-r26.gen5.capability.phrst_flip
+  qce2025-r26.gen6.capability.phrst_flip
+  testbench.gen0.capability.phrst_flip
+
+class: equivalent
+modes: mutated
+reason: capabilities.phrst is parsed and read by no rule.
+evidence: tests/tripwires.sh I4_EXEMPT lists phrst.
+ids:
+  qce2025-r26.gen0.capability.phrst_flip
+  qce2025-r26.gen1.capability.phrst_flip
+  qce2025-r26.gen4.capability.phrst_flip
+  qce2025-r26.gen5.capability.phrst_flip
+  qce2025-r26.gen6.capability.phrst_flip
+  testbench.gen0.capability.phrst_flip
+
+class: equivalent
+modes: original
+reason: pulse_length_grid is a severity-only constraint. The limit is the channel duration_grid, and without the constraint the checker applies the same default severity (vendor_repairable), so no verdict changes. Only the coverage status differs, which the harness does not compare.
+evidence: src/check.c pulse_length_grid block: severity = grid_c ? grid_c->severity : vendor_repairable; cover() only when grid_c != NULL.
+ids:
+  qce2025-r26.gen0.pulse_length_grid.delete
+  qce2025-r26.gen4.pulse_length_grid.delete
+  qce2025-r26.gen5.pulse_length_grid.delete
+  testbench.gen0.pulse_length_grid.delete
+
+class: equivalent
+modes: mutated
+reason: pulse_length_grid is a severity-only constraint. The limit is the channel duration_grid, and without the constraint the checker applies the same default severity (vendor_repairable), so no verdict changes. Only the coverage status differs, which the harness does not compare.
+evidence: src/check.c pulse_length_grid block: severity = grid_c ? grid_c->severity : vendor_repairable; cover() only when grid_c != NULL.
+ids:
+  qce2025-r26.gen4.pulse_length_grid.delete
+  testbench.gen0.pulse_length_grid.delete
+
+class: equivalent
+modes: original
+reason: gen5 declares envelope_sample_grid 1, so every sample count is on grid and the rule can never fire. Deleting it only moves coverage to unchecked.
+evidence: qce2025-r26 gen5 capabilities.envelope_sample_grid = 1; rows gen5__envelope_sample_grid_* pass in baseline and mutant.
+ids:
+  qce2025-r26.gen5.envelope_sample_grid.delete
+
+class: corpus_gap
+modes: original
+reason: The resolution rungs sit at a large multiple, at res/2 and at 1.5 res. Each is on or off both the true and the doubled grid, so no rung separates them. Missing rung: an odd multiple of the true resolution.
+evidence: tools/differential/corpus.py cases_phase (res*1000, res/2, res*3/2) and cases_amplitude (res*100, res/2).
+ids:
+  qce2025-r26.gen0.phase_resolution.resolution_x2
+  qce2025-r26.gen5.amplitude_range.resolution_x2
+  qce2025-r26.gen5.phase_resolution.resolution_x2
+  testbench.gen0.phase_resolution.resolution_x2
+
+class: corpus_gap
+modes: original
+reason: No program starts a capture off the readout schedule grid. The schedule-grid rungs are built for generators only.
+evidence: tools/differential/corpus.py:670 calls cases_schedule_grid per generator; cases_readout places every capture after a barrier.
+ids:
+  qce2025-r26.ro0.channel.schedule_grid_x2
+  testbench.ro0.channel.schedule_grid_x2
+
+class: harness_gap
+modes: mutated
+reason: The mutated corpus moves its memory and tone-count probes with the mutant, and the toolchain checks neither limit, so every probe compiles either way and the oracle cannot tell the values apart.
+evidence: descriptor vendor_behavior envelope_memory_overflow_unchecked and mux_tone_count_unchecked; catalog rows 'envelope exceeds memory (suspected unchecked)'.
+ids:
+  qce2025-r26.gen0.capability.envelope_memory_samples_minus_grid
+  qce2025-r26.gen0.capability.envelope_memory_samples_plus_grid
+  qce2025-r26.gen4.capability.n_tones_minus_one
+  qce2025-r26.gen4.capability.n_tones_plus_one
+  qce2025-r26.gen5.capability.envelope_memory_samples_minus_grid
+  qce2025-r26.gen5.capability.envelope_memory_samples_plus_grid
+  testbench.gen0.capability.envelope_memory_samples_minus_grid
+  testbench.gen0.capability.envelope_memory_samples_plus_grid
+
+class: corpus_gap
+modes: mutated
+reason: Mutated corpus, self-consistent: every probe is placed from the mutant's own limit or resolution, and each rung got the same verdict and the same vendor answer as the matching rung on the true descriptor. A corpus derived from a wrong descriptor cannot contradict it at these rungs.
+evidence: explain.py show: no row changes disposition, verdict or fired rules against the baseline, case by case.
+ids:
+  qce2025-r26.gen0.frequency_range.max_minus_step
+  qce2025-r26.gen0.frequency_range.min_minus_step
+  qce2025-r26.gen0.phase_resolution.resolution_half
+  qce2025-r26.gen4.amplitude_range.min_minus_step
+  qce2025-r26.gen4.amplitude_range.min_plus_step
+  qce2025-r26.gen4.frequency_range.min_minus_step
+  qce2025-r26.gen4.frequency_range.min_plus_step
+  qce2025-r26.gen5.amplitude_range.resolution_half
+  qce2025-r26.gen5.phase_resolution.resolution_half
+  qce2025-r26.gen5.phase_resolution.resolution_x2
+  testbench.gen0.frequency_range.max_minus_step
+  testbench.gen0.frequency_range.min_minus_step
+  testbench.gen0.phase_resolution.resolution_half
+  testbench.ro0.channel.schedule_grid_x2
+
+class: corpus_gap
+modes: original
+reason: Budget rungs sit at half the limit and at limit + 8 words, so a limit or overhead off by one word is never probed. Missing rungs: at the limit and one word past it.
+evidence: tools/differential/corpus.py cases_budgets: (need // 2, half_limit), (need + 8, over_limit).
+ids:
+  qce2025-r26.budget.pmem_words.limit_minus_one
+  qce2025-r26.budget.pmem_words.limit_plus_one
+  qce2025-r26.budget.pmem_words.overhead_minus_one
+  qce2025-r26.budget.pmem_words.overhead_plus_one
+  qce2025-r26.budget.wmem_words.limit_minus_one
+  qce2025-r26.budget.wmem_words.limit_plus_one
+  qce2025-r26.budget.wmem_words.overhead_plus_one
+  testbench.budget.pmem_words.limit_minus_one
+  testbench.budget.pmem_words.limit_plus_one
+  testbench.budget.pmem_words.overhead_minus_one
+  testbench.budget.pmem_words.overhead_plus_one
+  testbench.budget.wmem_words.limit_minus_one
+  testbench.budget.wmem_words.limit_plus_one
+  testbench.budget.wmem_words.overhead_plus_one
+
+class: corpus_gap
+modes: mutated
+reason: Budget rungs sit at half the limit and at limit + 8 words, so a limit or overhead off by one word is never probed. Missing rungs: at the limit and one word past it.
+evidence: tools/differential/corpus.py cases_budgets: (need // 2, half_limit), (need + 8, over_limit).
+ids:
+  qce2025-r26.budget.pmem_words.limit_minus_one
+  qce2025-r26.budget.pmem_words.limit_plus_one
+  qce2025-r26.budget.pmem_words.overhead_minus_one
+  qce2025-r26.budget.pmem_words.overhead_plus_one
+  qce2025-r26.budget.wmem_words.limit_minus_one
+  qce2025-r26.budget.wmem_words.limit_plus_one
+  qce2025-r26.budget.wmem_words.overhead_plus_one
+  testbench.budget.pmem_words.limit_minus_one
+  testbench.budget.pmem_words.limit_plus_one
+  testbench.budget.pmem_words.overhead_minus_one
+  testbench.budget.pmem_words.overhead_plus_one
+  testbench.budget.wmem_words.limit_minus_one
+  testbench.budget.wmem_words.limit_plus_one
+  testbench.budget.wmem_words.overhead_plus_one
+
+class: corpus_gap
+modes: original
+reason: A value error on a channel that is not its class representative is never probed. The corpus picks one channel per class, and the class key ignores values, so the mutated channel is neither probed nor split into its own class.
+evidence: tools/differential/corpus.py Descriptor.classes key: vendor_type, grids, constraint ids, capability keys.
+ids:
+  qce2025-r26.gen1.amplitude_range.delete
+  qce2025-r26.gen1.amplitude_range.max_minus_step
+  qce2025-r26.gen1.amplitude_range.max_plus_step
+  qce2025-r26.gen1.amplitude_range.min_minus_step
+  qce2025-r26.gen1.amplitude_range.min_plus_step
+  qce2025-r26.gen1.amplitude_range.resolution_half
+  qce2025-r26.gen1.amplitude_range.resolution_x2
+  qce2025-r26.gen1.amplitude_range.severity_flip
+  qce2025-r26.gen1.capability.envelope_memory_samples_minus_grid
+  qce2025-r26.gen1.capability.envelope_memory_samples_plus_grid
+  qce2025-r26.gen1.channel.duration_grid_x2
+  qce2025-r26.gen1.channel.schedule_grid_x2
+  qce2025-r26.gen1.channel.unit_x2
+  qce2025-r26.gen1.envelope_amplitude.delete
+  qce2025-r26.gen1.envelope_sample_grid.delete
+  qce2025-r26.gen1.frequency_range.delete
+  qce2025-r26.gen1.frequency_range.max_minus_step
+  qce2025-r26.gen1.frequency_range.max_plus_step
+  qce2025-r26.gen1.frequency_range.min_minus_step
+  qce2025-r26.gen1.frequency_range.min_plus_step
+  qce2025-r26.gen1.frequency_range.post_mixer_flip
+  qce2025-r26.gen1.frequency_range.resolution_half
+  qce2025-r26.gen1.frequency_range.resolution_x2
+  qce2025-r26.gen1.frequency_range.severity_flip
+  qce2025-r26.gen1.phase_resolution.delete
+  qce2025-r26.gen1.phase_resolution.resolution_half
+  qce2025-r26.gen1.phase_resolution.resolution_x2
+  qce2025-r26.gen1.pulse_length_grid.delete
+  qce2025-r26.gen1.pulse_length_range.delete
+  qce2025-r26.gen1.pulse_length_range.max_units_minus_grid
+  qce2025-r26.gen1.pulse_length_range.max_units_plus_grid
+  qce2025-r26.gen1.pulse_length_range.min_units_minus_grid
+  qce2025-r26.gen1.pulse_length_range.min_units_plus_grid
+  qce2025-r26.gen6.amplitude_range.delete
+  qce2025-r26.gen6.amplitude_range.max_minus_step
+  qce2025-r26.gen6.amplitude_range.max_plus_step
+  qce2025-r26.gen6.amplitude_range.min_minus_step
+  qce2025-r26.gen6.amplitude_range.min_plus_step
+  qce2025-r26.gen6.amplitude_range.resolution_half
+  qce2025-r26.gen6.amplitude_range.resolution_x2
+  qce2025-r26.gen6.amplitude_range.severity_flip
+  qce2025-r26.gen6.capability.envelope_memory_samples_minus_grid
+  qce2025-r26.gen6.capability.envelope_memory_samples_plus_grid
+  qce2025-r26.gen6.channel.duration_grid_x2
+  qce2025-r26.gen6.channel.schedule_grid_x2
+  qce2025-r26.gen6.channel.unit_x2
+  qce2025-r26.gen6.envelope_amplitude.delete
+  qce2025-r26.gen6.envelope_sample_grid.delete
+  qce2025-r26.gen6.frequency_range.delete
+  qce2025-r26.gen6.frequency_range.max_minus_step
+  qce2025-r26.gen6.frequency_range.max_plus_step
+  qce2025-r26.gen6.frequency_range.min_minus_step
+  qce2025-r26.gen6.frequency_range.min_plus_step
+  qce2025-r26.gen6.frequency_range.post_mixer_flip
+  qce2025-r26.gen6.frequency_range.resolution_half
+  qce2025-r26.gen6.frequency_range.resolution_x2
+  qce2025-r26.gen6.frequency_range.severity_flip
+  qce2025-r26.gen6.phase_resolution.delete
+  qce2025-r26.gen6.phase_resolution.resolution_half
+  qce2025-r26.gen6.phase_resolution.resolution_x2
+  qce2025-r26.gen6.pulse_length_grid.delete
+  qce2025-r26.gen6.pulse_length_range.delete
+  qce2025-r26.gen6.pulse_length_range.max_units_minus_grid
+  qce2025-r26.gen6.pulse_length_range.max_units_plus_grid
+  qce2025-r26.gen6.pulse_length_range.min_units_minus_grid
+  qce2025-r26.gen6.pulse_length_range.min_units_plus_grid
+  qce2025-r26.ro1.channel.duration_grid_x2
+  qce2025-r26.ro1.channel.schedule_grid_x2
+  qce2025-r26.ro1.channel.unit_x2
+  qce2025-r26.ro1.readout_length_range.delete
+  qce2025-r26.ro1.readout_length_range.max_units_minus_grid
+  qce2025-r26.ro1.readout_length_range.max_units_plus_grid
+  qce2025-r26.ro1.readout_length_range.min_units_minus_grid
+  qce2025-r26.ro1.readout_length_range.min_units_plus_grid
+
+class: corpus_gap
+modes: mutated
+reason: A value error on a channel that is not its class representative is never probed. The corpus picks one channel per class, and the class key ignores values, so the mutated channel is neither probed nor split into its own class.
+evidence: tools/differential/corpus.py Descriptor.classes key: vendor_type, grids, constraint ids, capability keys.
+ids:
+  qce2025-r26.gen1.amplitude_range.max_minus_step
+  qce2025-r26.gen1.amplitude_range.max_plus_step
+  qce2025-r26.gen1.amplitude_range.min_minus_step
+  qce2025-r26.gen1.amplitude_range.min_plus_step
+  qce2025-r26.gen1.amplitude_range.resolution_half
+  qce2025-r26.gen1.amplitude_range.resolution_x2
+  qce2025-r26.gen1.amplitude_range.severity_flip
+  qce2025-r26.gen1.capability.envelope_memory_samples_minus_grid
+  qce2025-r26.gen1.capability.envelope_memory_samples_plus_grid
+  qce2025-r26.gen1.channel.unit_x2
+  qce2025-r26.gen1.frequency_range.max_minus_step
+  qce2025-r26.gen1.frequency_range.max_plus_step
+  qce2025-r26.gen1.frequency_range.min_minus_step
+  qce2025-r26.gen1.frequency_range.min_plus_step
+  qce2025-r26.gen1.frequency_range.post_mixer_flip
+  qce2025-r26.gen1.frequency_range.resolution_half
+  qce2025-r26.gen1.frequency_range.resolution_x2
+  qce2025-r26.gen1.frequency_range.severity_flip
+  qce2025-r26.gen1.phase_resolution.resolution_half
+  qce2025-r26.gen1.phase_resolution.resolution_x2
+  qce2025-r26.gen1.pulse_length_range.max_units_minus_grid
+  qce2025-r26.gen1.pulse_length_range.max_units_plus_grid
+  qce2025-r26.gen1.pulse_length_range.min_units_minus_grid
+  qce2025-r26.gen1.pulse_length_range.min_units_plus_grid
+  qce2025-r26.gen6.amplitude_range.max_minus_step
+  qce2025-r26.gen6.amplitude_range.max_plus_step
+  qce2025-r26.gen6.amplitude_range.min_minus_step
+  qce2025-r26.gen6.amplitude_range.min_plus_step
+  qce2025-r26.gen6.amplitude_range.resolution_half
+  qce2025-r26.gen6.amplitude_range.resolution_x2
+  qce2025-r26.gen6.amplitude_range.severity_flip
+  qce2025-r26.gen6.capability.envelope_memory_samples_minus_grid
+  qce2025-r26.gen6.capability.envelope_memory_samples_plus_grid
+  qce2025-r26.gen6.channel.unit_x2
+  qce2025-r26.gen6.frequency_range.max_minus_step
+  qce2025-r26.gen6.frequency_range.max_plus_step
+  qce2025-r26.gen6.frequency_range.min_minus_step
+  qce2025-r26.gen6.frequency_range.min_plus_step
+  qce2025-r26.gen6.frequency_range.post_mixer_flip
+  qce2025-r26.gen6.frequency_range.resolution_half
+  qce2025-r26.gen6.frequency_range.resolution_x2
+  qce2025-r26.gen6.frequency_range.severity_flip
+  qce2025-r26.gen6.phase_resolution.resolution_half
+  qce2025-r26.gen6.phase_resolution.resolution_x2
+  qce2025-r26.gen6.pulse_length_range.max_units_minus_grid
+  qce2025-r26.gen6.pulse_length_range.max_units_plus_grid
+  qce2025-r26.gen6.pulse_length_range.min_units_minus_grid
+  qce2025-r26.gen6.pulse_length_range.min_units_plus_grid
+  qce2025-r26.ro1.channel.unit_x2
+  qce2025-r26.ro1.readout_length_range.max_units_minus_grid
+  qce2025-r26.ro1.readout_length_range.max_units_plus_grid
+  qce2025-r26.ro1.readout_length_range.min_units_minus_grid
+  qce2025-r26.ro1.readout_length_range.min_units_plus_grid
+
+class: corpus_gap
+modes: mutated
+reason: Mutated corpus drops the evidence: deleting a constraint (or doubling a readout grid) removes or moves the ladder built from it, so the rows that caught the mutant in original mode do not exist.
+evidence: explain.py show: the changed rows are absent on one side; corpus.py builds each ladder only when d.constraint() returns the constraint.
+ids:
+  qce2025-r26.gen0.frequency_range.delete
+  qce2025-r26.gen0.phase_resolution.delete
+  qce2025-r26.gen0.pulse_length_grid.delete
+  qce2025-r26.gen1.frequency_range.delete
+  qce2025-r26.gen1.phase_resolution.delete
+  qce2025-r26.gen1.pulse_length_grid.delete
+  qce2025-r26.gen4.amplitude_range.delete
+  qce2025-r26.gen4.frequency_range.delete
+  qce2025-r26.gen4.phase_resolution.delete
+  qce2025-r26.gen4.pulse_length_range.delete
+  qce2025-r26.gen6.frequency_range.delete
+  qce2025-r26.ro0.channel.schedule_grid_x2
+  qce2025-r26.ro0.readout_length_range.delete
+  qce2025-r26.ro1.channel.schedule_grid_x2
+  qce2025-r26.ro1.readout_length_range.delete
+  testbench.gen0.frequency_range.delete
+  testbench.gen0.phase_resolution.delete
+  testbench.ro0.readout_length_range.delete
+
+class: harness_gap
+modes: original
+reason: The mutant stops the checker refusing something the toolchain does not check either (tone count, envelope memory, a v6 frequency the DDS aliases, a gain past full scale), so both sides compile and the oracle cannot see the difference.
+evidence: explain.py show: rows move vendor_lenient -> agree; the descriptor documents the matching vendor_behavior on that channel.
+ids:
+  qce2025-r26.gen0.amplitude_range.max_plus_step
+  qce2025-r26.gen0.amplitude_range.min_minus_step
+  qce2025-r26.gen0.capability.envelope_memory_samples_plus_grid
+  qce2025-r26.gen0.frequency_range.max_plus_step
+  qce2025-r26.gen0.frequency_range.min_minus_step
+  qce2025-r26.gen4.amplitude_range.max_plus_step
+  qce2025-r26.gen4.amplitude_range.min_minus_step
+  qce2025-r26.gen4.capability.n_tones_plus_one
+  qce2025-r26.gen4.frequency_range.min_minus_step
+  qce2025-r26.gen4.mux_tone_count.delete
+  qce2025-r26.gen5.capability.envelope_memory_samples_plus_grid
+  qce2025-r26.known.K4_n_tones_unread
+  testbench.gen0.amplitude_range.max_plus_step
+  testbench.gen0.amplitude_range.min_minus_step
+  testbench.gen0.capability.envelope_memory_samples_plus_grid
+  testbench.gen0.frequency_range.max_plus_step
+  testbench.gen0.frequency_range.min_minus_step
+
+class: harness_gap
+modes: mutated
+reason: The mutant stops the checker refusing something the toolchain does not check either (tone count, envelope memory, a v6 frequency the DDS aliases, a gain past full scale), so both sides compile and the oracle cannot see the difference.
+evidence: explain.py show: rows move vendor_lenient -> agree; the descriptor documents the matching vendor_behavior on that channel.
+ids:
+  qce2025-r26.gen4.amplitude_range.max_plus_step
+  qce2025-r26.gen4.mux_tone_count.delete
+  qce2025-r26.known.K4_n_tones_unread
+
+class: masked_by_documented_leniency
+modes: original
+reason: The mutant makes the checker refuse or repair where it did not, the toolchain compiles, and a vendor_behavior documented on that channel files the row as vendor_lenient instead of open.
+evidence: explain.py show: rows move agree -> vendor_lenient with a documented vendor_behavior reason; tools/differential/triage.py RULE_TO_BEHAVIOR.
+ids:
+  qce2025-r26.gen0.amplitude_range.max_minus_step
+  qce2025-r26.gen0.amplitude_range.min_plus_step
+  qce2025-r26.gen0.amplitude_range.severity_flip
+  qce2025-r26.gen0.capability.envelope_memory_samples_minus_grid
+  qce2025-r26.gen0.frequency_range.max_minus_step
+  qce2025-r26.gen0.frequency_range.min_plus_step
+  qce2025-r26.gen0.frequency_range.severity_flip
+  qce2025-r26.gen4.amplitude_range.max_minus_step
+  qce2025-r26.gen4.amplitude_range.min_plus_step
+  qce2025-r26.gen4.capability.n_tones_minus_one
+  qce2025-r26.gen4.frequency_range.max_minus_step
+  qce2025-r26.gen4.frequency_range.min_plus_step
+  qce2025-r26.gen4.frequency_range.post_mixer_flip
+  qce2025-r26.gen5.amplitude_range.severity_flip
+  qce2025-r26.gen5.capability.envelope_memory_samples_minus_grid
+  testbench.gen0.amplitude_range.max_minus_step
+  testbench.gen0.amplitude_range.min_plus_step
+  testbench.gen0.amplitude_range.severity_flip
+  testbench.gen0.capability.envelope_memory_samples_minus_grid
+  testbench.gen0.frequency_range.max_minus_step
+  testbench.gen0.frequency_range.min_plus_step
+  testbench.gen0.frequency_range.severity_flip
+
+class: masked_by_documented_leniency
+modes: mutated
+reason: The mutant makes the checker refuse or repair where it did not, the toolchain compiles, and a vendor_behavior documented on that channel files the row as vendor_lenient instead of open.
+evidence: explain.py show: rows move agree -> vendor_lenient with a documented vendor_behavior reason; tools/differential/triage.py RULE_TO_BEHAVIOR.
+ids:
+  qce2025-r26.gen0.amplitude_range.severity_flip
+  qce2025-r26.gen0.frequency_range.max_plus_step
+  qce2025-r26.gen0.frequency_range.min_plus_step
+  qce2025-r26.gen0.frequency_range.severity_flip
+  qce2025-r26.gen4.amplitude_range.max_minus_step
+  qce2025-r26.gen4.frequency_range.max_minus_step
+  qce2025-r26.gen4.frequency_range.post_mixer_flip
+  qce2025-r26.gen5.amplitude_range.severity_flip
+  qce2025-r26.gen5.frequency_range.resolution_x2
+  testbench.gen0.amplitude_range.severity_flip
+  testbench.gen0.frequency_range.max_plus_step
+  testbench.gen0.frequency_range.min_plus_step
+  testbench.gen0.frequency_range.severity_flip
+
+class: harness_gap
+modes: original
+reason: Only the fired rules change. Triage compares verdict against vendor outcome and not which rule a repair or refusal is blamed on, so a mutant that adds or drops a rule inside an already-repaired or already-refused program is invisible.
+evidence: explain.py show: every changed row keeps its disposition class (agree->agree, or a non-failure move such as vendor_lenient->conservative) and differs only in qconform_rules.
+ids:
+  qce2025-r26.gen4.amplitude_range.severity_flip
+  qce2025-r26.gen4.frequency_range.resolution_half
+  qce2025-r26.gen5.amplitude_range.max_minus_step
+  qce2025-r26.gen5.amplitude_range.max_plus_step
+  qce2025-r26.gen5.amplitude_range.min_minus_step
+  qce2025-r26.gen5.amplitude_range.min_plus_step
+  qce2025-r26.gen5.channel.duration_grid_x2
+  qce2025-r26.gen5.channel.schedule_grid_x2
+  qce2025-r26.gen5.frequency_range.resolution_half
+  qce2025-r26.gen5.frequency_range.resolution_x2
+  qce2025-r26.gen5.phase_resolution.delete
+  qce2025-r26.gen5.phase_resolution.resolution_half
+
+class: harness_gap
+modes: mutated
+reason: Only the fired rules change. Triage compares verdict against vendor outcome and not which rule a repair or refusal is blamed on, so a mutant that adds or drops a rule inside an already-repaired or already-refused program is invisible.
+evidence: explain.py show: every changed row keeps its disposition class (agree->agree, or a non-failure move such as vendor_lenient->conservative) and differs only in qconform_rules.
+ids:
+  qce2025-r26.gen0.amplitude_range.max_minus_step
+  qce2025-r26.gen0.amplitude_range.max_plus_step
+  qce2025-r26.gen0.amplitude_range.min_minus_step
+  qce2025-r26.gen0.amplitude_range.min_plus_step
+  qce2025-r26.gen4.amplitude_range.severity_flip
+  qce2025-r26.gen5.amplitude_range.max_minus_step
+  qce2025-r26.gen5.amplitude_range.max_plus_step
+  qce2025-r26.gen5.amplitude_range.min_minus_step
+  qce2025-r26.gen5.amplitude_range.min_plus_step
+  testbench.gen0.amplitude_range.max_minus_step
+  testbench.gen0.amplitude_range.max_plus_step
+  testbench.gen0.amplitude_range.min_minus_step
+  testbench.gen0.amplitude_range.min_plus_step
+
+class: harness_gap
+modes: mutated
+reason: Half the frequency resolution puts mutated-corpus rungs between values the vendor interface can carry as a double, so the lowering records a lost cell and triage attributes those rows to the harness, which hides the mutant.
+evidence: explain.py show: rows move agree -> harness with 'a converted value landed in another grid cell'.
+ids:
+  qce2025-r26.gen0.frequency_range.resolution_half
+  qce2025-r26.gen5.frequency_range.resolution_half
+  testbench.gen0.frequency_range.resolution_half
+
+class: checker_refused_programs
+modes: original
+reason: post_mixer flipped on a v6 generator makes the checker demand a mixer_frequency the program cannot declare, and it refuses 111 programs as malformed. Caught by the checker, not survived.
+evidence: explain.py groups: new tool errors 111.
+ids:
+  qce2025-r26.gen0.frequency_range.post_mixer_flip
+
+class: checker_refused_programs
+modes: mutated
+reason: post_mixer flipped on a v6 generator makes the checker demand a mixer_frequency the program cannot declare, and it refuses 111 programs as malformed. Caught by the checker, not survived.
+evidence: explain.py groups: new tool errors 111.
+ids:
+  qce2025-r26.gen0.frequency_range.post_mixer_flip

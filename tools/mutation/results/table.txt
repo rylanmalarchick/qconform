@@ -1,0 +1,13 @@
+mode      role                detected refused_by_c checker_refu   equivalent masked_by_do  harness_gap   corpus_gap   raw_rate  rate_excl
+mutated   all                       97           89            1           16           13           27           99      0.284      0.411
+mutated   descriptor                 0            0            0            8            0            0           14      0.000      0.000
+mutated   duplicate                 15           33            0            2            0            0           59      0.138      0.203
+mutated   known                      3            0            0            0            0            1            0      0.750      0.750
+mutated   representative            79           56            1            6           13           26           26      0.382      0.549
+original  all                       88           89            1           19           22           29           94      0.257      0.378
+original  descriptor                 0            0            0            8            0            0           14      0.000      0.000
+original  duplicate                  0           33            0            2            0            0           74      0.000      0.000
+original  known                      3            0            0            0            0            1            0      0.750      0.750
+original  representative            85           56            1            9           22           28            6      0.411      0.603
+
+raw_rate = detected / all mutants. rate_excl = detected / (all - equivalent - refused_by_checker - checker_refused_programs).
