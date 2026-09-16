@@ -18,6 +18,11 @@ Dispositions:
                   cannot read back. Not evidence either way
   harness         the conversion to a double moved a value into another grid
                   cell, so the harness caused the difference
+  conservative    qconform refused and the vendor compiled, and every fatal
+                  rejection points at a set_frequency or shift_phase that no
+                  later output uses. The checker checks a frame when it is
+                  set and the vendor checks what a pulse uses, so this is the
+                  checker being stricter, proven from the row
   open            a real disagreement with no explanation yet. These are a
                   to-do list, not a result
 
@@ -97,6 +102,10 @@ def disposition(row, behaviors):
     if verdict == "fail" and outcome in ("accept", "accept_round"):
         if documented:
             return "vendor_lenient", f"documented vendor_behavior: {documented[0]}"
+        fatal = set(row["qconform_fatal_elements"])
+        if fatal and fatal <= set(row["unused_frame_updates"]):
+            return "conservative", (f"fatal rejections only on frame updates no output "
+                                    f"uses: elements {sorted(fatal)}")
         return "open", f"qconform refused ({sorted(rules)}), vendor compiled"
 
     if verdict == "pass" and outcome == "accept_round":
@@ -165,7 +174,7 @@ def main():
     print(f"programs: {len(rows)}")
     print()
     print("disposition")
-    order = ("agree", "vendor_lenient", "unobserved", "missed_repair",
+    order = ("agree", "vendor_lenient", "conservative", "unobserved", "missed_repair",
              "harness", "open", "unsound")
     unknown = set(by_disp) - set(order)
     if unknown:
@@ -181,7 +190,7 @@ def main():
     for r in unsound:
         print(f"  {r['case']}: {r['_why']}")
 
-    for disp in ("missed_repair", "open"):
+    for disp in ("conservative", "missed_repair", "open"):
         items = by_disp.get(disp, [])
         if items:
             print()

@@ -275,6 +275,33 @@ def fired_rules(report):
     return sorted({r["rule"] for r in report.get("rejections", [])})
 
 
+def fatal_elements(report):
+    """Element ids a fatal rejection points at."""
+    if not report:
+        return []
+    return sorted({r["element"] for r in report.get("rejections", [])
+                   if r["severity"] == "fatal"})
+
+
+def unused_frame_updates(program):
+    """set_frequency and shift_phase elements that no later output uses.
+
+    Elements are ordered per frame in file order, so an update reaches the
+    vendor only through a later play or capture on the same frame. The
+    checker checks the frame when it is set, and the vendor checks what a
+    pulse uses, so a refusal on one of these is the checker being stricter,
+    not wrong. Triage needs the ids to prove that per row."""
+    elements = program["elements"]
+    out = []
+    for i, e in enumerate(elements):
+        if e["kind"] not in ("set_frequency", "shift_phase"):
+            continue
+        if not any(later["kind"] in ("play", "capture") and later.get("frame") == e["frame"]
+                   for later in elements[i + 1:]):
+            out.append(e["id"])
+    return sorted(out)
+
+
 def checked_classes(report):
     if not report:
         return []
@@ -309,6 +336,8 @@ def main():
             "qconform_verdict": verdict,
             "qconform_rules": fired_rules(report),
             "qconform_checked": checked_classes(report),
+            "qconform_fatal_elements": fatal_elements(report),
+            "unused_frame_updates": unused_frame_updates(program),
         }
         if verdict == "tool_error":
             row["qconform_stderr"] = stderr.strip()

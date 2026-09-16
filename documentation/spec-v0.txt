@@ -37,7 +37,11 @@ renamed, renumbered or reused, and a retired id keeps its slot.
   R2   pulse_length_grid       a play duration not a whole number of channel
                                cycles
   R3   readout_length_range    a capture outside the declared min or max
-  R4   frequency_range         a frame frequency outside the declared band.
+  R4   frequency_range         a frame frequency outside the declared band,
+                               checked when the frequency is set, whether or
+                               not a later output uses it. The toolchain
+                               checks only what a pulse uses, so this is
+                               stricter.
                                Where the constraint is post_mixer, the band is
                                compared against the frequency minus the
                                channel mixer, because that is what the device
