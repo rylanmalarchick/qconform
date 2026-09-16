@@ -44,6 +44,12 @@ What each part is for
                 descriptor or an exporter.
                 Needs: pip install -r format/requirements.txt
 
+  mutation/     Fault injection: plants one defect at a time in a descriptor
+                or the checker, reruns the differential in two corpus modes,
+                and records what the harness catches. See
+                mutation/README.txt.
+                Needs: the survey environment and a C compiler.
+
   versions/     Reruns the survey and the differential under other qick
                 releases against the pinned descriptors, and compares the
                 result with the tracked evidence. See versions/README.txt.
