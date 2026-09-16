@@ -332,6 +332,13 @@ def cases_schedule_grid(d, gen):
     return out
 
 
+def mixer_offset(gen, constraint):
+    """What to add to a band value to get the frequency a program requests."""
+    if constraint is not None and constraint.get("post_mixer"):
+        return gen.get("_mixer_hz") or Fraction(0)
+    return Fraction(0)
+
+
 def cases_frequency(d, gen):
     """frequency_range and frequency_resolution."""
     c = d.constraint(gen["name"], "frequency_range")
@@ -341,6 +348,12 @@ def cases_frequency(d, gen):
     dgrid = gen["duration_grid"]
     out = []
     res = Fraction(c["resolution"]["num"], c["resolution"]["den"]) if "resolution" in c else None
+    # A post_mixer band is what the device sees, which is the requested
+    # frequency minus the mixer. The ladder walks the band, so the program
+    # requests band + mixer. Without this every rung sat one mixer away from
+    # the edge it was named for, and fault injection found both edges of the
+    # int4 band unprobed.
+    offset = mixer_offset(gen, c)
 
     for key, which in (("min", "min"), ("max", "max")):
         if key not in c:
@@ -350,7 +363,7 @@ def cases_frequency(d, gen):
         for value, rung in ladder(limit, step):
             b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", Fraction(1, 2))
-            b.add(kind="set_frequency", frame="f0", frequency=rat(value))
+            b.add(kind="set_frequency", frame="f0", frequency=rat(value + offset))
             b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
             out.append((f"frequency_range_{which}_{rung}", b.program()))
 
@@ -596,7 +609,8 @@ def random_cases(d, gen, rng, count):
                          if "resolution" in freq else Fraction(1))
                 b.add(kind="set_frequency", frame="f0",
                       frequency=rat(near_limit(f_max, f_res)
-                                    * Fraction(rng.choice((1, -1)))))
+                                    * Fraction(rng.choice((1, -1)))
+                                    + mixer_offset(gen, freq)))
             else:
                 b.add(kind="shift_phase", frame="f0",
                       phase=rat(Fraction(rng.randint(0, 4095), 4096)))
