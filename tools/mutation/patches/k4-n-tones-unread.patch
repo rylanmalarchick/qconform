@@ -1,0 +1,13 @@
+diff --git a/src/check.c b/src/check.c
+index 3cb1b60..afa8010 100644
+--- a/src/check.c
++++ b/src/check.c
+@@ -404,7 +404,7 @@ static bool check_tones(Check *k, const CapChannel *dc, const IrChannel *pc,
+ 
+     if (pc->n_tones == 0) return true;
+ 
+-    if (cnt != NULL && dc->capabilities.has_n_tones) {
++    if (0) {
+         cover(k, QC_COV_mux_tone_count, QC_CSTAT_checked);
+         if ((int64_t)pc->n_tones > dc->capabilities.n_tones) {
+             Rejection r;
