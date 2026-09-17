@@ -534,7 +534,12 @@ def cases_budgets(d, gen):
         overhead = pmem["cost_model"].get("overhead", 0)
         per = pmem["cost_model"].get("per_item", 1)
         need = (pmem["limit"] - overhead) // per
-        for n, rung in ((need // 2, "half_limit"), (need + 8, "over_limit")):
+        # at_limit and one_over are what tell a limit or an overhead one word
+        # wrong from a correct one. Without them the ladder only says "far
+        # inside" and "far outside", and fault injection showed every budget
+        # mutant surviving.
+        for n, rung in ((need // 2, "half_limit"), (need, "at_limit"),
+                        (need + 1, "one_over"), (need + 8, "over_limit")):
             b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", Fraction(1, 2))
             for _ in range(max(n, 1)):
@@ -544,6 +549,7 @@ def cases_budgets(d, gen):
     wmem = budgets.get("wmem_words")
     if wmem:
         for n, rung in ((wmem["limit"] // 2, "half_limit"),
+                        (wmem["limit"], "at_limit"), (wmem["limit"] + 1, "one_over"),
                         (wmem["limit"] + 4, "over_limit")):
             b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             for i in range(max(n, 1)):
