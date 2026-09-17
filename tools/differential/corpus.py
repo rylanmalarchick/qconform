@@ -493,6 +493,24 @@ def cases_readout(d, gen, ro):
             b.add(kind="barrier", frames=[])
             b.add(kind="capture", frame="r0", duration=value)
             out.append((f"readout_length_range_{which}_{rung}", b.program()))
+
+    # A capture starting off the readout's own schedule grid. cases_schedule_grid
+    # builds these for generators only, so a readout schedule grid declared
+    # wrong changed no verdict and fault injection never saw it.
+    sgrid = ro["schedule_grid"]
+    dur = c.get("min_units") or grid
+    for offset, rung in ((0, "on_grid"), (1, "one_unit_off"), (sgrid // 2, "half_grid_off")):
+        if offset and offset % sgrid == 0:
+            continue
+        b = Builder(
+            [base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro["name"], runit)],
+            gen_frames(gen["name"], ro["name"]),
+        )
+        b.wf_const("w0", Fraction(1, 2))
+        b.add(kind="play", frame="f0", waveform="w0", duration=60 * gen["duration_grid"])
+        b.add(kind="delay", frame="r0", duration=sgrid * 4 + offset)
+        b.add(kind="capture", frame="r0", duration=dur)
+        out.append((f"readout_schedule_grid_{rung}", b.program()))
     return out
 
 
