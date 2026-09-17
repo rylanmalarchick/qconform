@@ -44,6 +44,13 @@ def rat(f):
     return {"num": f.numerator, "den": f.denominator}
 
 
+# An odd multiple of the resolution: on the declared step lattice, off a
+# lattice twice as coarse. The on_resolution rungs are even multiples, so a
+# resolution declared twice too coarse passed every one of them and fault
+# injection never saw it.
+ODD_MULTIPLE = 3
+
+
 def ladder(limit, step, span=3):
     """Values around a limit, as (value, rung) pairs.
 
@@ -223,12 +230,12 @@ def mux_cases(d, gen, rng, count):
                 out.append((f"mux_tone_frequency_{which}_{rung}",
                             prog([(value, Fraction(0), Fraction(1, 2))], [0])))
         if fres is not None:
-            for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
+            for mult, rung in ((100, "on_resolution"), (ODD_MULTIPLE, "three_steps"), (Fraction(1, 2), "half_step_off")):
                 out.append((f"mux_tone_frequency_resolution_{rung}",
                             prog([(mixer + fres * mult, Fraction(0), Fraction(1, 2))], [0])))
 
     if pres is not None:
-        for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
+        for mult, rung in ((100, "on_resolution"), (ODD_MULTIPLE, "three_steps"), (Fraction(1, 2), "half_step_off")):
             out.append((f"mux_tone_phase_resolution_{rung}",
                         prog([(mixer, pres * mult, Fraction(1, 2))], [0])))
 
@@ -242,7 +249,7 @@ def mux_cases(d, gen, rng, count):
                 out.append((f"mux_tone_amplitude_{which}_{rung}",
                             prog([(mixer, Fraction(0), value)], [0])))
         if ares is not None:
-            for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
+            for mult, rung in ((100, "on_resolution"), (ODD_MULTIPLE, "three_steps"), (Fraction(1, 2), "half_step_off")):
                 out.append((f"mux_tone_amplitude_resolution_{rung}",
                             prog([(mixer, Fraction(0), ares * mult)], [0])))
 
@@ -368,7 +375,7 @@ def cases_frequency(d, gen):
             out.append((f"frequency_range_{which}_{rung}", b.program()))
 
     if res is not None:
-        for mult, rung in ((100, "on_resolution"), (Fraction(1, 2), "half_step_off")):
+        for mult, rung in ((100, "on_resolution"), (ODD_MULTIPLE, "three_steps"), (Fraction(1, 2), "half_step_off")):
             value = res * mult
             b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", Fraction(1, 2))
@@ -387,6 +394,7 @@ def cases_phase(d, gen):
     dgrid = gen["duration_grid"]
     out = []
     for value, rung in ((res * 1000, "on_resolution"),
+                        (res * ODD_MULTIPLE, "three_steps"),
                         (res / 2, "half_step_off"),
                         (res * Fraction(3, 2), "one_and_half_steps")):
         b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
