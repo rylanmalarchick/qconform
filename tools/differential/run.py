@@ -120,6 +120,10 @@ def readback_outcome(prog, plan):
 
 # The tone table field each quantity is read back from, and the factor that
 # puts it in the units the program asked for.
+# A tone change is recorded under the same quantity name as a pulse change,
+# so triage compares one vocabulary: freq, phase, gain.
+TONE_QUANTITY = {"frequency": "freq", "phase": "phase", "amplitude": "gain"}
+
 TONE_READBACK = {"frequency": ("freq_rounded", lambda v: Fraction(v) * 1_000_000),
                  "phase": ("phase_rounded", lambda v: Fraction(v) / 360),
                  "amplitude": ("gain_rounded", Fraction)}
@@ -147,7 +151,7 @@ def tone_changes(prog, plan):
             if not same_grid_cell(requested, got, step, quantity):
                 changed.append({
                     "tone": f"gen{ch}[{ti}]",
-                    "quantity": quantity,
+                    "quantity": TONE_QUANTITY[quantity],
                     "requested": str(requested),
                     "readback": str(got),
                 })
