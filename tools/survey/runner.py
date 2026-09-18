@@ -186,18 +186,24 @@ def observe(prog, probe):
     """Post-compile readback of the probed parameter."""
     obs = {}
     param = probe['param']
-    if 'p' in prog.pulses and param in ('length', 'freq', 'phase', 'gain'):
+    # A readout probe asks about the readout config, not the generator pulse
+    # the program also plays. Reading back 'p' there reported the generator's
+    # rounding under the readout axis.
+    pulse = 'rocfg' if probe['kind'] == 'ro_config' else 'p'
+    if pulse in prog.pulses and param in ('length', 'freq', 'phase', 'gain'):
         name = {'length': 'total_length'}.get(param, param)
+        if pulse == 'rocfg':
+            name = param
         try:
-            obs['readback'] = float(prog.get_pulse_param('p', name))
+            obs['readback'] = float(prog.get_pulse_param(pulse, name))
         except (KeyError, ValueError, TypeError):
             pass
-        waves = prog.pulses['p'].waveforms
+        waves = prog.pulses[pulse].waveforms
         if waves:
             w = waves[0]
             obs['wave_raw'] = {k: int(w[k]) for k in
                                ('freq', 'phase', 'gain', 'length')
-                               if not hasattr(w[k], 'spans')}
+                               if k in w and not hasattr(w[k], 'spans')}
     if probe['kind'] == 'mux_tones':
         # calc_muxgen_regs quantizes each tone at declare time and keeps both
         # the rounded value and the register. get_pulse_param cannot see them:

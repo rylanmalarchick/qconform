@@ -201,6 +201,8 @@ def build_probes(soccfg, synthetic_variants=True):
         rocfg = soccfg['readouts'][dyn_ro]
         f_out = rocfg['f_output']
         for c, note in [(2, 'below min 3'), (3, 'min boundary'),
+                        (100.25, 'fraction 100+0.25 cycles'),
+                        (101.5, 'tie 101.5 cycles'),
                         (2**16 - 1, 'max boundary'), (2**16, 'first over max')]:
             probes.append({'axis': 'readout', 'kind': 'ro_config',
                            'ro_ch': dyn_ro, 'gen_ch': std_ch,
