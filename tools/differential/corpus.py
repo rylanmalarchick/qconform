@@ -221,11 +221,11 @@ def mux_cases(d, gen, rng, count):
                 out.append((f"mux_pulse_length_range_{which}_{rung}",
                             prog([ok_tone], [0], duration=value)))
     for offset, rung in ((0, "on_grid"), (1, "one_unit_off"),
-                         (dgrid // 2, "half_grid_off")):
+                         (dgrid // 2, "half_grid_off"), (dgrid, "odd_grid")):
         out.append((f"mux_pulse_length_grid_{rung}",
                     prog([ok_tone], [0], duration=60 * dgrid + offset)))
     for offset, rung in ((0, "on_grid"), (1, "one_unit_off"),
-                         (sgrid // 2, "half_grid_off")):
+                         (sgrid // 2, "half_grid_off"), (sgrid, "odd_grid")):
         out.append((f"mux_schedule_grid_{rung}",
                     prog([ok_tone], [0], lead=sgrid * 4 + offset)))
     out.append(("mux_negative_duration", prog([ok_tone], [0], duration=-dgrid)))
@@ -326,7 +326,8 @@ def cases_pulse_length(d, gen):
     # off the duration grid by one unit and by half a grid step
     nominal = 60 * grid
     for offset, rung in ((1, "one_unit_off"), (grid // 2, "half_grid_off"),
-                         (grid - 1, "one_below_next"), (0, "on_grid")):
+                         (grid - 1, "one_below_next"), (0, "on_grid"),
+                         (grid, "odd_grid")):
         b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", Fraction(1, 2))
         b.add(kind="play", frame="f0", waveform="w0", duration=nominal + offset)
@@ -341,7 +342,7 @@ def cases_schedule_grid(d, gen):
     unit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
     out = []
     for offset, rung in ((0, "on_grid"), (1, "one_unit_off"),
-                         (grid // 2, "half_grid_off")):
+                         (grid // 2, "half_grid_off"), (grid, "odd_grid")):
         b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", Fraction(1, 2))
         b.add(kind="delay", frame="f0", duration=grid * 4 + offset)
@@ -433,7 +434,8 @@ def cases_amplitude(d, gen):
             b.wf_const("w0", rat(value)["num"] and value or Fraction(0))
             b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
             out.append((f"amplitude_range_{which}_{rung}", b.program()))
-    for value, rung in ((res * 100, "on_resolution"), (res / 2, "half_step_off")):
+    for value, rung in ((res * 100, "on_resolution"), (res * ODD_MULTIPLE, "three_steps"),
+                        (res / 2, "half_step_off")):
         b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_const("w0", value)
         b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
@@ -510,9 +512,8 @@ def cases_readout(d, gen, ro):
     # wrong changed no verdict and fault injection never saw it.
     sgrid = ro["schedule_grid"]
     dur = c.get("min_units") or grid
-    for offset, rung in ((0, "on_grid"), (1, "one_unit_off"), (sgrid // 2, "half_grid_off")):
-        if offset and offset % sgrid == 0:
-            continue
+    for offset, rung in ((0, "on_grid"), (1, "one_unit_off"), (sgrid // 2, "half_grid_off"),
+                         (sgrid, "odd_grid")):
         b = Builder(
             [base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro["name"], runit)],
             gen_frames(gen["name"], ro["name"]),
@@ -522,6 +523,21 @@ def cases_readout(d, gen, ro):
         b.add(kind="delay", frame="r0", duration=sgrid * 4 + offset)
         b.add(kind="capture", frame="r0", duration=dur)
         out.append((f"readout_schedule_grid_{rung}", b.program()))
+
+    # A capture duration off the readout's own duration grid. The ladders
+    # above step in whole grids, so a readout pulse_length_grid declared
+    # wrong, or deleted, changed no verdict.
+    for offset, rung in ((0, "on_grid"), (1, "one_unit_off"), (grid // 2, "half_grid_off"),
+                         (grid, "odd_grid")):
+        b = Builder(
+            [base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro["name"], runit)],
+            gen_frames(gen["name"], ro["name"]),
+        )
+        b.wf_const("w0", Fraction(1, 2))
+        b.add(kind="play", frame="f0", waveform="w0", duration=60 * gen["duration_grid"])
+        b.add(kind="barrier", frames=[])
+        b.add(kind="capture", frame="r0", duration=60 * grid + offset)
+        out.append((f"readout_pulse_length_grid_{rung}", b.program()))
     return out
 
 
