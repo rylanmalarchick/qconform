@@ -77,8 +77,9 @@ sanitize:
 # it depends on a Python environment the checker itself does not need.
 differential: $(BIN)
 	@$(SURVEY_PY) tools/differential/check_lowering.py
-	@for c in testbench qce2025-r26 rb-r27; do \
+	@set -e; for c in testbench qce2025-r26 rb-r27; do \
 		echo "=== $$c ==="; \
+		rm -rf $(DIFF_OUT)-$$c; \
 		$(SURVEY_PY) tools/differential/corpus.py \
 			tests/golden/descriptors/$$c.json $(DIFF_OUT)-$$c --seed 1 \
 			--config tools/survey/configs/zcu216-$$c.json; \
