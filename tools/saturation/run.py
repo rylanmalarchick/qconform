@@ -10,7 +10,8 @@ seed order and writes one line per seed to <out>/<config>.tsv:
 
   seed                   the last seed included
   programs_unique        distinct programs so far
-  unsound, missed_repair, open, conservative, vendor_lenient, harness
+  unsound, missed_repair, over_predicted, open, conservative, vendor_lenient,
+  harness
                          dispositions over the distinct programs
   rule_sets              distinct sets of fired rules
   outcome_pairs          distinct (verdict, vendor outcome) pairs
@@ -47,7 +48,8 @@ sys.path.insert(0, str(ROOT / "tools" / "differential"))
 from triage import disposition, vendor_behaviors  # noqa: E402
 
 CONFIGS = ("testbench", "qce2025-r26", "rb-r27")
-COLUMNS = ("seed", "programs_unique", "unsound", "missed_repair", "open", "conservative",
+COLUMNS = ("seed", "programs_unique", "unsound", "missed_repair", "over_predicted", "open",
+           "conservative",
            "vendor_lenient", "harness", "rule_sets", "outcome_pairs", "classes_both_sides",
            "barrier_programs", "barrier_roundings", "barrier_not_agree")
 
@@ -119,7 +121,8 @@ def accumulate(out, config, seeds):
                 if d != "agree":
                     barrier_bad += 1
         both = sum(1 for c in set(fires) | set(holds) if fires[c] and holds[c])
-        lines.append((seed, len(by_hash), disp["unsound"], disp["missed_repair"], disp["open"],
+        lines.append((seed, len(by_hash), disp["unsound"], disp["missed_repair"], disp["over_predicted"],
+                      disp["open"],
                       disp["conservative"], disp["vendor_lenient"], disp["harness"],
                       len(rule_sets), len(pairs), both, barrier, rounded, barrier_bad))
     return lines, by_hash
@@ -155,7 +158,7 @@ def main():
         failing = sorted(e["case"] for e in by_hash.values()
                          if disposition(e["row"], vendor_behaviors(
                              json.loads(paths(config)[0].read_text())))[0]
-                         in ("unsound", "missed_repair", "open"))
+                         in ("unsound", "missed_repair", "over_predicted", "open"))
         with open(out / f"{config}-failing.txt", "w") as f:
             f.write("".join(f"{c}\n" for c in failing))
         print(f"{config}: {lines[-1]}")

@@ -14,7 +14,8 @@ Per (mutant, mode) the status is one of:
   refused_by_checker  every row is a checker tool error: the checker's own
                       descriptor validation caught the mutant
   corpus_error        corpus.py failed on the mutant (mutated mode)
-  detected            at least one unsound, missed_repair or open row
+  detected            at least one unsound, missed_repair, over_predicted or
+                      open row
   survived            none of the above
 harness_shift is set when the harness disposition count differs from the
 unmutated run of the same config and mode. Those rows need reading.
@@ -51,7 +52,7 @@ from triage import disposition, vendor_behaviors  # noqa: E402
 
 CONFIGS = ("testbench", "qce2025-r26")
 MODES = ("original", "mutated")
-FAILURES = ("unsound", "missed_repair", "open")
+FAILURES = ("unsound", "missed_repair", "over_predicted", "open")
 PATCHES = {
     "qce2025-r26.known.K1_post_mixer_ignored": "k1-post-mixer-ignored.patch",
     "qce2025-r26.known.K4_n_tones_unread": "k4-n-tones-unread.patch",

@@ -18,6 +18,13 @@ Dispositions:
                   cannot read back. Not evidence either way
   harness         the conversion to a double moved a value into another grid
                   cell, so the harness caused the difference
+  over_predicted  both say the vendor repairs this program, but the checker
+                  predicts a repair to a quantity the vendor left unchanged.
+                  Not unsound: the program runs. It is a claim the evidence
+                  contradicts, and it is how a resolution declared too coarse
+                  shows up
+  missed_repair   also: the vendor changed a quantity the checker predicted
+                  no repair to, even when it predicted others
   conservative    qconform refused and the vendor compiled, and every fatal
                   rejection points at a set_frequency or shift_phase that no
                   later output uses. The checker checks a frame when it is
@@ -61,6 +68,45 @@ RULE_TO_BEHAVIOR = {
     "envelope_memory": {"envelope_memory_overflow_unchecked"},
     "mux_tone_count": {"mux_tone_count_unchecked"},
 }
+
+
+# The readback quantity each repair-carrying rule predicts a change to. The
+# names are the ones run.py records: pulse readback and tone readback share
+# them.
+RULE_TO_QUANTITY = {
+    "frequency_range": "freq",
+    "frequency_resolution": "freq",
+    "phase_resolution": "phase",
+    "amplitude_range": "gain",
+    "amplitude_resolution": "gain",
+    "pulse_length_grid": "total_length",
+    "schedule_grid": "start_time",
+}
+
+
+def attribution(row, rules, declared):
+    """Compare the repairs the checker predicted with the quantities the
+    vendor changed, one quantity at a time.
+
+    A quantity is not compared when a rule predicting it has a vendor
+    behavior documented on the row's channels. Those behaviors are exactly
+    the cases where the readback reports the request and not what the
+    register holds (a gain past full scale, an aliased DDS frequency), so the
+    readback cannot say whether the repair happened."""
+    changed = {c["quantity"] for c in row.get("vendor_changed", [])}
+    if row.get("barrier_roundings"):
+        changed.add("start_time")
+    predicted = {RULE_TO_QUANTITY[r] for r in rules if r in RULE_TO_QUANTITY}
+    unreadable = {RULE_TO_QUANTITY[r] for r in rules
+                  if r in RULE_TO_QUANTITY and RULE_TO_BEHAVIOR.get(r, set()) & declared}
+
+    silent = sorted(changed - predicted)
+    if silent:
+        return "missed_repair", f"vendor changed {silent}, checker predicted no repair to it"
+    over = sorted(predicted - changed - unreadable)
+    if over:
+        return "over_predicted", f"checker predicted a repair to {over}, vendor left it unchanged"
+    return "agree", "both say the vendor repairs this, quantity by quantity"
 
 
 def vendor_behaviors(descriptor):
@@ -115,7 +161,7 @@ def disposition(row, behaviors):
         return "agree", "both clean"
 
     if verdict == "pass_with_repairs" and outcome == "accept_round":
-        return "agree", "both say the vendor repairs this"
+        return attribution(row, rules, declared)
 
     if verdict == "pass_with_repairs" and outcome == "accept":
         if rules == {"schedule_grid"} and row.get("barrier_roundings"):
@@ -174,8 +220,8 @@ def main():
     print(f"programs: {len(rows)}")
     print()
     print("disposition")
-    order = ("agree", "vendor_lenient", "conservative", "unobserved", "missed_repair",
-             "harness", "open", "unsound")
+    order = ("agree", "vendor_lenient", "conservative", "unobserved", "over_predicted",
+             "missed_repair", "harness", "open", "unsound")
     unknown = set(by_disp) - set(order)
     if unknown:
         raise SystemExit(f"dispositions with no place in the summary: {sorted(unknown)}")
@@ -190,7 +236,7 @@ def main():
     for r in unsound:
         print(f"  {r['case']}: {r['_why']}")
 
-    for disp in ("conservative", "missed_repair", "open"):
+    for disp in ("conservative", "over_predicted", "missed_repair", "open"):
         items = by_disp.get(disp, [])
         if items:
             print()
