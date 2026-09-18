@@ -100,7 +100,11 @@ def readback_outcome(prog, plan):
     exactly what the vendor does.
     """
     changed = []
-    for ch, name, kwargs in plan.pulses:
+    # Readout configs are pulses to asm_v2 too, and get_pulse_param reads
+    # their length back the same way. Without them a capture's duration
+    # repair was invisible, and the checker's correct prediction read as open.
+    names = [name for _, name, _ in plan.pulses] + [name for _, name, _, _ in plan.readoutconfigs]
+    for name in names:
         for quantity, (requested, step) in plan.pulse_grid.get(name, {}).items():
             try:
                 raw = float(prog.get_pulse_param(name, quantity))

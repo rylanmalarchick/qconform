@@ -346,6 +346,11 @@ def build_plan(program, descriptor, soccfg):
             cfg_name = f"ro{eid}"
             plan.readoutconfigs.append((b["index"], cfg_name,
                                         float(st["freq"] / 1_000_000), dur_us))
+            # The toolchain quantizes a readout length silently, as it does a
+            # pulse length, so the capture duration is read back too.
+            plan.pulse_grid[cfg_name] = {
+                "total_length": (dur_s, grid_seconds(fname, "duration_grid")),
+            }
             plan.body.append(("trigger", b["index"], cfg_name, start_us))
             plan.schedule.append((b["index"], "ro", start_s,
                                   grid_seconds(fname, "schedule_grid")))
