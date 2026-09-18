@@ -1,109 +1,117 @@
-programs: 119
+programs: 127
 
 disposition
   agree            32
   harness          5
-  unsound          82
+  unsound          90
 
-UNSOUND PASSES: 82   <- the gate
-  gen0__random_023: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_max_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_grid_one_unit_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__schedule_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_037: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_020: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_015: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_024: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__readout_length_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_038: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_035: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+UNSOUND PASSES: 90   <- the gate
   gen0__amplitude_range_min_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__envelope_amplitude_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__schedule_grid_half_grid_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__phase_resolution_one_and_half_steps: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_max_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_026: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_min_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__readout_length_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_024: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
   gen0__amplitude_range_max_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  pmem_words_half_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__phase_resolution_on_resolution: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_max_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__envelope_amplitude_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__phase_resolution_three_steps: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  wmem_words_half_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_max_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_min_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_033: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_grid_odd_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
   gen0__readout_schedule_grid_one_unit_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
   gen0__frequency_range_min_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_006: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_max_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  pmem_words_at_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_resolution_half_step_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_003: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
   gen0__pulse_length_range_max_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_min_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__envelope_sample_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_030: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  wmem_words_half_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_000: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_resolution_on_resolution: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_033: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_012: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__readout_schedule_grid_half_grid_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_resolution_three_steps: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_009: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_027: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__envelope_memory_at_memory: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_resolution_on_resolution: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__readout_length_range_max_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_029: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_range_min_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__readout_length_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_017: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_resolution_half_step_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__amplitude_range_min_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  wmem_words_at_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_019: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__envelope_amplitude_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_004: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__pulse_length_grid_one_below_next: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__frequency_range_max_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__readout_length_range_min_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_025: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_002: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__random_005: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
   gen0__schedule_grid_one_unit_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__phase_resolution_half_step_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
-  gen0__readout_length_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_min_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_pulse_length_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_length_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_019: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_038: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_026: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_025: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_resolution_on_resolution: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__phase_resolution_three_steps: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_grid_one_unit_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_000: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_015: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__phase_resolution_one_and_half_steps: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
   gen0__readout_schedule_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__envelope_amplitude_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_resolution_three_steps: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_005: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_resolution_three_steps: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_length_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_resolution_half_step_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__schedule_grid_odd_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
   gen0__frequency_range_min_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_027: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_004: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_012: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_017: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  pmem_words_at_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_023: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_003: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_max_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  pmem_words_half_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__envelope_amplitude_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_030: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_min_just_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_020: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_length_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_max_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_035: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_009: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_pulse_length_grid_odd_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_max_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_006: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_029: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__envelope_amplitude_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_max_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_schedule_grid_half_grid_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_schedule_grid_odd_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_length_range_min_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_range_min_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  wmem_words_at_limit: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_range_min_far_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_resolution_on_resolution: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__phase_resolution_half_step_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_pulse_length_grid_one_unit_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_037: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_pulse_length_grid_half_grid_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__envelope_sample_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_length_range_max_far_below: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_range_min_just_above: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__pulse_length_grid_one_below_next: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__frequency_range_max_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__amplitude_resolution_half_step_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__envelope_memory_at_memory: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__random_002: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__schedule_grid_on_grid: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__phase_resolution_on_resolution: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__readout_length_range_max_at: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
+  gen0__schedule_grid_half_grid_off: vendor refused: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27
 
 coverage, from the checker's own manifests
   class                     fires  holds  covered
-  amplitude_range              26     83  yes
-  amplitude_resolution          5    104  yes
+  amplitude_range              26     91  yes
+  amplitude_resolution          5    112  yes
   envelope_amplitude            2      8  yes
   envelope_memory               1      9  yes
   envelope_sample_grid          2      8  yes
-  frequency_range               6    113  yes
-  frequency_resolution          1    118  yes
-  negative_duration             1    118  yes
-  phase_resolution              2    117  yes
-  pmem_words                    2    116  yes
-  pulse_length_grid            15    103  yes
-  pulse_length_range           19     99  yes
-  readout_length_range          4      9  yes
-  schedule_grid                46     73  yes
-  wmem_words                    2    117  yes
+  frequency_range               6    121  yes
+  frequency_resolution          1    126  yes
+  negative_duration             1    126  yes
+  phase_resolution              2    125  yes
+  pmem_words                    2    124  yes
+  pulse_length_grid            17    109  yes
+  pulse_length_range           19    107  yes
+  readout_length_range          4     14  yes
+  schedule_grid                50     77  yes
+  wmem_words                    2    125  yes
   covered on both sides: 15 of 15 exercised classes

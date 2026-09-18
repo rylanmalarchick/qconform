@@ -1,6 +1,6 @@
-rows: 119
+rows: 127
 detail toolchain: 32
-outcome toolchain: 87
+outcome toolchain: 95
 
 detail toolchain
   gen0__envelope_amplitude_far_above: fail, vendor reject -> reject
@@ -49,6 +49,7 @@ outcome toolchain
   gen0__amplitude_range_min_just_below: pass_with_repairs, vendor accept -> reject
   gen0__amplitude_resolution_half_step_off: pass_with_repairs, vendor accept_round -> reject
   gen0__amplitude_resolution_on_resolution: pass, vendor accept -> reject
+  gen0__amplitude_resolution_three_steps: pass, vendor accept -> reject
   gen0__envelope_amplitude_at: pass, vendor accept -> reject
   gen0__envelope_amplitude_far_below: pass, vendor accept -> reject
   gen0__envelope_amplitude_just_below: pass, vendor accept -> reject
@@ -73,6 +74,7 @@ outcome toolchain
   gen0__phase_resolution_one_and_half_steps: pass_with_repairs, vendor accept_round -> reject
   gen0__phase_resolution_three_steps: pass, vendor accept -> reject
   gen0__pulse_length_grid_half_grid_off: pass_with_repairs, vendor accept_round -> reject
+  gen0__pulse_length_grid_odd_grid: pass, vendor accept -> reject
   gen0__pulse_length_grid_on_grid: pass, vendor accept -> reject
   gen0__pulse_length_grid_one_below_next: pass_with_repairs, vendor accept_round -> reject
   gen0__pulse_length_grid_one_unit_off: pass_with_repairs, vendor accept_round -> reject
@@ -114,10 +116,16 @@ outcome toolchain
   gen0__readout_length_range_min_at: pass_with_repairs, vendor accept -> reject
   gen0__readout_length_range_min_far_above: pass_with_repairs, vendor accept -> reject
   gen0__readout_length_range_min_just_above: pass_with_repairs, vendor accept -> reject
+  gen0__readout_pulse_length_grid_half_grid_off: pass_with_repairs, vendor accept_round -> reject
+  gen0__readout_pulse_length_grid_odd_grid: pass_with_repairs, vendor accept -> reject
+  gen0__readout_pulse_length_grid_on_grid: pass_with_repairs, vendor accept -> reject
+  gen0__readout_pulse_length_grid_one_unit_off: pass_with_repairs, vendor accept_round -> reject
   gen0__readout_schedule_grid_half_grid_off: pass_with_repairs, vendor accept_round -> reject
+  gen0__readout_schedule_grid_odd_grid: pass, vendor accept -> reject
   gen0__readout_schedule_grid_on_grid: pass, vendor accept -> reject
   gen0__readout_schedule_grid_one_unit_off: pass_with_repairs, vendor accept_round -> reject
   gen0__schedule_grid_half_grid_off: pass_with_repairs, vendor accept_round -> reject
+  gen0__schedule_grid_odd_grid: pass, vendor accept -> reject
   gen0__schedule_grid_on_grid: pass, vendor accept -> reject
   gen0__schedule_grid_one_unit_off: pass_with_repairs, vendor accept_round -> reject
   pmem_words_at_limit: pass_with_repairs, vendor accept_round -> reject
@@ -126,4 +134,4 @@ outcome toolchain
   wmem_words_half_limit: pass_with_repairs, vendor accept_round -> reject
 
 new vendor messages, by count
-   119  RuntimeError: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23,
+   127  RuntimeError: this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23,

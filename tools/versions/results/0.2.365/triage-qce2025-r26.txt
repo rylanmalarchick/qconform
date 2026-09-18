@@ -1,37 +1,37 @@
-programs: 631
+programs: 673
 
 disposition
-  agree            550
+  agree            592
   vendor_lenient   61
   conservative     2
   harness          16
   unsound          2
 
 UNSOUND PASSES: 2   <- the gate
-  pmem_words_half_limit: vendor refused: integer2bin: number 2051 is bigger than 2047
   pmem_words_at_limit: vendor refused: integer2bin: number 4086 is bigger than 2047
+  pmem_words_half_limit: vendor refused: integer2bin: number 2051 is bigger than 2047
 
 conservative (2), each needs a reason:
-  gen5__random_021: fatal rejections only on frame updates no output uses: elements [1]
   gen6__random_012: fatal rejections only on frame updates no output uses: elements [2]
+  gen5__random_021: fatal rejections only on frame updates no output uses: elements [1]
 
 coverage, from the checker's own manifests
   class                     fires  holds  covered
-  amplitude_range             138    443  yes
-  amplitude_resolution        208    373  yes
+  amplitude_range             138    485  yes
+  amplitude_resolution        222    401  yes
   envelope_amplitude           10     40  yes
   envelope_memory               5     45  yes
   envelope_sample_grid          6     44  yes
-  frequency_range              67    564  yes
-  frequency_resolution          6    625  yes
-  mux_tone_count                1     66  yes
-  mux_tone_mask                 2     65  yes
-  negative_duration             6    625  yes
-  phase_resolution             11    620  yes
-  pmem_words                    2    628  yes
-  pulse_length_grid            49    575  yes
-  pulse_length_range          102    523  yes
-  readout_length_range         20     45  yes
-  schedule_grid               128    503  yes
-  wmem_words                    2    629  yes
+  frequency_range              67    606  yes
+  frequency_resolution          6    667  yes
+  mux_tone_count                1     68  yes
+  mux_tone_mask                 2     67  yes
+  negative_duration             6    667  yes
+  phase_resolution             11    662  yes
+  pmem_words                    2    670  yes
+  pulse_length_grid            59    607  yes
+  pulse_length_range          102    565  yes
+  readout_length_range         20     70  yes
+  schedule_grid               140    533  yes
+  wmem_words                    2    671  yes
   covered on both sides: 17 of 17 exercised classes
