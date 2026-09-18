@@ -1,7 +1,7 @@
-programs: 110
+programs: 119
 
 disposition
-  agree            90
+  agree            99
   vendor_lenient   15
   harness          5
 
@@ -9,19 +9,19 @@ UNSOUND PASSES: 0   <- the gate
 
 coverage, from the checker's own manifests
   class                     fires  holds  covered
-  amplitude_range              26     74  yes
-  amplitude_resolution          3     97  yes
+  amplitude_range              26     83  yes
+  amplitude_resolution          5    104  yes
   envelope_amplitude            2      8  yes
   envelope_memory               1      9  yes
   envelope_sample_grid          2      8  yes
-  frequency_range               6    104  yes
-  frequency_resolution          1    109  yes
-  negative_duration             1    109  yes
-  phase_resolution              2    108  yes
-  pmem_words                    1    109  yes
-  pulse_length_grid            15     94  yes
-  pulse_length_range           19     90  yes
-  readout_length_range          4      6  yes
-  schedule_grid                40     70  yes
-  wmem_words                    1    109  yes
+  frequency_range               6    113  yes
+  frequency_resolution          1    118  yes
+  negative_duration             1    118  yes
+  phase_resolution              2    117  yes
+  pmem_words                    2    116  yes
+  pulse_length_grid            15    103  yes
+  pulse_length_range           19     99  yes
+  readout_length_range          4      9  yes
+  schedule_grid                46     73  yes
+  wmem_words                    2    117  yes
   covered on both sides: 15 of 15 exercised classes

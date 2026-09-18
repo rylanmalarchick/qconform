@@ -1,5 +1,5 @@
-rows: baseline 599, other 599
-outcome: 141
+rows: baseline 605, other 605
+outcome: 145
 detail: 69
 added: 0
 removed: 0
@@ -27,7 +27,7 @@ by config, axis and kind
   zcu216-rb-r27          phase        outcome  9
   zcu216-rb-r27          phrst        outcome  1
   zcu216-rb-r27          readout      detail   2
-  zcu216-rb-r27          readout      outcome  2
+  zcu216-rb-r27          readout      outcome  4
   zcu216-rb-r27          timing       detail   2
   zcu216-rb-r27          timing       outcome  2
   zcu216-testbench       budget_pmem  detail   2
@@ -48,7 +48,7 @@ by config, axis and kind
   zcu216-testbench       phase        outcome  9
   zcu216-testbench       phrst        outcome  1
   zcu216-testbench       readout      detail   2
-  zcu216-testbench       readout      outcome  2
+  zcu216-testbench       readout      outcome  4
   zcu216-testbench       timing       detail   2
   zcu216-testbench       timing       outcome  2
 
@@ -769,29 +769,49 @@ outcome
     error_type: null -> "RuntimeError"
     observed: {} -> null
     outcome: "accept" -> "reject"
-  zcu216-rb-r27 readout gen0 ro_config length=213.330078125 (max boundary)
-    delta: -213.22991786858975 -> null
+  zcu216-rb-r27 readout gen0 ro_config length=0.3263346354166667 (fraction 100+0.25 cycles)
+    delta: -0.0008138020833333148 -> null
     error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
     error_type: null -> "RuntimeError"
-    observed: {"readback": 0.10016025641025642, "wave_raw": {"freq": 44810940, "gain": 16383, "length": 60, "phase": 0}} -> null
+    observed: {"readback": 0.32552083333333337, "wave_raw": {"freq": -174762667, "gain": 0, "length": 100, "phase": 0}} -> null
     outcome: "accept_round" -> "reject"
-  zcu216-rb-r27 readout gen0 ro_config length=0.009765625 (min boundary)
-    delta: 0.09039463141025642 -> null
+  zcu216-rb-r27 readout gen0 ro_config length=213.330078125 (max boundary)
     error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
     error_type: null -> "RuntimeError"
-    observed: {"readback": 0.10016025641025642, "wave_raw": {"freq": 44810940, "gain": 16383, "length": 60, "phase": 0}} -> null
+    observed: {"readback": 213.330078125, "wave_raw": {"freq": -174762667, "gain": 0, "length": 65535, "phase": 0}} -> null
+    outcome: "accept" -> "reject"
+  zcu216-rb-r27 readout gen0 ro_config length=0.009765625 (min boundary)
+    error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
+    error_type: null -> "RuntimeError"
+    observed: {"readback": 0.009765625, "wave_raw": {"freq": -174762667, "gain": 0, "length": 3, "phase": 0}} -> null
+    outcome: "accept" -> "reject"
+  zcu216-rb-r27 readout gen0 ro_config length=0.33040364583333337 (tie 101.5 cycles)
+    delta: 0.0016276041666666297 -> null
+    error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
+    error_type: null -> "RuntimeError"
+    observed: {"readback": 0.33203125, "wave_raw": {"freq": -174762667, "gain": 0, "length": 102, "phase": 0}} -> null
+    outcome: "accept_round" -> "reject"
+  zcu216-testbench readout gen0 ro_config length=0.3263346354166667 (fraction 100+0.25 cycles)
+    delta: -0.0008138020833333148 -> null
+    error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
+    error_type: null -> "RuntimeError"
+    observed: {"readback": 0.32552083333333337, "wave_raw": {"freq": -174762667, "gain": 0, "length": 100, "phase": 0}} -> null
     outcome: "accept_round" -> "reject"
   zcu216-testbench readout gen0 ro_config length=213.330078125 (max boundary)
-    delta: -213.22991786858975 -> null
     error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
     error_type: null -> "RuntimeError"
-    observed: {"readback": 0.10016025641025642, "wave_raw": {"freq": 44810940, "gain": 16383, "length": 60, "phase": 0}} -> null
-    outcome: "accept_round" -> "reject"
+    observed: {"readback": 213.330078125, "wave_raw": {"freq": -174762667, "gain": 0, "length": 65535, "phase": 0}} -> null
+    outcome: "accept" -> "reject"
   zcu216-testbench readout gen0 ro_config length=0.009765625 (min boundary)
-    delta: 0.09039463141025642 -> null
     error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
     error_type: null -> "RuntimeError"
-    observed: {"readback": 0.10016025641025642, "wave_raw": {"freq": 44810940, "gain": 16383, "length": 60, "phase": 0}} -> null
+    observed: {"readback": 0.009765625, "wave_raw": {"freq": -174762667, "gain": 0, "length": 3, "phase": 0}} -> null
+    outcome: "accept" -> "reject"
+  zcu216-testbench readout gen0 ro_config length=0.33040364583333337 (tie 101.5 cycles)
+    delta: 0.0016276041666666297 -> null
+    error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"
+    error_type: null -> "RuntimeError"
+    observed: {"readback": 0.33203125, "wave_raw": {"freq": -174762667, "gain": 0, "length": 102, "phase": 0}} -> null
     outcome: "accept_round" -> "reject"
   zcu216-rb-r27 timing gen0 pulse_at_t t=-0.1 (negative pulse time)
     error_msg: null -> "this version of the QICK library only supports tProc v2 revisions in the list [21, 22, 23, 24, 25, 26], you have 27"

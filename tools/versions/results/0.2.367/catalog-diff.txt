@@ -1,4 +1,4 @@
-rows: baseline 599, other 599
+rows: baseline 605, other 605
 outcome: 1
 detail: 55
 added: 0
