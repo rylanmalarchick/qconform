@@ -89,19 +89,25 @@ class Descriptor:
     def classes(self, kind):
         """One representative channel per distinct behavior class.
 
-        Channels of the same vendor type with the same grids, constraints and
-        capabilities behave the same, so probing all sixteen generators on a
-        board would cost time and buy nothing. Probing one of each kind is
-        what finds a rule that only a mux or an interpolated generator can
-        reach. tools/survey/probes.py groups the same way.
+        Two channels are the same class when every value the checker reads is
+        the same, not merely when they carry the same constraint ids and
+        capability names. Keying on names hid two things fault injection
+        found: a wrong value on a channel that is not the representative was
+        never probed at all, and the generators on one board declare four
+        different envelope memories (65536, 32768, 16384, 8192) that all
+        looked like one class.
+
+        Channels that really are identical still collapse, which is what
+        keeps a sixteen-generator board from costing sixteen corpora.
         """
         seen = {}
         for c in self.raw["channels"]:
             if c["kind"] != kind:
                 continue
-            key = (c["vendor_type"], c["duration_grid"], c["schedule_grid"],
-                   tuple(sorted(x["id"] for x in c["constraints"])),
-                   tuple(sorted(c.get("capabilities", {}))))
+            # Keys starting with "_" are derived here (the mixer from the
+            # board config), not declared by the descriptor.
+            key = json.dumps({k: v for k, v in c.items()
+                              if k != "name" and not k.startswith("_")}, sort_keys=True)
             seen.setdefault(key, c)
         return list(seen.values())
 
