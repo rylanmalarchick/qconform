@@ -41,6 +41,7 @@ CONFIGS = {
     "descriptors/qce2025-r26.json": "zcu216-qce2025-r26.json",
     "descriptors/hostile-ident.json": "zcu216-testbench.json",
     "descriptors/envelope-unconstrained.json": "zcu216-testbench.json",
+    "descriptors/pulse-length-grid-unconstrained.json": "zcu216-testbench.json",
 }
 
 

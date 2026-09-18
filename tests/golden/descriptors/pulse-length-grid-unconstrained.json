@@ -66,20 +66,6 @@
      ]
     },
     {
-     "id": "pulse_length_grid",
-     "quantity": "time",
-     "shape": "range_units",
-     "severity": "vendor_repairable",
-     "evidence": [
-      {
-       "config": "zcu216-testbench",
-       "axis": "length",
-       "note_contains": "fraction 20+0.25 cycles",
-       "outcome": "accept_round"
-      }
-     ]
-    },
-    {
      "id": "frequency_range",
      "quantity": "frequency",
      "shape": "range_resolution",
@@ -161,7 +147,7 @@
      "quantity": "count",
      "shape": "grid_samples",
      "severity": "fatal",
-     "grid": 32,
+     "grid": 16,
      "evidence": [
       {
        "config": "zcu216-testbench",

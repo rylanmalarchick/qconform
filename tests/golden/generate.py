@@ -144,6 +144,12 @@ CASES = {
         [play(0, 100 * 28, wf="e0")],
         waveforms=[{"name": "e0", "kind": "samples", "full_scale": 32766,
                     "i": [1000] * 100, "q": [0] * 100}]), 1),
+    # an off-grid play on a descriptor that does not declare
+    # pulse_length_grid: the channel grid is still stated, but nothing says
+    # the toolchain enforces it, so the rule reports unchecked and nothing
+    # fires
+    "pulse-length-grid-absent": ("descriptors/pulse-length-grid-unconstrained.json",
+                                 base_program([play(0, 60 * 28 + 5)]), 0),
     # an on-grid envelope on a descriptor that declares neither envelope
     # constraint: the capabilities still state the limits, but nothing says
     # they are enforced, so both rules report unchecked. On grid, so the
@@ -265,6 +271,12 @@ def main():
             if c["id"] == ("envelope_sample_grid" if field == "grid" else "envelope_amplitude"):
                 c[field] = value
         (desc_dir / fname).write_text(json.dumps(env, indent=1) + "\n")
+
+    no_grid = json.loads((desc_dir / "testbench.json").read_text())
+    no_grid["channels"][0]["constraints"] = [
+        c for c in no_grid["channels"][0]["constraints"] if c["id"] != "pulse_length_grid"]
+    (desc_dir / "pulse-length-grid-unconstrained.json").write_text(
+        json.dumps(no_grid, indent=1) + "\n")
 
     unconstrained = json.loads((desc_dir / "testbench.json").read_text())
     unconstrained["channels"][0]["constraints"] = [

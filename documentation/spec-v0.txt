@@ -34,8 +34,10 @@ renamed, renumbered or reused, and a retired id keeps its slot.
 
   R1   pulse_length_range      a play on a drive channel, in channel units,
                                outside the declared min or max
-  R2   pulse_length_grid       a play duration not a whole number of channel
-                               cycles
+  R2   pulse_length_grid       a play or capture duration not a whole number
+                               of channel cycles. Checked only when the
+                               constraint is declared; a readout declares it
+                               too
   R3   readout_length_range    a capture outside the declared min or max
   R4   frequency_range         a frame frequency outside the declared band,
                                checked when the frequency is set, whether or

@@ -14,6 +14,7 @@ mux-tones-over-n-tones	descriptors/qce2025-r26.json	mux-tones-over-n-tones/progr
 freq-out-of-band-int4	descriptors/qce2025-r26.json	freq-out-of-band-int4/program.json	1	freq-out-of-band-int4/expected.json
 envelope-over-memory	descriptors/qce2025-r26.json	envelope-over-memory/program.json	1	envelope-over-memory/expected.json
 envelope-off-sample-grid	descriptors/testbench.json	envelope-off-sample-grid/program.json	1	envelope-off-sample-grid/expected.json
+pulse-length-grid-absent	descriptors/pulse-length-grid-unconstrained.json	pulse-length-grid-absent/program.json	0	pulse-length-grid-absent/expected.json
 envelope-constraint-absent	descriptors/envelope-unconstrained.json	envelope-constraint-absent/program.json	0	envelope-constraint-absent/expected.json
 amplitude-over-fullscale	descriptors/testbench.json	amplitude-over-fullscale/program.json	2	amplitude-over-fullscale/expected.json
 hostile-identification	descriptors/hostile-ident.json	hostile-identification/program.json	0	hostile-identification/expected.json

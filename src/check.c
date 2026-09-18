@@ -642,10 +642,13 @@ static bool advance(Check *k, FrameState *states, uint32_t frame, int64_t durati
     grid_c = find_constraint(dc, QC_RULE_pulse_length_grid);
     rule = timed_output ? QC_COV_pulse_length_grid : QC_COV_schedule_grid;
     repair = timed_output ? QC_REPAIR_quantize_duration : QC_REPAIR_quantize_time;
-    if (timed_output)
-        severity = grid_c != NULL ? grid_c->severity : QC_SEV_vendor_repairable;
-    else
-        severity = QC_SEV_vendor_repairable;
+    /* The duration grid of an output is enforced only when the descriptor
+     * declares pulse_length_grid, as with the envelope rules: the grid is the
+     * limit and the constraint is the evidence that the toolchain enforces
+     * it. Without the constraint the rule is unchecked, not enforced at a
+     * default severity. The schedule grid of a delay is the checker's own
+     * rule and is always checked. */
+    severity = timed_output && grid_c != NULL ? grid_c->severity : QC_SEV_vendor_repairable;
     if (!rat_mul_int(dc->unit, timed_output ? dc->duration_grid : dc->schedule_grid, &grid_limit))
         return tool_error(k, "arithmetic overflow (grid limit)");
 
@@ -662,7 +665,7 @@ static bool advance(Check *k, FrameState *states, uint32_t frame, int64_t durati
             return tool_error(k, "arithmetic overflow (unit conversion)");
         dur_units = rat_round_nearest_even(q);
     }
-    if (off_grid) {
+    if (off_grid && (!timed_output || grid_c != NULL)) {
         Rejection r;
         r.rule = rule;
         r.severity = severity;
@@ -674,7 +677,9 @@ static bool advance(Check *k, FrameState *states, uint32_t frame, int64_t durati
         r.limit = grid_limit;
         if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
     }
-    if (timed_output && grid_c != NULL) cover(k, QC_COV_pulse_length_grid, QC_CSTAT_checked);
+    if (timed_output)
+        cover(k, QC_COV_pulse_length_grid,
+              grid_c != NULL ? QC_CSTAT_checked : QC_CSTAT_unchecked);
 
     if (timed_output) {
         RuleId range_id = dc->kind == QC_CHKIND_drive ? QC_RULE_pulse_length_range

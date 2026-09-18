@@ -299,6 +299,26 @@
        "outcome": "reject"
       }
      ]
+    },
+    {
+     "id": "pulse_length_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "vendor_repairable",
+     "evidence": [
+      {
+       "config": "zcu216-testbench",
+       "axis": "readout",
+       "note_contains": "fraction 100+0.25 cycles",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "zcu216-testbench",
+       "axis": "readout",
+       "note_contains": "tie 101.5 cycles",
+       "outcome": "accept_round"
+      }
+     ]
     }
    ]
   }

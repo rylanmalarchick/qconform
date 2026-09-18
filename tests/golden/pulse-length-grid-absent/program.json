@@ -1,0 +1,50 @@
+{
+ "format": "qconform-program",
+ "format_version": 0,
+ "channels": [
+  {
+   "name": "gen0",
+   "unit": {
+    "num": 1,
+    "den": 16773120000
+   },
+   "sample_unit": {
+    "num": 1,
+    "den": 9584640000
+   }
+  }
+ ],
+ "frames": [
+  {
+   "name": "f0",
+   "channel": "gen0",
+   "frequency": {
+    "num": 0,
+    "den": 1
+   },
+   "phase": {
+    "num": 0,
+    "den": 1
+   }
+  }
+ ],
+ "waveforms": [
+  {
+   "name": "w0",
+   "kind": "const",
+   "amplitude": {
+    "num": 1,
+    "den": 2
+   }
+  }
+ ],
+ "elements": [
+  {
+   "id": 0,
+   "kind": "play",
+   "frame": "f0",
+   "waveform": "w0",
+   "duration": 1685
+  }
+ ]
+}

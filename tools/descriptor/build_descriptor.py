@@ -343,6 +343,15 @@ def ro_channel(i, r, f_time, config_name):
             "evidence": [ev("zcu216-testbench", "readout", "below min 3", "reject"),
                          ev("zcu216-testbench", "readout", "first over max", "reject")],
         })
+        # The readout length is quantized to readout cycles, silently and
+        # half to even, so an off-grid capture is a repair, as on a generator.
+        ch["constraints"].append({
+            "id": "pulse_length_grid", "quantity": "time", "shape": "range_units",
+            "severity": "vendor_repairable",
+            "evidence": [ev("zcu216-testbench", "readout", "fraction 100+0.25 cycles",
+                            "accept_round"),
+                         ev("zcu216-testbench", "readout", "tie 101.5 cycles", "accept_round")],
+        })
     # static (pfb) readouts carry no surveyed constraints in v0: a checker
     # must report them as unchecked, not silently passed
     return ch
