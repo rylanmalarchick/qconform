@@ -290,14 +290,27 @@ def unused_frame_updates(program):
     vendor only through a later play or capture on the same frame. The
     checker checks the frame when it is set, and the vendor checks what a
     pulse uses, so a refusal on one of these is the checker being stricter,
-    not wrong. Triage needs the ids to prove that per row."""
+    not wrong. Triage needs the ids to prove that per row.
+
+    A set_frequency is also unused when another set_frequency on the same
+    frame replaces it before any output. A shift_phase is not: shifts add up,
+    so an earlier one still reaches the next output.
+    """
     elements = program["elements"]
     out = []
     for i, e in enumerate(elements):
         if e["kind"] not in ("set_frequency", "shift_phase"):
             continue
-        if not any(later["kind"] in ("play", "capture") and later.get("frame") == e["frame"]
-                   for later in elements[i + 1:]):
+        used = False
+        for later in elements[i + 1:]:
+            if later.get("frame") != e["frame"]:
+                continue
+            if later["kind"] in ("play", "capture"):
+                used = True
+                break
+            if e["kind"] == "set_frequency" and later["kind"] == "set_frequency":
+                break
+        if not used:
             out.append(e["id"])
     return sorted(out)
 
