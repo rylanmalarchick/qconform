@@ -8,9 +8,9 @@ through the differential and counts which ones the harness catches.
 
 Targets are the channels the corpus probes: one representative per channel
 class, chosen by the corpus generator's own Descriptor.classes. With
---duplicates, the same channel mutants go on the first channel of each class
-that is NOT the representative instead, to measure what a value error on a
-duplicate channel costs. Budget, rounding and known mutants are not repeated.
+--duplicates, the same channel mutants go on the first channel identical to
+each representative instead, to measure what a value error on a duplicate
+channel costs. A class with one channel has no duplicate. Budget, rounding and known mutants are not repeated.
 
 Two named mutants re-inject descriptor defects the harness found before:
   K2  axis_sg_int4_v2 amplitude resolution 1/32766 instead of 5/147447
@@ -33,7 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "differential"))
 
-from corpus import Descriptor  # noqa: E402
+from corpus import Descriptor, class_key  # noqa: E402
 
 SEVERITY_FLIP = {"fatal": "vendor_repairable", "vendor_repairable": "fatal"}
 ROUNDING_FLIP = {"nearest_half_even": "trunc_toward_zero",
@@ -223,8 +223,7 @@ def main():
         rep_names = {c["name"] for c in reps}
         for c in reps:
             dup = next((x for x in raw["channels"]
-                        if x["name"] not in rep_names and x["vendor_type"] == c["vendor_type"]
-                        and x["kind"] == c["kind"]), None)
+                        if x["name"] not in rep_names and class_key(x) == class_key(c)), None)
             if dup is not None:
                 targets.append(("duplicate", dup))
 

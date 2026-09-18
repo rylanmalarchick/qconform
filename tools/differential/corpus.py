@@ -67,6 +67,15 @@ def ladder(limit, step, span=3):
     ]
 
 
+def class_key(channel):
+    """Everything the descriptor says about a channel except its name.
+
+    Keys starting with "_" are derived by the corpus generator (the mixer
+    from the board config), not declared by the descriptor."""
+    return json.dumps({k: v for k, v in channel.items()
+                       if k != "name" and not k.startswith("_")}, sort_keys=True)
+
+
 class Descriptor:
     """The limits the generator needs, read once from the descriptor so the
     corpus follows the device rather than hard-coded numbers."""
@@ -104,11 +113,7 @@ class Descriptor:
         for c in self.raw["channels"]:
             if c["kind"] != kind:
                 continue
-            # Keys starting with "_" are derived here (the mixer from the
-            # board config), not declared by the descriptor.
-            key = json.dumps({k: v for k, v in c.items()
-                              if k != "name" and not k.startswith("_")}, sort_keys=True)
-            seen.setdefault(key, c)
+            seen.setdefault(class_key(c), c)
         return list(seen.values())
 
 
