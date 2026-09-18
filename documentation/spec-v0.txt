@@ -192,7 +192,8 @@ The descriptor states one device-global rounding mode per quantity, and a
 muxed generator does not follow it for amplitude: its register rounds and
 applies no maxv_scale where an interpolated generator truncates and applies
 one. The resolution each channel declares is correct and is what the rules
-read, so no verdict depends on this. The rounding block does.
+read, so no verdict depends on the rounding block. It is descriptive, and on
+a muxed generator it is wrong for amplitude.
 
 The claim covers one vendor. asm_v2 is the only oracle this specification has
 been measured against.
