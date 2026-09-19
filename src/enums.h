@@ -76,7 +76,18 @@
        by the program's own tone table, and the table by capabilities.n_tones.
        So both constraints carry a severity and no parameter. */ \
     X(mux_tone_mask)                                                        \
-    X(mux_tone_count)
+    X(mux_tone_count)                                                       \
+    /* Timing between operations on one frame. A frame is one channel and one
+       carrier, which on a sequencer-per-carrier device such as Qblox is one
+       sequencer. start_spacing: two operations that start at different times
+       are at least min_units apart, and the last one starts at least
+       min_units before the program ends. frequency_update_spacing: two
+       set_frequency elements are at least min_units apart, equal times
+       included. capture_spacing: two captures start at least min_units
+       apart. */ \
+    X(start_spacing)                                                        \
+    X(frequency_update_spacing)                                             \
+    X(capture_spacing)
 
 #define QC_REPAIR_IDS(X)  \
     X(quantize_duration)  \
@@ -84,7 +95,9 @@
     X(quantize_frequency) \
     X(quantize_phase)     \
     X(trunc_gain)         \
-    X(alias_mod_f_dds)
+    X(alias_mod_f_dds)    \
+    X(saturate_gain)      \
+    X(quantize_gain)
 
 #define QC_BUDGET_IDS(X) \
     X(pmem_words)        \

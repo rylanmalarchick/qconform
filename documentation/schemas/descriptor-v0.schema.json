@@ -60,7 +60,8 @@
               "n_tones": {"type": "integer", "exclusiveMinimum": 0},
               "envelope_memory_samples": {"type": "integer", "exclusiveMinimum": 0},
               "envelope_sample_grid": {"type": "integer", "exclusiveMinimum": 0},
-              "envelope_max_abs": {"type": "integer", "exclusiveMinimum": 0}
+              "envelope_max_abs": {"type": "integer", "exclusiveMinimum": 0},
+              "envelope_memory_scope": {"enum": ["channel", "frame"]}
             }
           },
           "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
@@ -91,6 +92,8 @@
         "properties": {
           "id": {"$ref": "#/$defs/ruleid"},
           "limit": {"type": "integer", "minimum": 0},
+          "scope": {"enum": ["program", "frame"]},
+          "channels": {"type": "array", "items": {"type": "string", "minLength": 1}},
           "cost_model": {
             "type": "object",
             "additionalProperties": false,
@@ -100,7 +103,8 @@
               "per_item": {"type": "integer"},
               "overhead": {"type": "integer"},
               "reserved_min": {"type": "integer"},
-              "reserved_max": {"type": "integer"}
+              "reserved_max": {"type": "integer"},
+              "per_element_max": {"type": "integer", "minimum": 0}
             }
           },
           "evidence": {"$ref": "#/$defs/evidence"}
@@ -159,6 +163,8 @@
         "max": {"$ref": "#/$defs/rational"},
         "resolution": {"$ref": "#/$defs/rational"},
         "post_mixer": {"type": "boolean"},
+        "saturate_max": {"$ref": "#/$defs/rational"},
+        "initial_phase_update": {"type": "boolean"},
         "grid": {"type": "integer", "exclusiveMinimum": 0},
         "evidence": {"$ref": "#/$defs/evidence"}
       }

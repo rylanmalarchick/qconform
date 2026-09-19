@@ -1,0 +1,37 @@
+{
+ "format": "qconform-report",
+ "format_version": 0,
+ "verdict": "fail",
+ "descriptor": {"name": "qblox-qcm-qrm", "firmware": "none: dummy cluster", "software": "qblox-1.0.0b8", "descriptor_version": "0"},
+ "rejections": [
+  {"rule": "pulse_length_grid", "severity": "fatal", "element": 0, "quantity": "time", "value": {"num": 41, "den": 2000000000}, "limit": {"num": 1, "den": 1000000000}}
+ ],
+ "budgets": [
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 11, "upper_bound": 20, "limit": 16384}
+ ],
+ "coverage": [
+  {"class": "pulse_length_range", "status": "checked"},
+  {"class": "pulse_length_grid", "status": "checked"},
+  {"class": "readout_length_range", "status": "not_applicable"},
+  {"class": "frequency_range", "status": "checked"},
+  {"class": "frequency_resolution", "status": "checked"},
+  {"class": "phase_resolution", "status": "checked"},
+  {"class": "amplitude_range", "status": "checked"},
+  {"class": "amplitude_resolution", "status": "checked"},
+  {"class": "envelope_sample_grid", "status": "not_applicable"},
+  {"class": "envelope_amplitude", "status": "not_applicable"},
+  {"class": "envelope_memory", "status": "not_applicable"},
+  {"class": "schedule_grid", "status": "checked"},
+  {"class": "negative_duration", "status": "checked"},
+  {"class": "negative_time", "status": "not_applicable"},
+  {"class": "mux_tone_mask", "status": "not_applicable"},
+  {"class": "mux_tone_count", "status": "not_applicable"},
+  {"class": "start_spacing", "status": "checked"},
+  {"class": "frequency_update_spacing", "status": "not_applicable"},
+  {"class": "capture_spacing", "status": "not_applicable"},
+  {"class": "pmem_words", "status": "checked"},
+  {"class": "wmem_words", "status": "not_applicable"},
+  {"class": "loop_registers", "status": "not_applicable"},
+  {"class": "unconstrained_channel", "status": "not_applicable"}
+ ]
+}

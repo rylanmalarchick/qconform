@@ -47,8 +47,10 @@ A vendor_repairable rejection names the repair [freq-alias-v6]:
 - rule: rule id
 - severity: fatal or vendor_repairable
 - repair: present when, and only when, severity is vendor_repairable.
-  The repair id names what the vendor stack does silently, such as
-  quantize_duration. The rule catalog records whether a repair keeps
+  The repair id names what the vendor stack does silently: quantize_duration,
+  quantize_time, quantize_frequency, quantize_phase, trunc_gain (gain rounded
+  toward zero), quantize_gain (gain rounded to nearest), alias_mod_f_dds, or
+  saturate_gain (gain clamped below full scale). The rule catalog records whether a repair keeps
   experiment semantics. A rejection does not restate that.
   A checker enforces this pairing at descriptor load. Some rules never
   report a repair and others always do, so a descriptor cannot give a
@@ -151,6 +153,9 @@ tests/golden/run.sh to reproduce it [below-min-length].
   {"class": "negative_time", "status": "not_applicable"},
   {"class": "mux_tone_mask", "status": "not_applicable"},
   {"class": "mux_tone_count", "status": "not_applicable"},
+  {"class": "start_spacing", "status": "not_applicable"},
+  {"class": "frequency_update_spacing", "status": "not_applicable"},
+  {"class": "capture_spacing", "status": "not_applicable"},
   {"class": "pmem_words", "status": "checked"},
   {"class": "wmem_words", "status": "checked"},
   {"class": "loop_registers", "status": "not_applicable"},

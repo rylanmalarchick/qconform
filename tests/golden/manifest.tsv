@@ -19,6 +19,18 @@ envelope-constraint-absent	descriptors/envelope-unconstrained.json	envelope-cons
 amplitude-over-fullscale	descriptors/testbench.json	amplitude-over-fullscale/program.json	2	amplitude-over-fullscale/expected.json
 hostile-identification	descriptors/hostile-ident.json	hostile-identification/program.json	0	hostile-identification/expected.json
 negative-zero-is-integer	descriptors/testbench.json	negative-zero-is-integer/program.json	0	negative-zero-is-integer/expected.json
+qblox-pass	descriptors/qblox-qcm-qrm.json	qblox-pass/program.json	0	qblox-pass/expected.json
+qblox-last-start-too-late	descriptors/qblox-qcm-qrm.json	qblox-last-start-too-late/program.json	1	qblox-last-start-too-late/expected.json
+qblox-starts-3ns-apart	descriptors/qblox-qcm-qrm.json	qblox-starts-3ns-apart/program.json	1	qblox-starts-3ns-apart/expected.json
+qblox-starts-4ns-apart	descriptors/qblox-qcm-qrm.json	qblox-starts-4ns-apart/program.json	0	qblox-starts-4ns-apart/expected.json
+qblox-frequency-updates-same-time	descriptors/qblox-qcm-qrm.json	qblox-frequency-updates-same-time/program.json	1	qblox-frequency-updates-same-time/expected.json
+qblox-initial-phase-update	descriptors/qblox-qcm-qrm.json	qblox-initial-phase-update/program.json	1	qblox-initial-phase-update/expected.json
+qblox-amplitude-saturates	descriptors/qblox-qcm-qrm.json	qblox-amplitude-saturates/program.json	2	qblox-amplitude-saturates/expected.json
+qblox-envelope-saturates	descriptors/qblox-qcm-qrm.json	qblox-envelope-saturates/program.json	2	qblox-envelope-saturates/expected.json
+qblox-envelope-memory-per-frame	descriptors/qblox-qcm-qrm.json	qblox-envelope-memory-per-frame/program.json	0	qblox-envelope-memory-per-frame/expected.json
+qblox-off-grid-duration	descriptors/qblox-qcm-qrm.json	qblox-off-grid-duration/program.json	1	qblox-off-grid-duration/expected.json
+qblox-capture-spacing	descriptors/qblox-qcm-qrm.json	qblox-capture-spacing/program.json	1	qblox-capture-spacing/expected.json
+qblox-budget-per-frame	descriptors/qblox-small-budget.json	qblox-budget-per-frame/program.json	0	qblox-budget-per-frame/expected.json
 malformed-float	descriptors/testbench.json	malformed-float/program.json	3	-
 malformed-dup-id	descriptors/testbench.json	malformed-dup-id/program.json	3	-
 malformed-dangling-frame	descriptors/testbench.json	malformed-dangling-frame/program.json	3	-
@@ -33,4 +45,7 @@ malformed-mux-play-has-waveform	descriptors/qce2025-r26.json	malformed-mux-play-
 malformed-mux-play-has-no-mask	descriptors/qce2025-r26.json	malformed-mux-play-has-no-mask/program.json	3	-
 malformed-mux-frame-retuned	descriptors/qce2025-r26.json	malformed-mux-frame-retuned/program.json	3	-
 malformed-overflow-cost-descriptor	descriptors/overflow-cost.json	malformed-overflow-cost-descriptor/program.json	3	-
+malformed-saturate-on-frequency	descriptors/saturate-on-frequency.json	malformed-saturate-on-frequency/program.json	3	-
+malformed-initial-phase-on-grid	descriptors/initial-phase-on-grid.json	malformed-initial-phase-on-grid/program.json	3	-
+malformed-budget-unknown-channel	descriptors/budget-unknown-channel.json	malformed-budget-unknown-channel/program.json	3	-
 malformed-zero-grid-descriptor	descriptors/zero-grid.json	malformed-zero-grid-descriptor/program.json	3	-

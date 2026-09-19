@@ -1,0 +1,63 @@
+{
+ "format": "qconform-program",
+ "format_version": 0,
+ "channels": [
+  {
+   "name": "q0_mw",
+   "unit": {
+    "num": 1,
+    "den": 1000000000
+   },
+   "sample_unit": {
+    "num": 1,
+    "den": 1000000000
+   }
+  }
+ ],
+ "frames": [
+  {
+   "name": "f0",
+   "channel": "q0_mw",
+   "frequency": {
+    "num": 100000000,
+    "den": 1
+   },
+   "phase": {
+    "num": 0,
+    "den": 1
+   }
+  }
+ ],
+ "waveforms": [
+  {
+   "name": "w0",
+   "kind": "const",
+   "amplitude": {
+    "num": 1,
+    "den": 2
+   }
+  }
+ ],
+ "elements": [
+  {
+   "id": 0,
+   "kind": "play",
+   "frame": "f0",
+   "waveform": "w0",
+   "duration": 1
+  },
+  {
+   "id": 1,
+   "kind": "delay",
+   "frame": "f0",
+   "duration": 3
+  },
+  {
+   "id": 2,
+   "kind": "play",
+   "frame": "f0",
+   "waveform": "w0",
+   "duration": 20
+  }
+ ]
+}

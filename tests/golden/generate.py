@@ -79,6 +79,39 @@ def mux_program(tones, mask, elements=None):
     }
 
 
+# Qblox: one QCM output q0_mw, one QRM output q0_res_out and input q0_res,
+# all on a 1 ns unit. Limits from the Qblox survey catalog (qblox-qcm-qrm).
+QBLOX_DESC = "descriptors/qblox-qcm-qrm.json"
+NS = {"num": 1, "den": 1000000000}
+
+
+def qblox_program(elements, waveforms=None, phase=(0, 1), frames=None, channels=None):
+    return {
+        "format": "qconform-program", "format_version": 0,
+        "channels": channels or [{"name": "q0_mw", "unit": NS, "sample_unit": NS}],
+        "frames": frames or [{"name": "f0", "channel": "q0_mw",
+                              "frequency": {"num": 100000000, "den": 1},
+                              "phase": {"num": phase[0], "den": phase[1]}}],
+        "waveforms": waveforms if waveforms is not None else
+                     [{"name": "w0", "kind": "const", "amplitude": {"num": 1, "den": 2}}],
+        "elements": elements,
+    }
+
+
+def qplay(id_, dur, frame="f0", wf="w0"):
+    return {"id": id_, "kind": "play", "frame": frame, "waveform": wf, "duration": dur}
+
+
+def qframe(name, channel, hz):
+    return {"name": name, "channel": channel, "frequency": {"num": hz, "den": 1},
+            "phase": {"num": 0, "den": 1}}
+
+
+def qenvelope(name, value, n):
+    return {"name": name, "kind": "samples", "full_scale": 32768,
+            "i": [value] * n, "q": [0] * n}
+
+
 # case name -> (descriptor, program dict or raw bytes, expected exit code)
 CASES = {
     # exported Ramsey program, exporter output is realizable by construction
@@ -176,6 +209,64 @@ CASES = {
         [play(0, 60 * 28)],
         waveforms=[{"name": "w0", "kind": "const",
                     "amplitude": {"num": -0, "den": 1}}]), 0),
+
+    # Qblox. catalog qblox-qcm-qrm: a 20 ns square at 0.5 compiles clean
+    "qblox-pass": (QBLOX_DESC, qblox_program([qplay(0, 20)]), 0),
+    # length axis, "3 ns, below the 4 ns instruction slot", reject: the last
+    # operation needs 4 ns before the program ends
+    "qblox-last-start-too-late": (QBLOX_DESC, qblox_program([qplay(0, 3)]), 1),
+    # length axis, "3 ns pulse, next pulse starts 3 ns after it", reject
+    "qblox-starts-3ns-apart": (QBLOX_DESC, qblox_program([qplay(0, 3), qplay(1, 20)]), 1),
+    # length axis, "1 ns pulse, next pulse starts 4 ns after it", accept
+    "qblox-starts-4ns-apart": (QBLOX_DESC, qblox_program(
+        [qplay(0, 1), {"id": 1, "kind": "delay", "frame": "f0", "duration": 3},
+         qplay(2, 20)]), 0),
+    # spacing axis, "two SetClockFrequency at the same time", reject
+    "qblox-frequency-updates-same-time": (QBLOX_DESC, qblox_program(
+        [qplay(0, 20),
+         {"id": 1, "kind": "set_frequency", "frame": "f0",
+          "frequency": {"num": 120000000, "den": 1}},
+         {"id": 2, "kind": "set_frequency", "frame": "f0",
+          "frequency": {"num": 130000000, "den": 1}},
+         qplay(3, 20)]), 1),
+    # phase axis, "ClockResource phase 45 deg", accept_round: the phase is set
+    # by an update at time 0, so a play at 2 ns is too close to it
+    "qblox-initial-phase-update": (QBLOX_DESC, qblox_program(
+        [{"id": 0, "kind": "delay", "frame": "f0", "duration": 2}, qplay(1, 20)],
+        phase=(1, 4)), 1),
+    # gain axis, "square amplitude full scale", accept_round: +1.0 lands on
+    # 32767/32768
+    "qblox-amplitude-saturates": (QBLOX_DESC, qblox_program(
+        [qplay(0, 20)],
+        waveforms=[{"name": "w0", "kind": "const", "amplitude": {"num": 1, "den": 1}}]), 2),
+    # envelope axis, "numerical pulse at full scale", accept_round
+    "qblox-envelope-saturates": (QBLOX_DESC, qblox_program(
+        [qplay(0, 8, wf="e0")], waveforms=[qenvelope("e0", 32768, 8)]), 2),
+    # budget_instr axis, "16384-sample waveform on each of two clocks of one
+    # port", accept: waveform memory belongs to the frame
+    "qblox-envelope-memory-per-frame": (QBLOX_DESC, qblox_program(
+        [qplay(0, 16384, wf="e0"), qplay(1, 16384, frame="f1", wf="e1")],
+        waveforms=[qenvelope("e0", 100, 16384), qenvelope("e1", 200, 16384)],
+        frames=[qframe("f0", "q0_mw", 100000000), qframe("f1", "q0_mw", 150000000)]), 0),
+    # length axis, "20.5 ns, off the 1 ns grid", reject: a half-ns unit puts
+    # the duration off the grid, and Qblox refuses it
+    "qblox-off-grid-duration": (QBLOX_DESC, qblox_program(
+        [qplay(0, 41)],
+        channels=[{"name": "q0_mw", "unit": {"num": 1, "den": 2000000000}, "sample_unit": NS}]), 1),
+    # readout axis, "second acquisition 299 ns after the first", reject
+    "qblox-capture-spacing": (QBLOX_DESC, qblox_program(
+        [{"id": 0, "kind": "capture", "frame": "r0", "duration": 100},
+         {"id": 1, "kind": "delay", "frame": "r0", "duration": 199},
+         {"id": 2, "kind": "capture", "frame": "r0", "duration": 100}],
+        waveforms=[],
+        channels=[{"name": "q0_res", "unit": NS}],
+        frames=[qframe("r0", "q0_res", 50000000)]), 1),
+    # a pmem_words budget with scope frame counts each frame on its own. Six
+    # plays on each of two frames: 16 words at least per frame, under a limit
+    # of 20, while the two together would be 22
+    "qblox-budget-per-frame": ("descriptors/qblox-small-budget.json", qblox_program(
+        [qplay(i, 20, frame="f0" if i < 6 else "f1") for i in range(12)],
+        frames=[qframe("f0", "q0_mw", 100000000), qframe("f1", "q0_mw", 150000000)]), 0),
 }
 
 # identification strings that must survive the report's escaping
@@ -239,6 +330,39 @@ def main():
                 desc_dir / "qce2025-r26.json")
     shutil.copy(ROOT / "tools/descriptor/descriptors/qick-zcu216-rb-r27-v0.json",
                 desc_dir / "rb-r27.json")
+    shutil.copy(ROOT / "tools/descriptor/descriptors/qblox-qcm-qrm-v0.json",
+                desc_dir / "qblox-qcm-qrm.json")
+
+    # a pmem_words limit small enough that a short program shows the per-frame
+    # count
+    small = json.loads((desc_dir / "qblox-qcm-qrm.json").read_text())
+    for b in small["budgets"]:
+        b["limit"] = 20
+    (desc_dir / "qblox-small-budget.json").write_text(json.dumps(small, indent=1) + "\n")
+
+    # each new descriptor field placed where no rule reads it must be refused,
+    # or it would be declared and ignored
+    def qblox_variant(fname, change):
+        doc = json.loads((desc_dir / "qblox-qcm-qrm.json").read_text())
+        change(doc)
+        (desc_dir / fname).write_text(json.dumps(doc, indent=1) + "\n")
+
+    def saturate_on_frequency(doc):
+        for c in doc["channels"][0]["constraints"]:
+            if c["id"] == "frequency_range":
+                c["saturate_max"] = {"num": 1, "den": 1}
+
+    def initial_phase_on_grid(doc):
+        for c in doc["channels"][0]["constraints"]:
+            if c["id"] == "schedule_grid":
+                c["initial_phase_update"] = True
+
+    def budget_unknown_channel(doc):
+        doc["budgets"][0]["channels"] = ["no_such_channel"]
+
+    qblox_variant("saturate-on-frequency.json", saturate_on_frequency)
+    qblox_variant("initial-phase-on-grid.json", initial_phase_on_grid)
+    qblox_variant("budget-unknown-channel.json", budget_unknown_channel)
 
     # a descriptor that gives a rule a severity its emit site cannot express.
     # pulse_length_range never reports a repair, so vendor_repairable would
@@ -424,6 +548,20 @@ def main():
     manifest.append(("malformed-overflow-cost-descriptor", "descriptors/overflow-cost.json",
                      "malformed-overflow-cost-descriptor/program.json", 3, "-"))
     summary.append(f"malformed-overflow-cost-descriptor: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
+
+    qvalid = qblox_program([qplay(0, 20)])
+    for case, desc_file in (("malformed-saturate-on-frequency", "saturate-on-frequency.json"),
+                            ("malformed-initial-phase-on-grid", "initial-phase-on-grid.json"),
+                            ("malformed-budget-unknown-channel", "budget-unknown-channel.json")):
+        d = HERE / case
+        d.mkdir(exist_ok=True)
+        (d / "program.json").write_text(json.dumps(qvalid, indent=1) + "\n")
+        r = subprocess.run([str(QCONFORM), str(desc_dir / desc_file),
+                            str(d / "program.json")], capture_output=True)
+        if r.returncode != 3 or r.stdout:
+            sys.exit(f"{case}: exit {r.returncode}; wanted 3, empty stdout")
+        manifest.append((case, f"descriptors/{desc_file}", f"{case}/program.json", 3, "-"))
+        summary.append(f"{case}: exit 3, stderr: {r.stderr.decode().strip()[:70]}")
 
     d = HERE / "malformed-zero-grid-descriptor"
     d.mkdir(exist_ok=True)

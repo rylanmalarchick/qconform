@@ -1,0 +1,1308 @@
+{
+ "format": "qconform-descriptor",
+ "format_version": 0,
+ "identification": {
+  "name": "qblox-qcm-qrm",
+  "board": "Qblox cluster, dummy (QCM, QRM)",
+  "fw_timestamp": "none: dummy cluster",
+  "cfg_sw_version": "qblox-instruments 1.3.1",
+  "library": {
+   "name": "qblox",
+   "version": "1.0.0b8"
+  },
+  "descriptor_version": "0"
+ },
+ "frames": "native",
+ "rounding": {
+  "time": "nearest_half_even",
+  "frequency": "nearest_half_even",
+  "phase": "nearest_half_even",
+  "amplitude": "nearest_half_even"
+ },
+ "channels": [
+  {
+   "name": "q0_mw",
+   "kind": "drive",
+   "vendor_type": "cluster0.module2.complex_output_0",
+   "unit": {
+    "num": 1,
+    "den": 1000000000
+   },
+   "sample_unit": {
+    "num": 1,
+    "den": 1000000000
+   },
+   "duration_grid": 1,
+   "schedule_grid": 1,
+   "capabilities": {
+    "envelope_memory_samples": 16384,
+    "envelope_memory_scope": "frame",
+    "envelope_sample_grid": 1,
+    "envelope_max_abs": 32768
+   },
+   "constraints": [
+    {
+     "id": "pulse_length_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "20.5 ns, off the 1 ns grid",
+       "outcome": "reject"
+      }
+     ]
+    },
+    {
+     "id": "schedule_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "timing",
+       "note_contains": "start 0.5 ns, off the 1 ns grid",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "timing",
+       "note_contains": "start 1 ns",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "start_spacing",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 4,
+     "initial_phase_update": true,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 1 ns before the next pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "ShiftClockPhase 3 ns before the next pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 4 ns before the next pulse",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 0 ns before the next pulse",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "3 ns pulse, next pulse starts 3 ns after it",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "1 ns pulse, next pulse starts 4 ns after it",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "3 ns, below the 4 ns instruction slot",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "1 ns drive pulse while the readout port runs 100 ns",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "acquisition 1 ns after a readout pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ClockResource phase 45 deg",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "frequency_update_spacing",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 4,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency at the same time",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency 3 ns apart",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency 4 ns apart",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two ShiftClockPhase at the same time",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "frequency_range",
+     "quantity": "frequency",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -500000000,
+      "den": 1
+     },
+     "max": {
+      "num": 500000000,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 4
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 500 MHz + one step",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to -500 MHz - 1 Hz",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 500 MHz + one step",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 500 MHz, the NCO maximum",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 100 MHz + 0.3 Hz",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 100 MHz + 0.25 Hz, one step",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "phase_resolution",
+     "quantity": "phase",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "resolution": {
+      "num": 1,
+      "den": 1000000000
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ShiftClockPhase 10 deg",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ShiftClockPhase one NCO phase step",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "pulse_length_range",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 1,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "zero length",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "1 ns pulse, next pulse starts 4 ns after it",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "amplitude_range",
+     "quantity": "amplitude",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -1,
+      "den": 1
+     },
+     "max": {
+      "num": 1,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 32768
+     },
+     "saturate_max": {
+      "num": 32767,
+      "den": 32768
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude 1.2",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude just over full scale",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude full scale",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude negative full scale",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude 1/3",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude one LSB at 2**15",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "envelope_sample_grid",
+     "quantity": "count",
+     "shape": "grid_samples",
+     "severity": "fatal",
+     "grid": 1,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 4 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 8 samples",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "envelope_amplitude",
+     "quantity": "amplitude",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -1,
+      "den": 1
+     },
+     "max": {
+      "num": 1,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 32768
+     },
+     "saturate_max": {
+      "num": 32767,
+      "den": 32768
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse at 1.2",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse at full scale",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse at negative full scale",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical ramp 0..7/8",
+       "outcome": "accept"
+      }
+     ]
+    }
+   ],
+   "vendor_behavior": [
+    {
+     "id": "clock_phase_ignored",
+     "vendor_action": "a ClockResource phase is dropped; the sequencer starts at phase 0. A nonzero initial frame phase reaches the device only as a phase update at time 0",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ClockResource phase 45 deg",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "initial_nco_frequency_quantized_on_instrument",
+     "vendor_action": "the initial NCO frequency is a sequencer setting; the instrument quantizes it to 0.25 Hz, and offline the setting keeps the float",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 100 MHz + 0.3 Hz",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "same_time_phase_updates_merged",
+     "vendor_action": "two phase shifts at one time become one update of their sum, quantized once",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": true,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two ShiftClockPhase at the same time",
+       "outcome": "accept"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "q0_res_out",
+   "kind": "drive",
+   "vendor_type": "cluster0.module4.complex_output_0",
+   "unit": {
+    "num": 1,
+    "den": 1000000000
+   },
+   "sample_unit": {
+    "num": 1,
+    "den": 1000000000
+   },
+   "duration_grid": 1,
+   "schedule_grid": 1,
+   "capabilities": {
+    "envelope_memory_samples": 16384,
+    "envelope_memory_scope": "frame",
+    "envelope_sample_grid": 1,
+    "envelope_max_abs": 32768
+   },
+   "constraints": [
+    {
+     "id": "pulse_length_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "20.5 ns, off the 1 ns grid",
+       "outcome": "reject"
+      }
+     ]
+    },
+    {
+     "id": "schedule_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "timing",
+       "note_contains": "start 0.5 ns, off the 1 ns grid",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "timing",
+       "note_contains": "start 1 ns",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "start_spacing",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 4,
+     "initial_phase_update": true,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 1 ns before the next pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "ShiftClockPhase 3 ns before the next pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 4 ns before the next pulse",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 0 ns before the next pulse",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "3 ns pulse, next pulse starts 3 ns after it",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "1 ns pulse, next pulse starts 4 ns after it",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "3 ns, below the 4 ns instruction slot",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "1 ns drive pulse while the readout port runs 100 ns",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "acquisition 1 ns after a readout pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ClockResource phase 45 deg",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "frequency_update_spacing",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 4,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency at the same time",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency 3 ns apart",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency 4 ns apart",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two ShiftClockPhase at the same time",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "frequency_range",
+     "quantity": "frequency",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -500000000,
+      "den": 1
+     },
+     "max": {
+      "num": 500000000,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 4
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 500 MHz + one step",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to -500 MHz - 1 Hz",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 500 MHz + one step",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 500 MHz, the NCO maximum",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 100 MHz + 0.3 Hz",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 100 MHz + 0.25 Hz, one step",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "phase_resolution",
+     "quantity": "phase",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "resolution": {
+      "num": 1,
+      "den": 1000000000
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ShiftClockPhase 10 deg",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ShiftClockPhase one NCO phase step",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "pulse_length_range",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 1,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "zero length",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "1 ns pulse, next pulse starts 4 ns after it",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "amplitude_range",
+     "quantity": "amplitude",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -1,
+      "den": 1
+     },
+     "max": {
+      "num": 1,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 32768
+     },
+     "saturate_max": {
+      "num": 32767,
+      "den": 32768
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude 1.2",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude just over full scale",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude full scale",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude negative full scale",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude 1/3",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "gain",
+       "note_contains": "square amplitude one LSB at 2**15",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "envelope_sample_grid",
+     "quantity": "count",
+     "shape": "grid_samples",
+     "severity": "fatal",
+     "grid": 1,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 4 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 8 samples",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "envelope_amplitude",
+     "quantity": "amplitude",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -1,
+      "den": 1
+     },
+     "max": {
+      "num": 1,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 32768
+     },
+     "saturate_max": {
+      "num": 32767,
+      "den": 32768
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse at 1.2",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse at full scale",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse at negative full scale",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical ramp 0..7/8",
+       "outcome": "accept"
+      }
+     ]
+    }
+   ],
+   "vendor_behavior": [
+    {
+     "id": "clock_phase_ignored",
+     "vendor_action": "a ClockResource phase is dropped; the sequencer starts at phase 0. A nonzero initial frame phase reaches the device only as a phase update at time 0",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ClockResource phase 45 deg",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "initial_nco_frequency_quantized_on_instrument",
+     "vendor_action": "the initial NCO frequency is a sequencer setting; the instrument quantizes it to 0.25 Hz, and offline the setting keeps the float",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 100 MHz + 0.3 Hz",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "same_time_phase_updates_merged",
+     "vendor_action": "two phase shifts at one time become one update of their sum, quantized once",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": true,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two ShiftClockPhase at the same time",
+       "outcome": "accept"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "q0_res",
+   "kind": "readout",
+   "vendor_type": "cluster0.module4.complex_input_0",
+   "unit": {
+    "num": 1,
+    "den": 1000000000
+   },
+   "sample_unit": {
+    "num": 1,
+    "den": 1000000000
+   },
+   "duration_grid": 1,
+   "schedule_grid": 1,
+   "capabilities": {},
+   "constraints": [
+    {
+     "id": "pulse_length_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "1000.5 ns",
+       "outcome": "reject"
+      }
+     ]
+    },
+    {
+     "id": "schedule_grid",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "timing",
+       "note_contains": "start 0.5 ns, off the 1 ns grid",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "timing",
+       "note_contains": "start 1 ns",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "start_spacing",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 4,
+     "initial_phase_update": true,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 1 ns before the next pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "ShiftClockPhase 3 ns before the next pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 4 ns before the next pulse",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "SetClockFrequency 0 ns before the next pulse",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "3 ns pulse, next pulse starts 3 ns after it",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "1 ns pulse, next pulse starts 4 ns after it",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "length",
+       "note_contains": "3 ns, below the 4 ns instruction slot",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "1 ns drive pulse while the readout port runs 100 ns",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "acquisition 1 ns after a readout pulse",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ClockResource phase 45 deg",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "frequency_update_spacing",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 4,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency at the same time",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency 3 ns apart",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two SetClockFrequency 4 ns apart",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two ShiftClockPhase at the same time",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "frequency_range",
+     "quantity": "frequency",
+     "shape": "range_resolution",
+     "severity": "fatal",
+     "min": {
+      "num": -500000000,
+      "den": 1
+     },
+     "max": {
+      "num": 500000000,
+      "den": 1
+     },
+     "resolution": {
+      "num": 1,
+      "den": 4
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 500 MHz + one step",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to -500 MHz - 1 Hz",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 500 MHz + one step",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 500 MHz, the NCO maximum",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 100 MHz + 0.3 Hz",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "SetClockFrequency to 100 MHz + 0.25 Hz, one step",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "phase_resolution",
+     "quantity": "phase",
+     "shape": "range_resolution",
+     "severity": "vendor_repairable",
+     "resolution": {
+      "num": 1,
+      "den": 1000000000
+     },
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ShiftClockPhase 10 deg",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ShiftClockPhase one NCO phase step",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "readout_length_range",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "max_units": 16000000,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisition of 16000001 ns",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisition of 16000000 ns",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "capture_spacing",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 300,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "second acquisition 299 ns after the first",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "second acquisition 300 ns after the first",
+       "outcome": "accept"
+      }
+     ]
+    }
+   ],
+   "vendor_behavior": [
+    {
+     "id": "clock_phase_ignored",
+     "vendor_action": "a ClockResource phase is dropped; the sequencer starts at phase 0. A nonzero initial frame phase reaches the device only as a phase update at time 0",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "phase",
+       "note_contains": "ClockResource phase 45 deg",
+       "outcome": "accept_round"
+      }
+     ]
+    },
+    {
+     "id": "initial_nco_frequency_quantized_on_instrument",
+     "vendor_action": "the initial NCO frequency is a sequencer setting; the instrument quantizes it to 0.25 Hz, and offline the setting keeps the float",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": false,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "freq",
+       "note_contains": "clock at 100 MHz + 0.3 Hz",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "same_time_phase_updates_merged",
+     "vendor_action": "two phase shifts at one time become one update of their sum, quantized once",
+     "qconform_severity": "vendor_repairable",
+     "semantics_preserving": true,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "spacing",
+       "note_contains": "two ShiftClockPhase at the same time",
+       "outcome": "accept"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "budgets": [
+  {
+   "id": "pmem_words",
+   "limit": 16384,
+   "scope": "frame",
+   "channels": [
+    "no_such_channel"
+   ],
+   "cost_model": {
+    "kind": "linear",
+    "per_item": 1,
+    "overhead": 10,
+    "per_element_max": 10
+   },
+   "evidence": [
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "budget_instr",
+     "note_contains": "8200 square pulses in a row",
+     "outcome": "reject"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "budget_instr",
+     "note_contains": "8000 square pulses in a row",
+     "outcome": "accept"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "budget_instr",
+     "note_contains": "8000 pulses on each of two clocks",
+     "outcome": "accept"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "cost",
+     "note_contains": "one 1000000 ns acquisition",
+     "outcome": "accept"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "cost",
+     "note_contains": "one 20 ns pulse",
+     "outcome": "accept"
+    }
+   ]
+  },
+  {
+   "id": "pmem_words",
+   "limit": 12288,
+   "scope": "frame",
+   "channels": [
+    "q0_res_out",
+    "q0_res"
+   ],
+   "cost_model": {
+    "kind": "linear",
+    "per_item": 1,
+    "overhead": 10,
+    "per_element_max": 10
+   },
+   "evidence": [
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "budget_instr",
+     "note_contains": "6200 readout-port pulses",
+     "outcome": "reject"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "budget_instr",
+     "note_contains": "6100 readout-port pulses",
+     "outcome": "accept"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "budget_instr",
+     "note_contains": "8000 pulses on each of two clocks",
+     "outcome": "accept"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "cost",
+     "note_contains": "one 1000000 ns acquisition",
+     "outcome": "accept"
+    },
+    {
+     "config": "qblox-qcm-qrm",
+     "axis": "cost",
+     "note_contains": "one 20 ns pulse",
+     "outcome": "accept"
+    }
+   ]
+  }
+ ]
+}

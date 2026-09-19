@@ -60,6 +60,10 @@ typedef struct {
     Sink sink;
     CoverageStatus coverage[QC_COVERAGE_CLASS_COUNT];
     Diag *diag;
+    /* When the last operation of the whole program ends, in seconds: the
+     * end of the last play or capture, or the time of the last frame
+     * update. start_spacing measures its end margin against this. */
+    Rat program_end;
 } Check;
 
 static bool tool_error(Check *k, const char *fmt, ...) {
@@ -104,10 +108,20 @@ static SeverityRule severity_rule_for(RuleId id) {
      * which is a vendor_behavior and not a repair. */
     case QC_RULE_mux_tone_mask:
     case QC_RULE_mux_tone_count:
+    /* A spacing violation is a program the toolchain refuses to schedule.
+     * Nothing is moved to make it fit. */
+    case QC_RULE_start_spacing:
+    case QC_RULE_frequency_update_spacing:
+    case QC_RULE_capture_spacing:
         return SEV_FATAL_ONLY;
-    case QC_RULE_pulse_length_grid:
     case QC_RULE_phase_resolution:
         return SEV_REPAIRABLE_ONLY;
+    /* A grid is a repair where the toolchain rounds to it (QICK) and fatal
+     * where it refuses an off-grid value (Qblox). schedule_grid is the
+     * checker's own rule; declaring it sets its severity, and without a
+     * declaration it is a repair. */
+    case QC_RULE_pulse_length_grid:
+    case QC_RULE_schedule_grid:
     case QC_RULE_frequency_range:
     case QC_RULE_amplitude_range:
         return SEV_EITHER;
@@ -139,6 +153,7 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
                  * mux_tone_mask, and capabilities.n_tones for mux_tone_count. */
                 ok = c->has_min_units || c->has_max_units
                      || c->id == QC_RULE_pulse_length_grid
+                     || c->id == QC_RULE_schedule_grid
                      || c->id == QC_RULE_mux_tone_mask
                      || c->id == QC_RULE_mux_tone_count;
                 break;
@@ -154,6 +169,35 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
                 diag_set(diag,
                          "descriptor channel '" STR_FMT "' constraint %s: shape %s missing its parameters",
                          STR_ARG(ch->name), rule_id_name(c->id), shape_name(c->shape));
+                return false;
+            }
+
+            if ((c->id == QC_RULE_start_spacing || c->id == QC_RULE_frequency_update_spacing
+                 || c->id == QC_RULE_capture_spacing)
+                && (c->shape != QC_SHAPE_range_units || !c->has_min_units || c->min_units < 0)) {
+                diag_set(diag,
+                         "descriptor channel '" STR_FMT "' constraint %s: a spacing rule is range_units with a non-negative min_units",
+                         STR_ARG(ch->name), rule_id_name(c->id));
+                return false;
+            }
+            /* Each new field is refused where no rule reads it, so a
+             * descriptor cannot declare a limit that is then ignored. */
+            if (c->has_saturate_max) {
+                bool placed = c->id == QC_RULE_amplitude_range || c->id == QC_RULE_envelope_amplitude;
+                bool inside = c->has_max && rat_cmp(c->saturate_max, c->max) < 0
+                              && (!c->has_min || rat_cmp(c->saturate_max, c->min) >= 0);
+                if (!placed || !inside) {
+                    diag_set(diag,
+                             "descriptor channel '" STR_FMT "' constraint %s: saturate_max belongs on "
+                             "amplitude_range or envelope_amplitude, inside [min, max)",
+                             STR_ARG(ch->name), rule_id_name(c->id));
+                    return false;
+                }
+            }
+            if (c->initial_phase_update && c->id != QC_RULE_start_spacing) {
+                diag_set(diag,
+                         "descriptor channel '" STR_FMT "' constraint %s: initial_phase_update belongs on start_spacing",
+                         STR_ARG(ch->name), rule_id_name(c->id));
                 return false;
             }
 
@@ -226,9 +270,35 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
         }
     }
     for (i = 0; i < d->n_budgets; i++) {
-        if (d->budgets[i].limit < 0) {
-            diag_set(diag, "descriptor budget %s: negative limit", budget_id_name(d->budgets[i].id));
+        const Budget *b = &d->budgets[i];
+        if (b->limit < 0) {
+            diag_set(diag, "descriptor budget %s: negative limit", budget_id_name(b->id));
             return false;
+        }
+        if (b->cost.has_per_element_max && b->cost.per_element_max < 0) {
+            diag_set(diag, "descriptor budget %s: negative per_element_max", budget_id_name(b->id));
+            return false;
+        }
+        /* Only the program-memory count is kept per frame. */
+        if (b->per_frame && b->id != QC_BUDGET_pmem_words) {
+            diag_set(diag, "descriptor budget %s: scope frame is supported for pmem_words only",
+                     budget_id_name(b->id));
+            return false;
+        }
+        if (b->n_channels != 0 && !b->per_frame) {
+            diag_set(diag, "descriptor budget %s: channels needs scope frame", budget_id_name(b->id));
+            return false;
+        }
+        for (j = 0; j < b->n_channels; j++) {
+            size_t m;
+            bool found = false;
+            for (m = 0; m < d->n_channels; m++)
+                if (str_eq(b->channels[j], d->channels[m].name)) found = true;
+            if (!found) {
+                diag_set(diag, "descriptor budget %s: channel '" STR_FMT "' is not in the descriptor",
+                         budget_id_name(b->id), STR_ARG(b->channels[j]));
+                return false;
+            }
         }
     }
     return true;
@@ -247,6 +317,19 @@ typedef struct {
     Rat phase;
     bool freq_checked;
     bool phase_checked;
+    /* The spacing rules: the last operation, set_frequency and capture on
+     * this frame, in descriptor channel units. */
+    int64_t last_event;
+    int64_t last_event_element;
+    bool has_event;
+    int64_t last_freq_update;
+    bool has_freq_update;
+    int64_t last_capture;
+    bool has_capture;
+    /* Elements on this frame, and outputs among them, for a per-frame
+     * budget. */
+    int64_t n_elements;
+    int64_t n_outputs;
 } FrameState;
 
 /* value * unit, where any overflow is a tool error rather than a wrong
@@ -365,14 +448,45 @@ static bool check_phase(Check *k, uint32_t frame, Rat phase, int64_t element) {
     return check_phase_on(k, desc_channel_of_frame(k, frame), phase, element);
 }
 
+/* A value the toolchain accepts and clamps: above saturate_max once rounded
+ * to the resolution, and not above max. The clamp acts on the rounded value,
+ * so a value just under saturate_max that rounds up past it is clamped too. */
+static bool saturates(Check *k, const Constraint *c, Rat v, bool *out) {
+    Rat rounded = v;
+    *out = false;
+    if (!c->has_saturate_max) return true;
+    if (c->has_max && rat_cmp(v, c->max) > 0) return true;
+    if (c->has_resolution) {
+        Rat q;
+        if (!rat_div(v, c->resolution, &q)) return tool_error(k, "arithmetic overflow (saturation)");
+        if (!rat_mul_int(c->resolution, rat_round_nearest_even(q), &rounded))
+            return tool_error(k, "arithmetic overflow (saturation)");
+    }
+    *out = rat_cmp(rounded, c->saturate_max) > 0;
+    return true;
+}
+
 static bool check_amplitude(Check *k, const CapChannel *dc, Rat amp, int64_t element) {
     const Constraint *c = find_constraint(dc, QC_RULE_amplitude_range);
-    bool below, above;
+    bool below, above, clamped;
 
     if (c == NULL) return true;
     cover(k, QC_COV_amplitude_range, QC_CSTAT_checked);
     below = c->has_min && rat_cmp(amp, c->min) < 0;
     above = c->has_max && rat_cmp(amp, c->max) > 0;
+    if (!saturates(k, c, amp, &clamped)) return false;
+    if (clamped) {
+        Rejection r;
+        r.rule = QC_COV_amplitude_range;
+        r.severity = QC_SEV_vendor_repairable;
+        r.has_repair = true;
+        r.repair = QC_REPAIR_saturate_gain;
+        r.element = element;
+        r.quantity = QC_QTY_amplitude;
+        r.value = amp;
+        r.limit = c->saturate_max;
+        if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+    }
     if (below || above) {
         Rejection r;
         r.rule = QC_COV_amplitude_range;
@@ -396,7 +510,10 @@ static bool check_amplitude(Check *k, const CapChannel *dc, Rat amp, int64_t ele
             r.rule = QC_COV_amplitude_resolution;
             r.severity = QC_SEV_vendor_repairable;
             r.has_repair = true;
-            r.repair = QC_REPAIR_trunc_gain;
+            /* The repair names what the toolchain does to the value: QICK
+             * truncates gain toward zero, Qblox rounds it to nearest. */
+            r.repair = k->desc->rounding.amplitude == QC_ROUND_trunc_toward_zero
+                           ? QC_REPAIR_trunc_gain : QC_REPAIR_quantize_gain;
             r.element = element;
             r.quantity = QC_QTY_amplitude;
             r.value = amp;
@@ -491,6 +608,23 @@ static bool check_mask(Check *k, const CapChannel *dc, const IrChannel *pc,
     return true;
 }
 
+/* The sample the toolchain scales an envelope by: the first one of largest
+ * magnitude. qblox-scheduler normalizes each of I and Q so that this sample
+ * becomes +1.0 and carries its value in the gain register. */
+static int64_t envelope_peak(const int64_t *s, size_t n) {
+    uint64_t best = 0;
+    int64_t peak = 0;
+    size_t i;
+    for (i = 0; i < n; i++) {
+        uint64_t m = abs_i64(s[i]);
+        if (m > best) {
+            best = m;
+            peak = s[i];
+        }
+    }
+    return peak;
+}
+
 static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t element,
                            bool *env_seen, int64_t *env_used, size_t n_wf) {
     uint32_t pci = k->prog->frames[frame].channel;
@@ -563,6 +697,34 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
                 r.value.den = 1;
                 r.limit = rat_from_int(max_abs);
                 if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+            } else if (amp_c->has_saturate_max) {
+                /* I and Q each scale by their own peak, as a fraction of
+                 * max_abs. A positive peak above saturate_max is clamped. */
+                const int64_t *parts[2];
+                int p;
+                parts[0] = w->as.samples.i;
+                parts[1] = w->as.samples.q;
+                for (p = 0; p < 2; p++) {
+                    Rat scale_v;
+                    bool clamped;
+                    int64_t pk = envelope_peak(parts[p], w->as.samples.len);
+                    if (pk <= 0) continue;
+                    if (!rat_div(rat_from_int(pk), rat_from_int(max_abs), &scale_v))
+                        return tool_error(k, "arithmetic overflow (envelope scale)");
+                    if (!saturates(k, amp_c, scale_v, &clamped)) return false;
+                    if (clamped) {
+                        Rejection r;
+                        r.rule = QC_COV_envelope_amplitude;
+                        r.severity = QC_SEV_vendor_repairable;
+                        r.has_repair = true;
+                        r.repair = QC_REPAIR_saturate_gain;
+                        r.element = element;
+                        r.quantity = QC_QTY_amplitude;
+                        r.value = scale_v;
+                        r.limit = amp_c->saturate_max;
+                        if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+                    }
+                }
             }
         } else if (dc->capabilities.has_envelope_max_abs) {
             cover(k, QC_COV_envelope_amplitude, QC_CSTAT_unchecked);
@@ -570,14 +732,18 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
 
         if (dc->capabilities.has_envelope_memory_samples) {
             int64_t mem = dc->capabilities.envelope_memory_samples;
-            size_t slot = (size_t)pci * n_wf + wf;
+            /* The memory belongs to a channel, or to a frame when the
+             * descriptor says so. Frame keys sit after the channel keys. */
+            size_t owner = dc->capabilities.envelope_memory_per_frame
+                               ? k->prog->n_channels + frame : pci;
+            size_t slot = owner * n_wf + wf;
             cover(k, QC_COV_envelope_memory, QC_CSTAT_checked);
             if (!env_seen[slot]) {
-                int64_t before = env_used[pci];
+                int64_t before = env_used[owner];
                 env_seen[slot] = true;
-                if (add_overflow_i64(before, n, &env_used[pci]))
+                if (add_overflow_i64(before, n, &env_used[owner]))
                     return tool_error(k, "arithmetic overflow (envelope memory)");
-                if (before <= mem && env_used[pci] > mem) {
+                if (before <= mem && env_used[owner] > mem) {
                     Rejection r;
                     r.rule = QC_COV_envelope_memory;
                     r.severity = QC_SEV_fatal;
@@ -585,7 +751,7 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
                     r.repair = QC_REPAIR_trunc_gain;
                     r.element = element;
                     r.quantity = QC_QTY_count;
-                    r.value = rat_from_int(env_used[pci]);
+                    r.value = rat_from_int(env_used[owner]);
                     r.limit = rat_from_int(mem);
                     if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
                 }
@@ -595,6 +761,89 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
         }
     }
     return true;
+}
+
+static Severity schedule_severity(const CapChannel *dc) {
+    const Constraint *c = find_constraint(dc, QC_RULE_schedule_grid);
+    return c != NULL ? c->severity : QC_SEV_vendor_repairable;
+}
+
+static bool extend_end(Check *k, uint32_t frame, int64_t units) {
+    Rat t;
+    if (!scale(k, desc_channel_of_frame(k, frame)->unit, units, &t)) return false;
+    if (rat_cmp(t, k->program_end) > 0) k->program_end = t;
+    return true;
+}
+
+static bool spacing_rejection(Check *k, RuleId id, int64_t element, Rat unit,
+                              int64_t gap, int64_t min_units) {
+    Rejection r;
+    r.rule = rule_class(id);
+    r.severity = QC_SEV_fatal;
+    r.has_repair = false;
+    r.repair = QC_REPAIR_quantize_time;
+    r.element = element;
+    r.quantity = QC_QTY_time;
+    if (!scale(k, unit, gap, &r.value)) return false;
+    if (!scale(k, unit, min_units, &r.limit)) return false;
+    if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+    return true;
+}
+
+typedef enum { EV_OUTPUT, EV_CAPTURE, EV_FREQUENCY, EV_PHASE } EventKind;
+
+/* An operation on a frame at the frame's clock: a play or capture start, or a
+ * frequency or phase update. Checks the spacing rules against the frame's
+ * earlier operations. Frame clocks only move forward, so every gap here is
+ * non-negative. */
+static bool note_event(Check *k, FrameState *states, uint32_t frame, int64_t element,
+                       EventKind kind) {
+    const CapChannel *dc = desc_channel_of_frame(k, frame);
+    FrameState *st = &states[frame];
+    const Constraint *start = find_constraint(dc, QC_RULE_start_spacing);
+    int64_t t = st->clock;
+
+    if (start != NULL) {
+        cover(k, QC_COV_start_spacing, QC_CSTAT_checked);
+        if (!st->has_event && start->initial_phase_update
+            && k->prog->frames[frame].phase.num != 0) {
+            st->has_event = true;
+            st->last_event = 0;
+            st->last_event_element = element;
+        }
+        if (st->has_event && t != st->last_event && t - st->last_event < start->min_units)
+            if (!spacing_rejection(k, QC_RULE_start_spacing, element, dc->unit,
+                                   t - st->last_event, start->min_units))
+                return false;
+    }
+    if (kind == EV_FREQUENCY) {
+        const Constraint *c = find_constraint(dc, QC_RULE_frequency_update_spacing);
+        if (c != NULL) {
+            cover(k, QC_COV_frequency_update_spacing, QC_CSTAT_checked);
+            if (st->has_freq_update && t - st->last_freq_update < c->min_units)
+                if (!spacing_rejection(k, QC_RULE_frequency_update_spacing, element, dc->unit,
+                                       t - st->last_freq_update, c->min_units))
+                    return false;
+        }
+        st->has_freq_update = true;
+        st->last_freq_update = t;
+    }
+    if (kind == EV_CAPTURE) {
+        const Constraint *c = find_constraint(dc, QC_RULE_capture_spacing);
+        if (c != NULL) {
+            cover(k, QC_COV_capture_spacing, QC_CSTAT_checked);
+            if (st->has_capture && t - st->last_capture < c->min_units)
+                if (!spacing_rejection(k, QC_RULE_capture_spacing, element, dc->unit,
+                                       t - st->last_capture, c->min_units))
+                    return false;
+        }
+        st->has_capture = true;
+        st->last_capture = t;
+    }
+    st->has_event = true;
+    st->last_event = t;
+    st->last_event_element = element;
+    return extend_end(k, frame, t);
 }
 
 /* Convert a program-unit duration to descriptor units, checking sign,
@@ -648,7 +897,10 @@ static bool advance(Check *k, FrameState *states, uint32_t frame, int64_t durati
      * it. Without the constraint the rule is unchecked, not enforced at a
      * default severity. The schedule grid of a delay is the checker's own
      * rule and is always checked. */
-    severity = timed_output && grid_c != NULL ? grid_c->severity : QC_SEV_vendor_repairable;
+    if (timed_output)
+        severity = grid_c != NULL ? grid_c->severity : QC_SEV_vendor_repairable;
+    else
+        severity = schedule_severity(dc);
     if (!rat_mul_int(dc->unit, timed_output ? dc->duration_grid : dc->schedule_grid, &grid_limit))
         return tool_error(k, "arithmetic overflow (grid limit)");
 
@@ -669,7 +921,7 @@ static bool advance(Check *k, FrameState *states, uint32_t frame, int64_t durati
         Rejection r;
         r.rule = rule;
         r.severity = severity;
-        r.has_repair = true;
+        r.has_repair = (severity == QC_SEV_vendor_repairable);
         r.repair = repair;
         r.element = element;
         r.quantity = QC_QTY_time;
@@ -720,6 +972,41 @@ static bool budget_cost(int64_t per_item, int64_t count, int64_t overhead, int64
     int64_t product;
     if (__builtin_mul_overflow(per_item, count, &product)) return false;
     return !add_overflow_i64(product, overhead, out);
+}
+
+/* A budget counted per frame, over the frames of its channels. Reports the
+ * largest lower and the largest upper bound over those frames, so the usual
+ * verdict reads correctly: violates when some frame must exceed the limit,
+ * fits when no frame can. */
+static bool frame_budget(Check *k, const Budget *b, const FrameState *states,
+                         int64_t *lower, int64_t *upper, bool *any) {
+    size_t f, m;
+    *any = false;
+    *lower = *upper = 0;
+    for (f = 0; f < k->prog->n_frames; f++) {
+        const CapChannel *dc = desc_channel_of_frame(k, (uint32_t)f);
+        const FrameState *st = &states[f];
+        bool applies = b->n_channels == 0;
+        int64_t lo, hi;
+        for (m = 0; m < b->n_channels; m++)
+            if (str_eq(b->channels[m], dc->name)) applies = true;
+        if (!applies || st->n_elements == 0) continue;
+        if (!budget_cost(b->cost.per_item, st->n_outputs, b->cost.overhead, &lo))
+            return tool_error(k, "arithmetic overflow (budget cost model)");
+        if (b->cost.has_per_element_max) {
+            if (!budget_cost(b->cost.per_element_max, st->n_elements, b->cost.overhead, &hi))
+                return tool_error(k, "arithmetic overflow (budget cost model)");
+        } else {
+            int64_t doubled;
+            if (__builtin_mul_overflow(st->n_elements, (int64_t)2, &doubled)
+                || !budget_cost(b->cost.per_item, doubled, b->cost.overhead, &hi))
+                return tool_error(k, "arithmetic overflow (budget cost model)");
+        }
+        if (!*any || lo > *lower) *lower = lo;
+        if (!*any || hi > *upper) *upper = hi;
+        *any = true;
+    }
+    return true;
 }
 
 /* Deterministic order: rules in registry order, then file order. The
@@ -794,12 +1081,19 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
         states[i].phase = prog->frames[i].phase;
         states[i].freq_checked = false;
         states[i].phase_checked = false;
+        states[i].has_event = false;
+        states[i].has_freq_update = false;
+        states[i].has_capture = false;
+        states[i].n_elements = 0;
+        states[i].n_outputs = 0;
     }
+    k->program_end = RAT_ZERO;
 
     /* Per-(channel, waveform) envelope accounting: a waveform's envelope is
      * loaded once per channel however many plays reference it. */
-    env_seen = arena_array(a, prog->n_channels * prog->n_waveforms + 1, sizeof *env_seen);
-    env_used = arena_array(a, prog->n_channels + 1, sizeof *env_used);
+    env_seen = arena_array(a, (prog->n_channels + prog->n_frames) * prog->n_waveforms + 1,
+                           sizeof *env_seen);
+    env_used = arena_array(a, prog->n_channels + prog->n_frames + 1, sizeof *env_used);
     wf_played = arena_array(a, prog->n_waveforms + 1, sizeof *wf_played);
     /* A tone table belongs to a channel, so it is checked once and not once
      * per play that sounds it. */
@@ -826,6 +1120,7 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
                 members = all;
                 n_members = prog->n_frames;
             }
+            for (m = 0; m < n_members; m++) states[members[m]].n_elements++;
             /* latest frame time in absolute seconds, exact */
             for (m = 0; m < n_members; m++) {
                 uint32_t fi = members[m];
@@ -849,8 +1144,8 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
                     if (!rat_div(max_s, dc->unit, &q))
                         return tool_error(k, "arithmetic overflow (barrier alignment)");
                     r.rule = QC_COV_schedule_grid;
-                    r.severity = QC_SEV_vendor_repairable;
-                    r.has_repair = true;
+                    r.severity = schedule_severity(dc);
+                    r.has_repair = (r.severity == QC_SEV_vendor_repairable);
                     r.repair = QC_REPAIR_quantize_time;
                     r.element = el->id;
                     r.quantity = QC_QTY_time;
@@ -868,6 +1163,8 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
             FrameState *st = &states[el->as.shift_phase.frame];
             if (!mux_frame_is_retunable(k, el->as.shift_phase.frame, el->id, "shift_phase"))
                 return false;
+            st->n_elements++;
+            if (!note_event(k, states, el->as.shift_phase.frame, el->id, EV_PHASE)) return false;
             if (!rat_add(st->phase, el->as.shift_phase.phase, &st->phase))
                 return tool_error(k, "arithmetic overflow (phase accumulation)");
             if (!check_phase(k, el->as.shift_phase.frame, el->as.shift_phase.phase, el->id))
@@ -878,6 +1175,9 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
         case EL_SET_FREQUENCY: {
             FrameState *st = &states[el->as.set_frequency.frame];
             if (!mux_frame_is_retunable(k, el->as.set_frequency.frame, el->id, "set_frequency"))
+                return false;
+            st->n_elements++;
+            if (!note_event(k, states, el->as.set_frequency.frame, el->id, EV_FREQUENCY))
                 return false;
             st->frequency = el->as.set_frequency.frequency;
             st->freq_checked = false;
@@ -890,6 +1190,7 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
 
         case EL_DELAY: {
             int64_t units;
+            states[el->as.delay.frame].n_elements++;
             if (!advance(k, states, el->as.delay.frame, el->as.delay.duration, el->id, false, &units))
                 return false;
             break;
@@ -908,6 +1209,8 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
                 n_plays++;
             else
                 n_captures++;
+            st->n_elements++;
+            st->n_outputs++;
 
             /* lazy initial frame-state checks, attributed to first use. A
              * channel with a tone table carries its frequency and phase there,
@@ -927,8 +1230,8 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
             if (floor_mod(st->clock, dc->schedule_grid) != 0) {
                 Rejection r;
                 r.rule = QC_COV_schedule_grid;
-                r.severity = QC_SEV_vendor_repairable;
-                r.has_repair = true;
+                r.severity = schedule_severity(dc);
+                r.has_repair = (r.severity == QC_SEV_vendor_repairable);
                 r.repair = QC_REPAIR_quantize_time;
                 r.element = el->id;
                 r.quantity = QC_QTY_time;
@@ -938,7 +1241,10 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
             }
             cover(k, QC_COV_schedule_grid, QC_CSTAT_checked);
 
+            if (!note_event(k, states, frame, el->id, is_play ? EV_OUTPUT : EV_CAPTURE))
+                return false;
             if (!advance(k, states, frame, dur, el->id, true, &units)) return false;
+            if (!extend_end(k, frame, st->clock)) return false;
 
             if (is_play) {
                 uint32_t pci = prog->frames[frame].channel;
@@ -961,6 +1267,40 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
             }
             break;
         }
+        }
+    }
+
+    /* start_spacing at the end: the last operation on a frame starts at least
+     * min_units before the program ends, since the toolchain needs that long
+     * to issue it. The end is the whole program's, not the frame's. */
+    for (i = 0; i < prog->n_frames; i++) {
+        const CapChannel *dc;
+        const Constraint *c;
+        int64_t due;
+        Rat due_s;
+        if (!states[i].has_event) continue;
+        dc = desc_channel_of_frame(k, (uint32_t)i);
+        c = find_constraint(dc, QC_RULE_start_spacing);
+        if (c == NULL) continue;
+        if (add_overflow_i64(states[i].last_event, c->min_units, &due))
+            return tool_error(k, "arithmetic overflow (end margin)");
+        if (!scale(k, dc->unit, due, &due_s)) return false;
+        if (rat_cmp(due_s, k->program_end) > 0) {
+            Rejection r;
+            Rat last_s;
+            r.rule = QC_COV_start_spacing;
+            r.severity = QC_SEV_fatal;
+            r.has_repair = false;
+            r.repair = QC_REPAIR_quantize_time;
+            r.element = states[i].last_event_element;
+            r.quantity = QC_QTY_time;
+            if (!scale(k, dc->unit, states[i].last_event, &last_s)) return false;
+            if (last_s.num == INT64_MIN) return tool_error(k, "arithmetic overflow (end margin)");
+            last_s.num = -last_s.num;
+            if (!rat_add(k->program_end, last_s, &r.value))
+                return tool_error(k, "arithmetic overflow (end margin)");
+            if (!scale(k, dc->unit, c->min_units, &r.limit)) return false;
+            if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
         }
     }
 
@@ -987,6 +1327,13 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
             /* calibrated: one word per output element plus fixed overhead;
              * non-output elements bounded at two words each (survey asm) */
             int64_t doubled;
+            if (b->per_frame) {
+                bool any;
+                if (!frame_budget(k, b, states, &lower, &upper, &any)) return false;
+                if (!any) continue;
+                cls = QC_COV_pmem_words;
+                break;
+            }
             if (!budget_cost(b->cost.per_item, n_plays + n_captures, b->cost.overhead, &lower))
                 return tool_error(k, "arithmetic overflow (budget cost model)");
             if (__builtin_mul_overflow((int64_t)prog->n_elements, (int64_t)2, &doubled))
@@ -1009,8 +1356,11 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
         else
             verdict = QC_BVERDICT_indeterminate;
 
-        cover(k, cls,
-              verdict == QC_BVERDICT_indeterminate ? QC_CSTAT_indeterminate : QC_CSTAT_checked);
+        /* Two budgets can share a class, one per module type, and an
+         * indeterminate one must not be reported as checked by the other. */
+        if (k->coverage[cls] != QC_CSTAT_indeterminate)
+            cover(k, cls,
+                  verdict == QC_BVERDICT_indeterminate ? QC_CSTAT_indeterminate : QC_CSTAT_checked);
 
         if (verdict == QC_BVERDICT_violates) {
             Rejection r;

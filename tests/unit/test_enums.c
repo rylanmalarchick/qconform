@@ -34,7 +34,12 @@ TEST(known_names_and_ordinals) {
      * place a rule may go: the retired slot keeps its ordinal */
     CHECK_I64(QC_RULE_mux_tone_mask, 14);
     CHECK_I64(QC_RULE_mux_tone_count, 15);
-    CHECK_I64(QC_COV_pmem_words, 16);
+    /* the three spacing rules were appended after them */
+    CHECK_I64(QC_RULE_start_spacing, 16);
+    CHECK_I64(QC_RULE_frequency_update_spacing, 17);
+    CHECK_I64(QC_RULE_capture_spacing, 18);
+    CHECK_I64(QC_COV_pmem_words, 19);
+    CHECK_STR(repair_id_name(QC_REPAIR_saturate_gain), "saturate_gain");
 }
 
 TEST(lookup_rejects_unknown_and_respects_length) {

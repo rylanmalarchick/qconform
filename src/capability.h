@@ -54,6 +54,18 @@ typedef struct {
 
     bool post_mixer;
 
+    /* amplitude_range and envelope_amplitude: a value above saturate_max and
+     * not above max is accepted and clamped to saturate_max, a repair. Above
+     * max it is refused. Qblox gain is a signed 16-bit register, so +1.0
+     * lands on 32767/32768 while -1.0 is exact. */
+    Rat saturate_max;
+    bool has_saturate_max;
+
+    /* start_spacing: a frame whose initial phase is not zero starts with a
+     * phase update at time 0, which counts as an operation. On Qblox the
+     * carrier has no initial phase, so the phase is set by an update. */
+    bool initial_phase_update;
+
     int64_t grid;
     bool has_grid;
 } Constraint;
@@ -69,6 +81,10 @@ typedef struct {
     bool has_envelope_sample_grid;
     int64_t envelope_max_abs;
     bool has_envelope_max_abs;
+    /* The envelope memory holds envelope_memory_samples per frame rather
+     * than per channel. Qblox waveform memory belongs to a sequencer, and a
+     * sequencer serves one channel and one carrier. */
+    bool envelope_memory_per_frame;
 } Capabilities;
 
 typedef struct {
@@ -93,12 +109,24 @@ typedef struct {
     bool has_reserved_min;
     int64_t reserved_max;
     bool has_reserved_max;
+    /* The most words one element can cost, for the upper bound. Absent, the
+     * bound is two words per element at per_item each, the QICK survey
+     * calibration. */
+    int64_t per_element_max;
+    bool has_per_element_max;
 } CostModel;
 
 typedef struct {
     BudgetId id;
     int64_t limit;
     CostModel cost;
+    /* Counted per frame instead of for the whole program, over the frames of
+     * the named channels only (every channel when n_channels is 0). A Qblox
+     * sequencer has its own instruction memory, and the size differs by
+     * module type. */
+    bool per_frame;
+    const Str *channels;
+    size_t n_channels;
 } Budget;
 
 typedef struct {

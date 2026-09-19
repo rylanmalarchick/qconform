@@ -565,7 +565,7 @@ static bool parse_constraint(Ctx *c, const JsonValue *cv, Constraint *out) {
     static const char *const fields[] = {"id",         "quantity", "shape",      "severity",
                                          "min_units",  "max_units", "min",       "max",
                                          "resolution", "post_mixer", "grid",     "evidence",
-                                         NULL};
+                                         "saturate_max", "initial_phase_update", NULL};
 
     if (!get_object(c, cv, "constraints[]", &co)) return false;
     if (!known(c, co, fields, "constraints[]")) return false;
@@ -583,6 +583,8 @@ static bool parse_constraint(Ctx *c, const JsonValue *cv, Constraint *out) {
     out->has_min = out->has_max = out->has_resolution = false;
     out->has_grid = false;
     out->post_mixer = false;
+    out->has_saturate_max = false;
+    out->initial_phase_update = false;
 
     if ((v = json_get(co, "min_units")) != NULL) {
         if (!get_int(c, v, "constraint.min_units", &out->min_units)) return false;
@@ -610,6 +612,14 @@ static bool parse_constraint(Ctx *c, const JsonValue *cv, Constraint *out) {
     if ((v = json_get(co, "grid")) != NULL) {
         if (!get_int(c, v, "constraint.grid", &out->grid)) return false;
         out->has_grid = true;
+    }
+    if ((v = json_get(co, "saturate_max")) != NULL) {
+        if (!get_rat(c, v, "constraint.saturate_max", &out->saturate_max)) return false;
+        out->has_saturate_max = true;
+    }
+    if ((v = json_get(co, "initial_phase_update")) != NULL) {
+        if (!get_bool(c, v, "constraint.initial_phase_update", &out->initial_phase_update))
+            return false;
     }
     /* evidence is authoring-side: type-check the container, drop the content */
     if ((v = json_get(co, "evidence")) != NULL) {
@@ -639,10 +649,12 @@ bool parse_descriptor(Arena *a, const char *bytes, size_t len, Descriptor *out, 
                                               "schedule_grid", "capabilities", "constraints",
                                               "vendor_behavior", NULL};
     static const char *const cap_fields[] = {"phrst", "n_tones", "envelope_memory_samples",
-                                             "envelope_sample_grid", "envelope_max_abs", NULL};
-    static const char *const budget_fields[] = {"id", "limit", "cost_model", "evidence", NULL};
+                                             "envelope_sample_grid", "envelope_max_abs",
+                                             "envelope_memory_scope", NULL};
+    static const char *const budget_fields[] = {"id", "limit", "cost_model", "evidence",
+                                                "scope", "channels", NULL};
     static const char *const cost_fields[] = {"kind", "per_item", "overhead", "reserved_min",
-                                              "reserved_max", NULL};
+                                              "reserved_max", "per_element_max", NULL};
 
     ctx.arena = a;
     ctx.diag = diag;
@@ -734,6 +746,14 @@ bool parse_descriptor(Arena *a, const char *bytes, size_t len, Descriptor *out, 
                     return false;
                 caps.has_envelope_max_abs = true;
             }
+            if ((v = json_get(capo, "envelope_memory_scope")) != NULL) {
+                Str scope;
+                if (!get_string(c, v, "capabilities.envelope_memory_scope", &scope)) return false;
+                if (str_eq_lit(scope, "frame"))
+                    caps.envelope_memory_per_frame = true;
+                else if (!str_eq_lit(scope, "channel"))
+                    return fail(c, "capabilities.envelope_memory_scope: expected \"channel\" or \"frame\"");
+            }
         }
 
         if (!require_field_s(c, co, "constraints", name, &v)) return false;
@@ -807,6 +827,10 @@ bool parse_descriptor(Arena *a, const char *bytes, size_t len, Descriptor *out, 
             if (!get_int(c, v, "cost_model.reserved_max", &cm.reserved_max)) return false;
             cm.has_reserved_max = true;
         }
+        if ((v = json_get(cmo, "per_element_max")) != NULL) {
+            if (!get_int(c, v, "cost_model.per_element_max", &cm.per_element_max)) return false;
+            cm.has_per_element_max = true;
+        }
         if ((v = json_get(bo, "evidence")) != NULL) {
             const JsonValue *ignored;
             if (!get_array(c, v, "budget.evidence", &ignored)) return false;
@@ -817,6 +841,30 @@ bool parse_descriptor(Arena *a, const char *bytes, size_t len, Descriptor *out, 
         if (!require_field(c, bo, "limit", "budgets[]", &v)) return false;
         if (!get_int(c, v, "budget.limit", &budgets[i].limit)) return false;
         budgets[i].cost = cm;
+
+        budgets[i].per_frame = false;
+        budgets[i].channels = NULL;
+        budgets[i].n_channels = 0;
+        if ((v = json_get(bo, "scope")) != NULL) {
+            Str scope;
+            if (!get_string(c, v, "budget.scope", &scope)) return false;
+            if (str_eq_lit(scope, "frame"))
+                budgets[i].per_frame = true;
+            else if (!str_eq_lit(scope, "program"))
+                return fail(c, "budget.scope: expected \"program\" or \"frame\"");
+        }
+        if ((v = json_get(bo, "channels")) != NULL) {
+            const JsonValue *ch_arr = NULL;
+            Str *chs;
+            if (!get_array(c, v, "budget.channels", &ch_arr)) return false;
+            chs = arena_array(a, ch_arr->as.array.len + 1, sizeof *chs);
+            if (chs == NULL) return fail(c, "out of memory");
+            for (k = 0; k < ch_arr->as.array.len; k++)
+                if (!get_name(c, ch_arr->as.array.items[k], "budget.channels[]", &chs[k]))
+                    return false;
+            budgets[i].channels = chs;
+            budgets[i].n_channels = ch_arr->as.array.len;
+        }
     }
     out->budgets = budgets;
     out->n_budgets = arr->as.array.len;

@@ -47,8 +47,9 @@ CONFIGS = {
 
 
 def load_manifest():
-    """Corpus cases that carry a verdict. Exit-3 cases have no report and
-    tell us nothing about lowering, so they are skipped by name."""
+    """Corpus cases that carry a verdict, on a QICK descriptor. Exit-3 cases
+    have no report and tell us nothing about lowering, and a case on another
+    vendor's descriptor belongs to that vendor's preflight."""
     rows = []
     path = ROOT / "tests" / "golden" / "manifest.tsv"
     for line in path.read_text().splitlines():
@@ -56,6 +57,9 @@ def load_manifest():
             continue
         name, desc, prog, code, report = line.split("\t")
         if report == "-":
+            continue
+        doc = json.loads((ROOT / "tests" / "golden" / desc).read_text())
+        if doc["identification"]["library"]["name"] != "qick":
             continue
         rows.append((name, desc, prog, int(code)))
     return rows

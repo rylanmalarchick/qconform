@@ -58,7 +58,9 @@ grids differ per quantity on one channel.
    "capabilities": {...}, "constraints": [...], "vendor_behavior": [...]}
 
 capabilities: phrst (bool), n_tones (mux), envelope_memory_samples,
-envelope_sample_grid, envelope_max_abs.
+envelope_sample_grid, envelope_max_abs, envelope_memory_scope ("channel",
+the default, or "frame": the memory belongs to each frame, as a Qblox
+sequencer's does).
 
 The envelope_sample_grid and envelope_amplitude constraints restate
 envelope_sample_grid and envelope_max_abs. The checker refuses a descriptor
@@ -77,6 +79,24 @@ model (fatal | vendor_repairable), and mandatory `evidence`:
                     checks the range AFTER mixer subtraction (QICK
                     interpolated gens do)
   grid_samples      integer grid (envelope length multiple)
+
+Optional fields on a constraint:
+
+  saturate_max      on amplitude_range or envelope_amplitude, inside
+                    [min, max). A value that rounds above it and is not
+                    above max is accepted and clamped to it, a repair. Qblox
+                    gain is a signed 16-bit register, so +1.0 becomes
+                    32767/32768 and -1.0 stays exact
+  initial_phase_update
+                    on start_spacing. A frame whose initial phase is not zero
+                    starts with a phase update at time 0. Qblox drops the
+                    phase of a clock resource, so the phase is set by an
+                    update
+
+The spacing rules (start_spacing, frequency_update_spacing, capture_spacing)
+are range_units with min_units. schedule_grid may be declared, with no
+parameters, to set its severity: fatal where the toolchain refuses an
+off-grid start (Qblox).
 
 evidence: [{"config", "axis", "note_contains", "outcome"}]. Each entry
 points into the survey catalog rows that show the constraint.
@@ -104,6 +124,12 @@ Whole-program resource limits with survey-calibrated cost models:
   {"id": "pmem_words", "limit": 4096,
    "cost_model": {"kind": "linear", "per_item": 1, "overhead": 14},
    "evidence": [...]}
+
+A budget may carry "scope": "frame" (pmem_words only) and "channels": the
+count is then kept per frame, over the frames of those channels, as a Qblox
+sequencer's instruction memory is. A cost model may carry per_element_max,
+the most words one element can cost. The upper bound is then
+per_element_max * elements + overhead instead of two words per element.
 
 kinds: linear (pmem = per_item * n + overhead, and wmem likewise) and
 indeterminate_band (loop_registers: reserved_min/reserved_max bound

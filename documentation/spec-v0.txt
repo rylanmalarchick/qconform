@@ -29,7 +29,7 @@ refuses to guess through.
 
 2. the rules
 ------------
-Sixteen rules, in registry order. The registry is append-only: an id is never
+Nineteen rules, in registry order. The registry is append-only: an id is never
 renamed, renumbered or reused, and a retired id keeps its slot.
 
   R1   pulse_length_range      a play on a drive channel, in channel units,
@@ -37,7 +37,8 @@ renamed, renumbered or reused, and a retired id keeps its slot.
   R2   pulse_length_grid       a play or capture duration not a whole number
                                of channel cycles. Checked only when the
                                constraint is declared; a readout declares it
-                               too
+                               too. A repair where the toolchain rounds
+                               (QICK), fatal where it refuses (Qblox)
   R3   readout_length_range    a capture outside the declared min or max
   R4   frequency_range         a frame frequency outside the declared band,
                                checked when the frequency is set, whether or
@@ -52,7 +53,10 @@ renamed, renumbered or reused, and a retired id keeps its slot.
                                declared step
   R6   phase_resolution        a phase that is not a whole multiple of the
                                declared step
-  R7   amplitude_range         a constant amplitude outside the declared range
+  R7   amplitude_range         a constant amplitude outside the declared range.
+                               With saturate_max, an amplitude that rounds
+                               above it and is not above max is a repair: the
+                               toolchain clamps it (Qblox +1.0)
   R8   amplitude_resolution    an amplitude that is not a whole multiple of
                                the declared step
   R9   envelope_sample_grid    a sample count that is not a whole multiple of
@@ -63,11 +67,17 @@ renamed, renumbered or reused, and a retired id keeps its slot.
                                capabilities.envelope_max_abs. Checked only
                                when the constraint is declared, and the
                                constraint must be [-1, 1] with resolution
-                               1/envelope_max_abs
-  R11  envelope_memory         envelopes on one channel exceeding its memory
+                               1/envelope_max_abs. With saturate_max, an
+                               envelope whose I or Q scales by a positive peak
+                               above it is a repair, as in R7
+  R11  envelope_memory         envelopes on one channel exceeding its memory,
+                               or on one frame when the capability says
+                               envelope_memory_scope frame
   R12  schedule_grid           an output starting off the timing grid, or a
                                barrier that does not align exactly on a member
-                               channel lattice
+                               channel lattice. The checker's own rule, a
+                               repair by default. A declared schedule_grid
+                               constraint sets its severity
   R13  negative_duration       a duration below zero
   R14  negative_time           reserved. A channel unit must be positive, a
                                negative duration does not advance the clock,
@@ -80,6 +90,20 @@ renamed, renumbered or reused, and a retired id keeps its slot.
                                n_tones. The toolchain compiles such a table,
                                so this is the one rule whose fatal severity
                                rests on the hardware and not on a refusal
+  R17  start_spacing           two operations on one frame that start at
+                               different times less than min_units apart, or
+                               a frame's last operation starting less than
+                               min_units before the program ends. An
+                               operation is a play or capture start, a
+                               set_frequency or a shift_phase. With
+                               initial_phase_update, a frame whose initial
+                               phase is not zero starts with a phase update
+                               at time 0
+  R18  frequency_update_spacing
+                               two set_frequency elements on one frame less
+                               than min_units apart, equal times included
+  R19  capture_spacing         two captures on one frame starting less than
+                               min_units apart
 
 A muxed generator carries its frequency, phase and amplitude in a tone table
 rather than in a frame, so R4 through R8 apply once per declared tone. They
@@ -87,7 +111,9 @@ are the same rules and the same coverage classes. Only the value they read
 comes from elsewhere.
 
 Three budget classes carry whole-program limits: pmem_words, wmem_words and
-loop_registers. A budget reports fits, violates or indeterminate. A violation
+loop_registers. A pmem_words budget with scope frame counts each frame
+separately, over the frames of its listed channels, and reports the largest
+bounds. A budget reports fits, violates or indeterminate. A violation
 is fatal. An indeterminate budget is never a rejection: a fatal answer must
 come from a proven lower bound.
 
@@ -110,7 +136,7 @@ A repair means the program that runs is not the program that was written.
 
 4. coverage, and what pass does not mean
 ----------------------------------------
-Every report carries a coverage manifest naming all twenty classes as
+Every report carries a coverage manifest naming all twenty-three classes as
 checked, not_applicable, unchecked or indeterminate.
 
 pass means exactly this: no violation was found among the classes marked
@@ -156,9 +182,10 @@ Measured against asm_v2 on 2026-09-06, qick 0.2.418:
 
 Coverage counts a class as covered when the corpus contains a program where it
 fires and a program where it is checked and does not fire. Seventeen of the
-twenty classes are reachable, and a descriptor reaches only the classes its
-channels declare: testbench has no muxed generator, so the two mux classes are
-not applicable there. negative_time and loop_registers are unreachable by
+twenty-three classes are reachable on the QICK descriptors, and a descriptor
+reaches only the classes its channels declare: testbench has no muxed
+generator, so the two mux classes are not applicable there. The three spacing
+classes are Qblox rules, and no QICK descriptor declares them. negative_time and loop_registers are unreachable by
 construction, stated in rule R14 and in section 2. unconstrained_channel
 reports unchecked by definition and so cannot fire.
 
