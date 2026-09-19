@@ -87,7 +87,10 @@
        apart. */ \
     X(start_spacing)                                                        \
     X(frequency_update_spacing)                                             \
-    X(capture_spacing)
+    X(capture_spacing)                                                      \
+    /* Every capture on one frame has the same duration. A Qblox sequencer
+       holds one integration length. */ \
+    X(capture_length_uniform)
 
 #define QC_REPAIR_IDS(X)  \
     X(quantize_duration)  \

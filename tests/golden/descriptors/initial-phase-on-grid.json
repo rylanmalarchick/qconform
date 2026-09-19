@@ -1163,6 +1163,26 @@
        "outcome": "accept"
       }
      ]
+    },
+    {
+     "id": "capture_length_uniform",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisitions of 100 then 200 ns on one sequencer",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisitions of 100 then 100 ns on one sequencer",
+       "outcome": "accept"
+      }
+     ]
     }
    ],
    "vendor_behavior": [

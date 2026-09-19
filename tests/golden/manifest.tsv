@@ -30,6 +30,7 @@ qblox-envelope-saturates	descriptors/qblox-qcm-qrm.json	qblox-envelope-saturates
 qblox-envelope-memory-per-frame	descriptors/qblox-qcm-qrm.json	qblox-envelope-memory-per-frame/program.json	0	qblox-envelope-memory-per-frame/expected.json
 qblox-off-grid-duration	descriptors/qblox-qcm-qrm.json	qblox-off-grid-duration/program.json	1	qblox-off-grid-duration/expected.json
 qblox-capture-spacing	descriptors/qblox-qcm-qrm.json	qblox-capture-spacing/program.json	1	qblox-capture-spacing/expected.json
+qblox-capture-lengths-differ	descriptors/qblox-qcm-qrm.json	qblox-capture-lengths-differ/program.json	1	qblox-capture-lengths-differ/expected.json
 qblox-budget-per-frame	descriptors/qblox-small-budget.json	qblox-budget-per-frame/program.json	0	qblox-budget-per-frame/expected.json
 malformed-float	descriptors/testbench.json	malformed-float/program.json	3	-
 malformed-dup-id	descriptors/testbench.json	malformed-dup-id/program.json	3	-

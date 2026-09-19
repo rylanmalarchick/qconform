@@ -261,6 +261,14 @@ CASES = {
         waveforms=[],
         channels=[{"name": "q0_res", "unit": NS}],
         frames=[qframe("r0", "q0_res", 50000000)]), 1),
+    # readout axis, "acquisitions of 100 then 200 ns on one sequencer", reject
+    "qblox-capture-lengths-differ": (QBLOX_DESC, qblox_program(
+        [{"id": 0, "kind": "capture", "frame": "r0", "duration": 100},
+         {"id": 1, "kind": "delay", "frame": "r0", "duration": 900},
+         {"id": 2, "kind": "capture", "frame": "r0", "duration": 200}],
+        waveforms=[],
+        channels=[{"name": "q0_res", "unit": NS}],
+        frames=[qframe("r0", "q0_res", 50000000)]), 1),
     # a pmem_words budget with scope frame counts each frame on its own. Six
     # plays on each of two frames: 16 words at least per frame, under a limit
     # of 20, while the two together would be 22

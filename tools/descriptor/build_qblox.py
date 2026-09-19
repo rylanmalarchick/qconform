@@ -191,6 +191,12 @@ def channel(name, kind, vendor_type, cfg, capture=False):
              "severity": "fatal", "min_units": CAPTURE_SPACING_NS,
              "evidence": [ev(cfg, "readout", "second acquisition 299 ns after the first", "reject"),
                           ev(cfg, "readout", "second acquisition 300 ns after the first", "accept")]},
+            {"id": "capture_length_uniform", "quantity": "time", "shape": "range_units",
+             "severity": "fatal",
+             "evidence": [ev(cfg, "readout", "acquisitions of 100 then 200 ns on one sequencer",
+                             "reject"),
+                          ev(cfg, "readout", "acquisitions of 100 then 100 ns on one sequencer",
+                             "accept")]},
         ]
     else:
         ch["capabilities"] = {

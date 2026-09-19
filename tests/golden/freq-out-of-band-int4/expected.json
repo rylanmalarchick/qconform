@@ -31,6 +31,7 @@
   {"class": "start_spacing", "status": "not_applicable"},
   {"class": "frequency_update_spacing", "status": "not_applicable"},
   {"class": "capture_spacing", "status": "not_applicable"},
+  {"class": "capture_length_uniform", "status": "not_applicable"},
   {"class": "pmem_words", "status": "checked"},
   {"class": "wmem_words", "status": "checked"},
   {"class": "loop_registers", "status": "not_applicable"},

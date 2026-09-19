@@ -113,6 +113,7 @@ static SeverityRule severity_rule_for(RuleId id) {
     case QC_RULE_start_spacing:
     case QC_RULE_frequency_update_spacing:
     case QC_RULE_capture_spacing:
+    case QC_RULE_capture_length_uniform:
         return SEV_FATAL_ONLY;
     case QC_RULE_phase_resolution:
         return SEV_REPAIRABLE_ONLY;
@@ -154,6 +155,7 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
                 ok = c->has_min_units || c->has_max_units
                      || c->id == QC_RULE_pulse_length_grid
                      || c->id == QC_RULE_schedule_grid
+                     || c->id == QC_RULE_capture_length_uniform
                      || c->id == QC_RULE_mux_tone_mask
                      || c->id == QC_RULE_mux_tone_count;
                 break;
@@ -326,6 +328,9 @@ typedef struct {
     bool has_freq_update;
     int64_t last_capture;
     bool has_capture;
+    /* the duration of the first capture, for capture_length_uniform */
+    int64_t capture_length;
+    bool has_capture_length;
     /* Elements on this frame, and outputs among them, for a per-frame
      * budget. */
     int64_t n_elements;
@@ -846,6 +851,33 @@ static bool note_event(Check *k, FrameState *states, uint32_t frame, int64_t ele
     return extend_end(k, frame, t);
 }
 
+/* capture_length_uniform: the first capture on a frame fixes the length, and
+ * every later capture on it must match. */
+static bool check_capture_length(Check *k, const CapChannel *dc, FrameState *st,
+                                 int64_t units, int64_t element) {
+    const Constraint *c = find_constraint(dc, QC_RULE_capture_length_uniform);
+    if (c == NULL) return true;
+    cover(k, QC_COV_capture_length_uniform, QC_CSTAT_checked);
+    if (!st->has_capture_length) {
+        st->has_capture_length = true;
+        st->capture_length = units;
+        return true;
+    }
+    if (units != st->capture_length) {
+        Rejection r;
+        r.rule = QC_COV_capture_length_uniform;
+        r.severity = QC_SEV_fatal;
+        r.has_repair = false;
+        r.repair = QC_REPAIR_quantize_duration;
+        r.element = element;
+        r.quantity = QC_QTY_time;
+        if (!scale(k, dc->unit, units, &r.value)) return false;
+        if (!scale(k, dc->unit, st->capture_length, &r.limit)) return false;
+        if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+    }
+    return true;
+}
+
 /* Convert a program-unit duration to descriptor units, checking sign,
  * exactness, grid and range; advance the frame clock. */
 static bool advance(Check *k, FrameState *states, uint32_t frame, int64_t duration,
@@ -1084,6 +1116,7 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
         states[i].has_event = false;
         states[i].has_freq_update = false;
         states[i].has_capture = false;
+        states[i].has_capture_length = false;
         states[i].n_elements = 0;
         states[i].n_outputs = 0;
     }
@@ -1245,6 +1278,7 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
                 return false;
             if (!advance(k, states, frame, dur, el->id, true, &units)) return false;
             if (!extend_end(k, frame, st->clock)) return false;
+            if (!is_play && !check_capture_length(k, dc, st, units, el->id)) return false;
 
             if (is_play) {
                 uint32_t pci = prog->frames[frame].channel;
