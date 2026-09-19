@@ -27,12 +27,12 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))   # tools/, for the oracle package
 
-from oracle.qblox.toolchain import Toolchain, error, timeline   # noqa: E402
+from oracle.qblox.toolchain import Toolchain, error, parse_program, timeline   # noqa: E402
 
 from probes import build_probes   # noqa: E402
 
 AXES = ("length", "timing", "freq", "phase", "gain", "envelope", "readout",
-        "budget_instr", "spacing", "config")
+        "budget_instr", "spacing", "cost", "config")
 GAIN_FULL_SCALE = 32768        # set_awg_gain and set_awg_offs units per 1.0
 NCO_FREQ_STEPS_PER_HZ = 4      # set_freq units
 NCO_PHASE_STEPS = 10 ** 9      # set_ph_delta units per turn
@@ -43,7 +43,7 @@ def build_schedule(probe):
 
     s = qs.Schedule(probe["note"])
     for name, freq in sorted(probe["clocks"].items()):
-        s.add_resource(qs.ClockResource(name, freq))
+        s.add_resource(qs.ClockResource(name, freq, phase=probe["clock_phases"].get(name, 0)))
     first = None
     t_first = None
     for spec in probe["ops"]:
@@ -118,6 +118,19 @@ def observe(tc, probe, result):
         gains = sorted({int(e["args"][0]) for e in events if e["op"] == "set_awg_gain"})
         obs["gains"] = gains
         obs["merged"] = any(g not in asked for g in gains)
+    elif param == "clock_phase":
+        # the NCO phase the sequencer starts with: the offset setting plus
+        # any phase instruction before the first play
+        seqr = getattr(tc.module(mod), "sequencer" + seq[3:])
+        early = [int(e["args"][0]) for e in events
+                 if e["op"] in ("set_ph", "set_ph_delta") and e["t"] == 0]
+        obs["raw"] = early
+        obs["readback"] = float(seqr.nco_phase_offs()) + sum(early) * 360 / NCO_PHASE_STEPS
+    elif param == "instructions":
+        # the instruction memory holds the program text, so a loop counts
+        # once however often it runs
+        obs["readback"] = static_instructions(st.sequence["program"])
+        del obs["events"]
     elif param == "clock_frequency":
         obs["readback"] = float(getattr(tc.module(mod), "sequencer" + seq[3:]).nco_freq())
     elif param == "set_frequency":
@@ -135,6 +148,8 @@ def observe(tc, probe, result):
                 if e["op"] in ("set_awg_gain", "set_awg_offs") and e["args"][0] != "0"]
         obs["raw"] = vals
         obs["readback"] = vals[0] / GAIN_FULL_SCALE if vals else 0.0
+    elif param == "samples" and probe["axis"] == "budget_instr":
+        obs["readback"] = sum(len(d) for d in waves.values())
     elif param in ("samples", "envelope_scale"):
         # The scheduler splits a waveform into a normalized shape and a gain
         # of its largest magnitude. The gain register is quantized here and
@@ -153,9 +168,13 @@ def observe(tc, probe, result):
         obs["readback"] = st.integration_length_acq
     elif param == "n_pulses":
         obs["readback"] = sum(1 for e in events if e["op"] == "play")
-        obs["instructions"] = len(st.sequence["program"].splitlines())
+        obs["instructions"] = static_instructions(st.sequence["program"])
         del obs["events"]
     return obs
+
+
+def static_instructions(program):
+    return sum(1 for _, op, _ in parse_program(program) if op is not None)
 
 
 def pulse_duration(events, waves):
@@ -173,6 +192,8 @@ def pulse_duration(events, waves):
 
 def classify(probe, obs):
     rb = obs.get("readback")
+    if probe["param"] == "instructions":
+        return "accept"   # a measurement, not a request
     if obs.get("merged"):
         return "accept_round"
     if rb is None:

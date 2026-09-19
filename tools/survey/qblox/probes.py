@@ -44,10 +44,10 @@ def acquire(t, dur, where=READOUT, probed=False):
             "duration": dur, "probed": probed}
 
 
-def probe(axis, param, requested, note, ops, clocks=None):
+def probe(axis, param, requested, note, ops, clocks=None, clock_phases=None):
     return {"axis": axis, "param": param, "requested": requested, "note": note,
             "clocks": clocks or {DRIVE[1]: DRIVE[2], READOUT[1]: READOUT[2]},
-            "ops": ops}
+            "clock_phases": clock_phases or {}, "ops": ops}
 
 
 def length_probes():
@@ -113,6 +113,12 @@ def freq_probes():
 
 def phase_probes():
     out = []
+    # a clock resource takes a phase; does the backend use it
+    for p, note in ((45, "45 deg"), (10.0000001, "10.0000001 deg")):
+        out.append(probe("phase", "clock_phase", p, f"ClockResource phase {note}",
+                         [square(0, 20, probed=True)],
+                         clocks={DRIVE[1]: DRIVE[2], READOUT[1]: READOUT[2]},
+                         clock_phases={DRIVE[1]: p}))
     for p, note in ((0, "0 deg"), (10, "10 deg"), (10.0000001, "10.0000001 deg"),
                     (360 / 1e9, "one NCO phase step"), (180 / 1e9, "half a step"),
                     (359.9999999, "359.9999999 deg"), (360, "360 deg"),
@@ -184,6 +190,57 @@ def budget_probes():
         ops = [square(24 * k, 20, 0.5 if k % 2 else 0.25) for k in range(n)]
         ops[-1]["probed"] = True
         out.append(probe("budget_instr", "n_pulses", n, f"{n} square pulses in a row", ops))
+    # the QRM holds 12288
+    for n in (6100, 6200):
+        ops = [square(24 * k, 20, 0.5 if k % 2 else 0.25, where=READOUT) for k in range(n)]
+        ops[-1]["probed"] = True
+        out.append(probe("budget_instr", "n_pulses", n, f"{n} readout-port pulses in a row", ops))
+    # the limit is per sequencer: two clocks on one port, 8000 pulses each
+    clocks = {DRIVE[1]: DRIVE[2], DRIVE2[1]: DRIVE2[2], READOUT[1]: READOUT[2]}
+    ops = []
+    for k in range(8000):
+        ops.append(square(24 * k, 20, 0.5 if k % 2 else 0.25))
+        ops.append(square(24 * k, 20, 0.5 if k % 2 else 0.25, where=DRIVE2))
+    ops[-1]["probed"] = True
+    out.append(probe("budget_instr", "n_pulses", 8000,
+                     "8000 pulses on each of two clocks of one port", ops, clocks=clocks))
+    # waveform memory is per sequencer too
+    out.append(probe("budget_instr", "samples", 16384,
+                     "16384-sample waveform on each of two clocks of one port",
+                     [numerical(0, [0.5] * 16384),
+                      numerical(0, [0.25] * 16384, where=DRIVE2, probed=True)],
+                     clocks=clocks))
+    return out
+
+
+def cost_probes():
+    """Instructions each kind of element costs, across durations. The
+    readback is the length of the probed sequencer's loop body in
+    instructions; the baseline row is one 20 ns pulse."""
+    out = [probe("cost", "instructions", "baseline", "one 20 ns pulse",
+                 [square(0, 20, probed=True)])]
+    for d in (20, 3000, 65535, 65536, 131072, 1000000, 16777216):
+        out.append(probe("cost", "instructions", f"square {d}", f"one {d} ns square pulse",
+                         [square(0, d, probed=True)]))
+    for gap in (100, 65535, 65536, 131072, 1000000, 16777216):
+        out.append(probe("cost", "instructions", f"gap {gap}",
+                         f"two 20 ns pulses with a {gap} ns gap",
+                         [square(0, 20), square(20 + gap, 20, 0.3, probed=True)]))
+    for n in (8, 1000, 16384):
+        out.append(probe("cost", "instructions", f"numerical {n}",
+                         f"one {n}-sample numerical pulse",
+                         [numerical(0, [0.5] * n, probed=True)]))
+    out.append(probe("cost", "instructions", "set_frequency",
+                     "pulse, SetClockFrequency, pulse",
+                     [square(0, 20), set_frequency(20, 120e6, probed=False),
+                      square(24, 20, 0.3, probed=True)]))
+    out.append(probe("cost", "instructions", "shift_phase",
+                     "pulse, ShiftClockPhase, pulse",
+                     [square(0, 20), shift_phase(20, 10, probed=False),
+                      square(24, 20, 0.3, probed=True)]))
+    for d in (100, 1000000):
+        out.append(probe("cost", "instructions", f"acquire {d}", f"one {d} ns acquisition",
+                         [acquire(0, d, probed=True)]))
     return out
 
 
@@ -210,6 +267,16 @@ def spacing_probes():
                          [square(0, 20), set_frequency(24, 120e6, probed=False),
                           set_frequency(24 + gap, 130e6, probed=False),
                           square(24 + 20 + gap, 20, 0.3, probed=True)]))
+    # NCO updates at the same time: frequency and phase keep separate tracks
+    for a_op, b_op, note in (
+            (set_frequency(24, 120e6, probed=False), set_frequency(24, 130e6, probed=False),
+             "two SetClockFrequency at the same time"),
+            (shift_phase(24, 10, probed=False), shift_phase(24, 20, probed=False),
+             "two ShiftClockPhase at the same time"),
+            (set_frequency(24, 120e6, probed=False), shift_phase(24, 20, probed=False),
+             "SetClockFrequency and ShiftClockPhase at the same time")):
+        out.append(probe("spacing", "start", 24, note,
+                         [square(0, 20), a_op, b_op, square(24, 20, 0.3, probed=True)]))
     # a pulse right at the end of the schedule, when another port runs longer
     for d in (1, 2, 3):
         out.append(probe("spacing", "duration", d,
@@ -235,4 +302,4 @@ def spacing_probes():
 def build_probes():
     return (length_probes() + timing_probes() + freq_probes() + phase_probes()
             + gain_probes() + envelope_probes() + readout_probes() + budget_probes()
-            + spacing_probes())
+            + spacing_probes() + cost_probes())
