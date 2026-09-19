@@ -24,10 +24,8 @@ from fractions import Fraction
 import numpy as np
 from qick.asm_v2 import AveragerProgramV2
 
-
-def rat(d):
-    """A qconform {"num": N, "den": D} as an exact Fraction."""
-    return Fraction(d["num"], d["den"])
+from oracle.base import Loss, LoweringError, rat, round_half_even
+from oracle.base import Plan as BasePlan
 
 
 def channel_index(name):
@@ -78,66 +76,11 @@ def declare_kwargs(soccfg, ch, mixer_hz=None, tones=None):
     return kw
 
 
-def round_half_even(value):
-    """Round a Fraction to the nearest integer, ties to even.
-
-    This is the rounding mode the descriptor declares for time, so the grid
-    cell computed here is the cell the vendor would land in.
-    """
-    floor = value.numerator // value.denominator
-    rem = value - floor
-    if rem < Fraction(1, 2):
-        return floor
-    if rem > Fraction(1, 2):
-        return floor + 1
-    return floor if floor % 2 == 0 else floor + 1
-
-
-class Loss:
-    """What the conversion to a double cost, for one value.
-
-    exact      the value qconform means, as a Fraction
-    passed     the double actually handed to the vendor, as a Fraction
-    grid       the grid step the vendor quantizes to, or None
-    same_cell  whether both land in the same grid cell
-    """
-
-    def __init__(self, kind, element_id, exact, passed_double, grid=None):
-        self.kind = kind
-        self.element_id = element_id
-        self.exact = exact
-        self.passed = Fraction(passed_double)
-        self.grid = grid
-        if grid is None or grid == 0:
-            self.same_cell = self.exact == self.passed
-        else:
-            self.same_cell = (round_half_even(self.exact / grid)
-                              == round_half_even(self.passed / grid))
-
-    def as_row(self):
-        return {
-            "kind": self.kind,
-            "element": self.element_id,
-            "exact": [self.exact.numerator, self.exact.denominator],
-            "passed": [self.passed.numerator, self.passed.denominator],
-            "same_cell": self.same_cell,
-        }
-
-
-class LoweringError(Exception):
-    """The program cannot be expressed in the vendor API at all.
-
-    This is not a vendor rejection. It means the harness cannot ask the
-    question, and the row must be recorded as such rather than counted as
-    either agreement or disagreement.
-    """
-
-
-class Plan:
-    """The vendor calls a program lowers to, computed before any vendor object
-    exists so the translation can be inspected and tested on its own."""
+class Plan(BasePlan):
+    """The asm_v2 calls a program lowers to."""
 
     def __init__(self):
+        super().__init__()
         self.declare_gens = []      # kwargs for declare_gen
         self.declare_readouts = []  # (ch, length_us)
         self.envelopes = []         # (ch, name, idata, qdata)
@@ -157,22 +100,6 @@ class Plan:
         # seconds), in program order. run.py compares these against the times
         # the compiled instruction stream actually carries.
         self.schedule = []
-        # Barriers whose alignment did not land exactly on a member channel's
-        # lattice. The lowering rounds there, and so does the checker, so by
-        # the time a start time is compared the repair has already been
-        # applied on both sides and looks like no change. Recording the
-        # rounding is what keeps that case distinguishable from a real
-        # over-prediction.
-        self.barrier_roundings = []
-        self.losses = []
-
-    def loss_rows(self):
-        return [l.as_row() for l in self.losses]
-
-    def lost_cells(self):
-        """Elements where the double landed in a different grid cell. These
-        make the row harness-attributable."""
-        return [l.as_row() for l in self.losses if not l.same_cell]
 
 
 def build_plan(program, descriptor, soccfg):

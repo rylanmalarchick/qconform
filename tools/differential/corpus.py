@@ -36,7 +36,12 @@ import json
 from fractions import Fraction
 from pathlib import Path
 import random
+import sys
 import zlib
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import oracle   # noqa: E402
 
 
 def rat(f):
@@ -698,19 +703,16 @@ def build_corpus(descriptor_path, seed, random_programs=40, config_path=None):
 
     # A channel whose frequency_range is post_mixer must declare the mixer it
     # is configured with. The checker refuses the program otherwise, because
-    # it cannot know the band the device sees. The value comes from the config
-    # so the program describes the same device the oracle will compile for.
+    # it cannot know the band the device sees. The oracle reads the value from
+    # the config, so the program describes the device it will compile for.
     if config_path is not None:
-        cfg = json.loads(Path(config_path).read_text())
+        vendor = oracle.load(d.raw, config_path)
         for ch in d.raw["channels"]:
             if ch["kind"] != "drive":
                 continue
             if not any(c.get("post_mixer") for c in ch["constraints"]):
                 continue
-            idx = int(ch["name"][3:])
-            g = cfg["gens"][idx]
-            if g.get("has_mixer"):
-                ch["_mixer_hz"] = Fraction(str(g["f_dds"])) * 1_000_000 / 4
+            ch.update(vendor.channel_defaults(ch))
 
     cases = []
     # One representative generator per behavior class. A mux or interpolated

@@ -1,8 +1,12 @@
 differential
 ============
 
-Phase 5 evidence: qconform's verdict against the QICK asm_v2 toolchain, over
-a generated corpus, on every distinct channel class a descriptor declares.
+Phase 5 evidence: qconform's verdict against a vendor toolchain, over a
+generated corpus, on every distinct channel class a descriptor declares.
+
+The vendor side is an oracle backend in tools/oracle/. The descriptor names
+its library in identification.library.name, and that picks the backend. Today
+the one backend is QICK asm_v2 (tools/oracle/qick/).
 
 This is not tests/difftest.py. That one compares two qconform implementations
 against each other. This one compares qconform against the vendor.
@@ -28,17 +32,23 @@ What each part does
                      representative per channel class, because a corpus that
                      probes one generator cannot reach the rules the others
                      carry. Seeded, and byte-identical on a rerun.
+  run.py             Records both answers per program, plus the raw registers.
+                     It asks the oracle to plan, compile and observe each
+                     program. It imports no vendor package.
+  triage.py          Dispositions every row and prints the gate.
+
+In tools/oracle/, per backend:
+
   lower.py           Turns a qconform program into vendor calls. Pure: the
                      plan is computed before any vendor object exists, so the
                      translation can be inspected on its own. Refuses what it
                      cannot express rather than guessing.
-  run.py             Records both answers per program, plus the raw registers.
-                     get_pulse_param reports what was asked for; the register
-                     is what the hardware sees, and the two differ exactly
-                     where the vendor accepts what it cannot represent.
-  triage.py          Dispositions every row and prints the gate.
-  check_lowering.py  Pre-flight. Every golden program the checker accepts must
-                     lower and compile. Run it before trusting a result.
+  observe.py         Reads back what the vendor did. For QICK, get_pulse_param
+                     reports what was asked for. The register is what the
+                     hardware sees, and the two differ exactly where the
+                     vendor accepts what it cannot represent.
+  preflight.py       Every golden program the checker accepts must lower and
+                     compile. make differential runs it first.
 
 Reading the result
 ------------------
@@ -51,5 +61,5 @@ The two directions are not equally serious.
 
 An open row is unfinished work and not a result.
 
-The oracle is a function of the qick version. A different release is a
-different result, which is why the pin is exact.
+The oracle is a function of the vendor library version. A different release
+is a different result, which is why the pin is exact.

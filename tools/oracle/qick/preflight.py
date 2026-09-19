@@ -1,4 +1,4 @@
-"""Prove the lowering before anything is generated with it.
+"""Prove the QICK lowering before anything is generated with it.
 
 Two checks, both free, both run against programs that already exist.
 
@@ -15,7 +15,7 @@ Two checks, both free, both run against programs that already exist.
    reports post-quantization values, so a difference is expected wherever
    the vendor quantized. A difference anywhere else is a lowering bug.
 
-Usage: python tools/differential/check_lowering.py
+Usage: python tools/oracle/qick/preflight.py
 """
 
 import json
@@ -25,8 +25,8 @@ import warnings
 from fractions import Fraction
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tools" / "differential"))
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "tools" / "exporter"))
 
 warnings.filterwarnings("ignore")
@@ -34,7 +34,8 @@ logging.getLogger().setLevel(logging.ERROR)
 
 from qick.qick_asm import QickConfig            # noqa: E402
 
-from lower import lower, LoweringError, rat     # noqa: E402
+from oracle.base import LoweringError           # noqa: E402
+from oracle.qick.lower import lower             # noqa: E402
 
 CONFIGS = {
     "descriptors/testbench.json": "zcu216-testbench.json",

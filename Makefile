@@ -76,7 +76,7 @@ sanitize:
 # vendor toolchain; see tools/differential/README.txt. Not part of `check`:
 # it depends on a Python environment the checker itself does not need.
 differential: $(BIN)
-	@$(SURVEY_PY) tools/differential/check_lowering.py
+	@$(SURVEY_PY) tools/oracle/qick/preflight.py
 	@set -e; for c in testbench qce2025-r26 rb-r27; do \
 		echo "=== $$c ==="; \
 		rm -rf $(DIFF_OUT)-$$c; \

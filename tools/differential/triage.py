@@ -39,7 +39,12 @@ Usage: python tools/differential/triage.py <results.jsonl> <descriptor.json>
 import argparse
 import collections
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import oracle   # noqa: E402
 
 # Repairs the harness cannot observe. Empty: run.py now recovers start times
 # from the compiled instruction stream, so schedule_grid is observable too.
@@ -50,24 +55,9 @@ REFUSED = ("reject", "crash")
 
 
 # Which documented vendor behavior explains a rule firing while the vendor
-# still compiles. The descriptor lists the behaviors and the rules separately
-# and does not link them, so the link is stated here.
-#
-# In each of these the vendor accepts the program and emits a register it
-# cannot honor. A frequency past the DDS range wraps, a gain past full scale
-# stays out of range, and an envelope past memory overruns at board load. The
-# consequence is at run time, so compile-time acceptance is not disagreement.
-# One rule can have different documented behavior on different channel classes,
-# so each maps to a set and a row is vendor_lenient when the descriptor
-# declares any of them. A v6 aliases an out-of-band frequency; a mux channel
-# folds the tone onto its Nyquist image instead.
-RULE_TO_BEHAVIOR = {
-    "frequency_range": {"frequency_alias_mod_f_dds",
-                        "mux_tone_nyquist_image_fold"},
-    "amplitude_range": {"gain_over_full_scale"},
-    "envelope_memory": {"envelope_memory_overflow_unchecked"},
-    "mux_tone_count": {"mux_tone_count_unchecked"},
-}
+# still compiles. Each oracle backend states the link for its own vendor, next
+# to the lowering that meets the behavior. See tools/oracle/qick/__init__.py.
+RULE_TO_BEHAVIOR = oracle.rule_to_behavior()
 
 
 # The readback quantity each repair-carrying rule predicts a change to. The
