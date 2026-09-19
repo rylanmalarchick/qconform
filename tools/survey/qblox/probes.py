@@ -180,6 +180,11 @@ def readout_probes():
     for gap in (299, 300):
         out.append(probe("readout", "start", gap, f"second acquisition {gap} ns after the first",
                          [acquire(0, 100), acquire(gap, 100, probed=True)]))
+    # one integration length per sequencer
+    for d1, d2 in ((100, 100), (100, 200), (200, 100)):
+        out.append(probe("readout", "integration_length", d2,
+                         f"acquisitions of {d1} then {d2} ns on one sequencer",
+                         [acquire(0, d1), acquire(1000, d2, probed=True)]))
     return out
 
 
