@@ -44,3 +44,13 @@ zcu216-qce2025-r26.json
   Faithfulness: reconstruct_check.py reproduces the published dump
   byte-for-byte up to the "QICK box daughter cards" section (printed by
   the RF-board runtime, not by QickConfig; excluded by design).
+
+qblox-qcm-qrm.json
+  A qblox-scheduler hardware compilation config, written by hand for the
+  Qblox survey. It is not captured from a board: the Qblox toolchain runs
+  offline against a dummy cluster that the survey builds from this file's
+  hardware_description. One cluster with a QCM in slot 2 (complex output 0
+  wired to port q0:mw) and a QRM in slot 4 (complex output 0 and complex
+  input 0 wired to port q0:res). No hardware options: with no LO and no
+  interm_freq, the scheduler sets each sequencer's NCO to its clock
+  frequency. The slot numbers carry no meaning.

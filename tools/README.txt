@@ -66,8 +66,8 @@ pair, so requirements.txt files pin exact versions. A survey re-run under a
 different qick release is a different survey and produces a different
 descriptor, by design. See documentation/descriptor-format-v0.txt.
 
-A re-run tests the pin. Under qick 0.2.418 and numpy 2.5.1 the survey
-rewrites all 45 files in survey/catalog/ byte-identically. That test is
+A re-run tests the pin. Under qick 0.2.418 and numpy 2.5.1 the QICK survey
+rewrites all 45 of its files in survey/catalog/ byte-identically. That test is
 how the numpy pin was corrected: it read 2.4.6 while every committed row
 recorded 2.5.1.
 

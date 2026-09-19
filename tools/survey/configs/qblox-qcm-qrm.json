@@ -1,0 +1,21 @@
+{
+  "config_type": "QbloxHardwareCompilationConfig",
+  "hardware_description": {
+    "cluster0": {
+      "instrument_type": "Cluster",
+      "ref": "internal",
+      "modules": {
+        "2": {"instrument_type": "QCM"},
+        "4": {"instrument_type": "QRM"}
+      }
+    }
+  },
+  "hardware_options": {},
+  "connectivity": {
+    "graph": [
+      ["cluster0.module2.complex_output_0", "q0:mw"],
+      ["cluster0.module4.complex_output_0", "q0:res"],
+      ["cluster0.module4.complex_input_0", "q0:res"]
+    ]
+  }
+}
