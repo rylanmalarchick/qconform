@@ -16,7 +16,7 @@ from pathlib import Path
 from qick.qick_asm import QickConfig
 
 HERE = Path(__file__).parent
-CONFIGS = HERE / "configs"
+CONFIGS = HERE.parent / "configs"
 
 PAIRS = [
     ("zcu216-rb-r27.json", "zcu216-rb-r27.dump.txt"),

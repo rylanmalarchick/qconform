@@ -15,7 +15,7 @@ one channel clock cycle = duration_grid * dt and one tProc timing tick
 two-clock reality (durations on the fabric clock, schedule times on the
 tProc clock) representable without floats.
 
-Usage: python build_descriptor.py   (writes descriptors/*.json)
+Usage: python build_qick.py   (writes descriptors/*.json)
 """
 
 import json

@@ -1,6 +1,6 @@
 """Black-box probe runner: feed programs to asm_v2, record what it does.
 
-Usage: python runner.py configs/<name>.json [outdir]
+Usage: python tools/survey/qick/runner.py tools/survey/configs/<name>.json [outdir]
 
 For each probe from probes.py, builds a fresh AveragerProgramV2 against
 the config, compiles with no hardware, and classifies the outcome:
@@ -285,7 +285,7 @@ def run_probe(soccfg, probe):
 
 def main():
     cfg_path = Path(sys.argv[1])
-    outdir = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parent / 'catalog'
+    outdir = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parents[1] / 'catalog'
     outdir.mkdir(exist_ok=True)
     cfg_name = cfg_path.stem
 

@@ -49,7 +49,7 @@ def declare_kwargs(soccfg, ch, mixer_hz=None, tones=None):
     vendor reject the program for a reason the program did not cause, which
     would be recorded as a disagreement that is really a harness bug.
 
-    Same logic as tools/survey/runner.py declare_kwargs. Kept separate rather
+    Same logic as tools/survey/qick/runner.py declare_kwargs. Kept separate rather
     than imported: the survey is a standalone tool and phase 5 must not make
     it a library by accident.
     """

@@ -23,7 +23,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).parent
-CONFIGS = HERE / "configs"
+CONFIGS = HERE.parent / "configs"
 
 REFCLK = 245.76
 FS_TILE0 = 9584.64      # DAC tile 0: 245.76 * 39

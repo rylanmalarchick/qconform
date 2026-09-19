@@ -119,6 +119,6 @@ is the source of the report's coverage manifest.
 
 generation
 ----------
-tools/descriptor/build_descriptor.py builds a descriptor from a captured
-vendor config plus the survey catalog. check_descriptor.py gates it. A
+tools/descriptor/build_qick.py builds a descriptor from a captured QICK
+config plus the survey catalog. check_descriptor.py gates it. A
 hand edit without evidence fails that gate.

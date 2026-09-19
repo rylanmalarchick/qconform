@@ -15,15 +15,15 @@ What each part is for
 ---------------------
 
   survey/       The empirical constraint survey: a black-box probe harness
-                that feeds programs to the QICK asm_v2 toolchain and records
-                what it accepts, rejects, or silently repairs. Output is the
-                JSONL catalog in survey/catalog/. Every descriptor
-                constraint must cite a row of it. Runs against the
-                captured board configs in survey/configs/, so it needs the
-                qick package but not a board.
+                per vendor (survey/qick/) that feeds programs to the vendor
+                toolchain and records what it accepts, rejects, or silently
+                repairs. Output is the JSONL catalog in survey/catalog/.
+                Every descriptor constraint must cite a row of it. Runs
+                against the captured board configs in survey/configs/, so it
+                needs the vendor package but not a board.
                 Needs: pip install -r survey/requirements.txt
 
-  descriptor/   build_descriptor.py turns a captured vendor config plus the
+  descriptor/   build_qick.py turns a captured QICK config plus the
                 survey catalog into a capability descriptor.
                 check_descriptor.py is the gate: every constraint must trace
                 to a catalog row that resolves, or the descriptor does not
@@ -31,6 +31,17 @@ What each part is for
                 The descriptors it produces are in descriptor/descriptors/,
                 and frozen copies are what tests/golden/ runs against.
                 Needs: nothing beyond the standard library.
+
+  differential/ qconform against the vendor toolchain over a generated
+                corpus: corpus.py, run.py, triage.py. make differential runs
+                it. See differential/README.txt.
+                Needs: the survey environment
+
+  oracle/       The vendor side of the differential, one backend per
+                vendor (oracle/qick/). A backend lowers a qconform program
+                to vendor calls, compiles it, and reads back what the vendor
+                did. The descriptor's identification.library.name picks it.
+                Needs: the vendor package of that backend
 
   exporter/     Lowers a compiled QICK asm_v2 program to the qconform program
                 format. The worked Ramsey example in the golden corpus came

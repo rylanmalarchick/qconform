@@ -181,7 +181,7 @@ def raw_registers(prog, plan):
     get_pulse_param reports the value that was asked for. The register is what
     the hardware sees, and the two differ exactly where the vendor accepts
     something it cannot represent: a frequency past the DDS range wraps, and a
-    gain past full scale stays out of range. tools/survey/runner.py reads the
+    gain past full scale stays out of range. tools/survey/qick/runner.py reads the
     same registers for the same reason.
     """
     out = {}
