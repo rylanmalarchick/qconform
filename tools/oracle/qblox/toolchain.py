@@ -17,10 +17,13 @@ differential row reach the vendor by the same path.
 """
 
 import contextlib
+import copy
 import logging
 import re
+import shutil
 import tempfile
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings("ignore")
 
@@ -47,17 +50,20 @@ def clean_message(text, limit=300):
 class Result:
     """One run of the toolchain.
 
-    outcome   'compiled', 'reject' or 'crash'
-    stage     'compile' or 'prepare': where a refusal came from
-    detail    the vendor's error, for a refusal
-    compiled  the compiled instructions of the one cluster, for a readback
+    outcome     'compiled', 'reject' or 'crash'
+    stage       'compile' or 'prepare': where a refusal came from
+    detail      the vendor's error, for a refusal
+    compiled    the compiled instructions of the one cluster, for a readback
+    portclocks  {"port-clock": (module name, sequencer name)}: which
+                sequencer the scheduler gave each port and clock
     """
 
-    def __init__(self, outcome, stage, detail=None, compiled=None):
+    def __init__(self, outcome, stage, detail=None, compiled=None, portclocks=None):
         self.outcome = outcome
         self.stage = stage
         self.detail = detail
         self.compiled = compiled
+        self.portclocks = portclocks or {}
 
 
 def cluster_name(hw_config):
@@ -75,20 +81,34 @@ class Toolchain:
     def __init__(self, hw_config):
         from qblox_instruments import Cluster, ClusterType
         from qblox_scheduler import QuantumDevice, SerialCompiler
+        from qblox_scheduler.data_dir import OutputDirectoryManager
         from qblox_scheduler.instrument_coordinator.components.qblox import ClusterComponent
 
         logging.getLogger().setLevel(logging.ERROR)
+        self.scratch = tempfile.TemporaryDirectory(prefix="qconform-qblox-")
         self.name = cluster_name(hw_config)
         modules = hw_config["hardware_description"][self.name]["modules"]
         dummy = {int(slot): getattr(ClusterType, MODULE_TYPES[m["instrument_type"]])
                  for slot, m in modules.items()}
         self.cluster = Cluster(self.name, dummy_cfg=dummy)
         self.component = ClusterComponent(self.cluster)
+
+        # The compiled output does not say which port and clock a sequencer
+        # serves. With sequence_to_file on, the scheduler also writes each
+        # sequence to a file named after its port and clock, and records the
+        # path on the sequencer. That is the vendor's own mapping. The option
+        # writes files and changes nothing else. They go to the scratch
+        # directory and are removed after each run.
+        hw = copy.deepcopy(hw_config)
+        for m in hw["hardware_description"][self.name]["modules"].values():
+            m["sequence_to_file"] = True
+        OutputDirectoryManager.set_datadir(Path(self.scratch.name) / "data")
+        self.files = Path(self.scratch.name) / "data" / "schedules"
+
         self.device = QuantumDevice(f"qconform_{self.name}")
-        self.device.hardware_config = hw_config
+        self.device.hardware_config = hw
         self.config = self.device.generate_compilation_config()
         self.compiler = SerialCompiler("qconform")
-        self.scratch = tempfile.TemporaryDirectory(prefix="qconform-qblox-")
 
     def module(self, module_name):
         """cluster0_module2 -> the dummy module object."""
@@ -104,6 +124,7 @@ class Toolchain:
             return Result("crash", "compile", error(e))
 
         instructions = compiled.compiled_instructions.get(self.name, {})
+        portclocks = self.portclocks(schedule, instructions)
         # The dummy transport writes the assembler's input and output files
         # into the current directory.
         with contextlib.chdir(self.scratch.name):
@@ -113,7 +134,36 @@ class Toolchain:
                 return Result("reject", "prepare", self.prepare_error(e, instructions))
             except Exception as e:  # as above
                 return Result("crash", "prepare", error(e))
-        return Result("compiled", "prepare", compiled=instructions)
+        return Result("compiled", "prepare", compiled=instructions, portclocks=portclocks)
+
+    def portclocks(self, schedule, instructions):
+        """{"port-clock": (module, sequencer)} from each sequencer's seq_fn.
+
+        The file is named <tuid>_<port>_<clock>.json after the vendor's
+        sanitize_filename. Each port-clock the schedule uses is matched by
+        the name the vendor would give it, so a port or clock containing an
+        underscore cannot be misread."""
+        from pathvalidate import sanitize_filename
+
+        used = sorted({(info["port"], info["clock"])
+                       for op in schedule.operations.values()
+                       for info in (op["pulse_info"], op["acquisition_info"])
+                       if info.get("port") and info.get("clock")})
+        out = {}
+        for module, prog in instructions.items():
+            if "module" not in module:
+                continue
+            for seq, st in prog["sequencers"].items():
+                if st.seq_fn is None:
+                    continue
+                name = Path(st.seq_fn).name
+                hits = [f"{p}-{c}" for p, c in used
+                        if name.endswith(sanitize_filename(f"_{p}_{c}.json"))]
+                if len(hits) != 1:
+                    raise ValueError(f"{name}: matches port-clocks {hits}")
+                out[hits[0]] = (module, seq)
+        shutil.rmtree(self.files, ignore_errors=True)
+        return out
 
     def prepare_error(self, e, instructions):
         """An assembler failure carries the whole sequence in its message.

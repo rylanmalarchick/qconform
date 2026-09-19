@@ -187,6 +187,52 @@ def budget_probes():
     return out
 
 
+DRIVE2 = ("q0:mw", "q0.12", 150e6)     # a second clock on the drive port
+
+
+def spacing_probes():
+    """Where the 4 ns between operation starts applies, and to what."""
+    out = []
+    clocks = {DRIVE[1]: DRIVE[2], DRIVE2[1]: DRIVE2[2], READOUT[1]: READOUT[2]}
+    # an NCO update between two pulses, at several distances from the second
+    for gap in (0, 1, 2, 3, 4):
+        out.append(probe("spacing", "start", 24 + 20,
+                         f"SetClockFrequency {gap} ns before the next pulse",
+                         [square(0, 20), set_frequency(24 + 20 - gap, 120e6, probed=False),
+                          square(24 + 20, 20, 0.3, probed=True)]))
+        out.append(probe("spacing", "start", 24 + 20,
+                         f"ShiftClockPhase {gap} ns before the next pulse",
+                         [square(0, 20), shift_phase(24 + 20 - gap, 90, probed=False),
+                          square(24 + 20, 20, 0.3, probed=True)]))
+    for gap in (1, 3, 4):
+        out.append(probe("spacing", "start", 24 + 20 + gap,
+                         f"two SetClockFrequency {gap} ns apart",
+                         [square(0, 20), set_frequency(24, 120e6, probed=False),
+                          set_frequency(24 + gap, 130e6, probed=False),
+                          square(24 + 20 + gap, 20, 0.3, probed=True)]))
+    # a pulse right at the end of the schedule, when another port runs longer
+    for d in (1, 2, 3):
+        out.append(probe("spacing", "duration", d,
+                         f"{d} ns drive pulse while the readout port runs 100 ns",
+                         [square(0, d, probed=True),
+                          square(0, 100, 0.2, where=READOUT)]))
+    # two clocks on one port are two sequencers; do they constrain each other
+    for t2 in (0, 1, 10):
+        out.append(probe("spacing", "start", t2,
+                         f"pulses on two clocks of one port, {t2} ns apart",
+                         [square(0, 20), square(t2, 20, 0.3, where=DRIVE2, probed=True)],
+                         clocks=clocks))
+    # a capture and a readout pulse on the same sequencer
+    for gap in (0, 1, 3, 4):
+        out.append(probe("spacing", "start", 100 + gap,
+                         f"acquisition {gap} ns after a readout pulse starts at 100",
+                         [square(0, 100, 0.2, where=READOUT),
+                          square(100, 200, 0.2, where=READOUT),
+                          acquire(100 + gap, 1000, probed=True)]))
+    return out
+
+
 def build_probes():
     return (length_probes() + timing_probes() + freq_probes() + phase_probes()
-            + gain_probes() + envelope_probes() + readout_probes() + budget_probes())
+            + gain_probes() + envelope_probes() + readout_probes() + budget_probes()
+            + spacing_probes())

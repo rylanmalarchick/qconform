@@ -32,7 +32,7 @@ from oracle.qblox.toolchain import Toolchain, error, timeline   # noqa: E402
 from probes import build_probes   # noqa: E402
 
 AXES = ("length", "timing", "freq", "phase", "gain", "envelope", "readout",
-        "budget_instr", "config")
+        "budget_instr", "spacing", "config")
 GAIN_FULL_SCALE = 32768        # set_awg_gain and set_awg_offs units per 1.0
 NCO_FREQ_STEPS_PER_HZ = 4      # set_freq units
 NCO_PHASE_STEPS = 10 ** 9      # set_ph_delta units per turn
@@ -77,35 +77,21 @@ def make_operation(qs, spec):
     raise ValueError(f"unknown probe operation {kind!r}")
 
 
-def module_for(hw, port):
-    """The cluster module a port is wired to, from the connectivity graph."""
-    for src, dst in hw["connectivity"]["graph"]:
-        targets = dst if isinstance(dst, list) else [dst]
-        if port in targets:
-            cluster, module, _ = src.split(".")
-            return f"{cluster}_{module}"
-    raise ValueError(f"port {port!r} is not in the connectivity graph")
+def sequencer_for(result, portclock):
+    """(module, sequencer name, settings, timeline) of the sequencer the
+    scheduler gave this port and clock."""
+    mod, seq = result.portclocks[portclock]
+    st = result.compiled[mod]["sequencers"][seq]
+    return mod, seq, st, timeline(st.sequence["program"])
 
 
-def sequencer_for(compiled, module):
-    """(sequencer name, settings, timeline) of the one sequencer the compile
-    put a program on in this module."""
-    used = [(seq, st) for seq, st in sorted(compiled[module]["sequencers"].items())
-            if st.sequence and st.sequence["program"]]
-    if len(used) != 1:
-        raise ValueError(f"{module}: expected one programmed sequencer, found {len(used)}")
-    seq, st = used[0]
-    return seq, st, timeline(st.sequence["program"])
-
-
-def observe(tc, hw, probe, compiled):
+def observe(tc, probe, result):
     """The readback of the probed parameter, plus the raw record of what the
     sequencer was told. Values are in the probe's units."""
     probed = next(op for op in probe["ops"] if op["probed"])
     port = probed.get("port") or next(op["port"] for op in probe["ops"]
                                       if op.get("clock") == probed["clock"] and "port" in op)
-    mod = module_for(hw, port)
-    seq, st, events = sequencer_for(compiled, mod)
+    mod, seq, st, events = sequencer_for(result, f"{port}-{probed['clock']}")
     waves = {w["index"]: w["data"] for w in st.sequence["waveforms"].values()}
     obs = {"module": mod, "sequencer": seq,
            "events": [f"{e['t']}:{e['op']} {','.join(e['args'])}".strip() for e in events],
@@ -194,7 +180,7 @@ def classify(probe, obs):
     return "accept" if rb == probe["requested"] else "accept_round"
 
 
-def run_probe(tc, hw, probe):
+def run_probe(tc, probe):
     row = {"axis": probe["axis"], "param": probe["param"],
            "requested": probe["requested"], "note": probe["note"]}
     # Building an operation is the first vendor check: pydantic validates the
@@ -208,7 +194,7 @@ def run_probe(tc, hw, probe):
     result = tc.run(schedule)
     row["stage"] = result.stage
     if result.outcome == "compiled":
-        obs = observe(tc, hw, probe, result.compiled)
+        obs = observe(tc, probe, result)
         row["observed"] = obs
         row["outcome"] = classify(probe, obs)
     else:
@@ -250,7 +236,7 @@ def main():
 
     by_axis = {"config": [{**meta, **r} for r in config_rows(tc, hw)]}
     for p in build_probes():
-        by_axis.setdefault(p["axis"], []).append({**meta, **run_probe(tc, hw, p)})
+        by_axis.setdefault(p["axis"], []).append({**meta, **run_probe(tc, p)})
 
     for axis in AXES:
         rows = by_axis[axis]
