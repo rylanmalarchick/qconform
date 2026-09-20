@@ -281,8 +281,8 @@ CASES = {
         channels=[{"name": "q0_res", "unit": NS}],
         frames=[qframe("r0", "q0_res", 50000000)]), 1),
     # a pmem_words budget with scope frame counts each frame on its own. Six
-    # plays on each of two frames: 16 words at least per frame, under a limit
-    # of 20, while the two together would be 22
+    # plays on each of two frames: 22 words at least per frame, under a limit
+    # of 30, while the two together would be 34
     "qblox-budget-per-frame": ("descriptors/qblox-small-budget.json", qblox_program(
         [qplay(i, 20, frame="f0" if i < 6 else "f1") for i in range(12)],
         frames=[qframe("f0", "q0_mw", 100000000), qframe("f1", "q0_mw", 150000000)]), 0),
@@ -353,10 +353,10 @@ def main():
                 desc_dir / "qblox-qcm-qrm.json")
 
     # a pmem_words limit small enough that a short program shows the per-frame
-    # count
+    # count. 30 sits between one frame and two at two instructions per output.
     small = json.loads((desc_dir / "qblox-qcm-qrm.json").read_text())
     for b in small["budgets"]:
-        b["limit"] = 20
+        b["limit"] = 30
     (desc_dir / "qblox-small-budget.json").write_text(json.dumps(small, indent=1) + "\n")
 
     # each new descriptor field placed where no rule reads it must be refused,

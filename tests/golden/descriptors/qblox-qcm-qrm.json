@@ -1332,7 +1332,7 @@
    ],
    "cost_model": {
     "kind": "linear",
-    "per_item": 1,
+    "per_item": 2,
     "overhead": 10,
     "per_element_max": 10
    },
@@ -1379,7 +1379,7 @@
    ],
    "cost_model": {
     "kind": "linear",
-    "per_item": 1,
+    "per_item": 2,
     "overhead": 10,
     "per_element_max": 10
    },

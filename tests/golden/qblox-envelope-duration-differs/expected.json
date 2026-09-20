@@ -7,7 +7,7 @@
   {"rule": "envelope_duration_exact", "severity": "fatal", "element": 0, "quantity": "time", "value": {"num": 3, "den": 50000000}, "limit": {"num": 1, "den": 125000000}}
  ],
  "budgets": [
-  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 11, "upper_bound": 20, "limit": 16384}
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 12, "upper_bound": 20, "limit": 16384}
  ],
  "coverage": [
   {"class": "pulse_length_range", "status": "checked"},

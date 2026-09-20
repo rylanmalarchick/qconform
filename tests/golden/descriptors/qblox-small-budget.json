@@ -1325,14 +1325,14 @@
  "budgets": [
   {
    "id": "pmem_words",
-   "limit": 20,
+   "limit": 30,
    "scope": "frame",
    "channels": [
     "q0_mw"
    ],
    "cost_model": {
     "kind": "linear",
-    "per_item": 1,
+    "per_item": 2,
     "overhead": 10,
     "per_element_max": 10
    },
@@ -1371,7 +1371,7 @@
   },
   {
    "id": "pmem_words",
-   "limit": 20,
+   "limit": 30,
    "scope": "frame",
    "channels": [
     "q0_res_out",
@@ -1379,7 +1379,7 @@
    ],
    "cost_model": {
     "kind": "linear",
-    "per_item": 1,
+    "per_item": 2,
     "overhead": 10,
     "per_element_max": 10
    },

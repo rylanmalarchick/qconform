@@ -7,7 +7,7 @@
   {"rule": "frequency_update_spacing", "severity": "fatal", "element": 2, "quantity": "time", "value": {"num": 0, "den": 1}, "limit": {"num": 1, "den": 250000000}}
  ],
  "budgets": [
-  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 12, "upper_bound": 50, "limit": 16384}
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 14, "upper_bound": 50, "limit": 16384}
  ],
  "coverage": [
   {"class": "pulse_length_range", "status": "checked"},

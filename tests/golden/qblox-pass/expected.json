@@ -5,7 +5,7 @@
  "descriptor": {"name": "qblox-qcm-qrm", "firmware": "none: dummy cluster", "software": "qblox-1.0.0b8", "descriptor_version": "0"},
  "rejections": [],
  "budgets": [
-  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 11, "upper_bound": 20, "limit": 16384}
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 12, "upper_bound": 20, "limit": 16384}
  ],
  "coverage": [
   {"class": "pulse_length_range", "status": "checked"},

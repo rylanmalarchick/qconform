@@ -44,6 +44,11 @@ INSTRUCTIONS = {"QCM": 16384, "QRM": 12288}
 # The scheduler counts the loop label as an instruction, so a program of one
 # 20 ns pulse is 12: 10 of setup and loop, and 2 for the pulse.
 PROGRAM_OVERHEAD = 10
+# An output element is set_awg_gain then play, so it costs two instructions,
+# not one. The budget_instr rows carry the assembler's own counts and every
+# one of them fits 2n + PROGRAM_OVERHEAD: 8200 pulses refused at 16410 and
+# 6200 readout-port pulses refused at 12410.
+INSTRUCTIONS_PER_OUTPUT = 2
 # The most instructions one element compiled to across the cost axis: a 1 ms
 # acquisition. A long wait or square compiles to a loop, so the count stays
 # bounded however long the element is.
@@ -260,7 +265,8 @@ def build(config_name):
         budgets.append({
             "id": "pmem_words", "limit": INSTRUCTIONS[mtype], "scope": "frame",
             "channels": names,
-            "cost_model": {"kind": "linear", "per_item": 1, "overhead": PROGRAM_OVERHEAD,
+            "cost_model": {"kind": "linear", "per_item": INSTRUCTIONS_PER_OUTPUT,
+                           "overhead": PROGRAM_OVERHEAD,
                            "per_element_max": PER_ELEMENT_MAX},
             "evidence": [ev(config_name, "budget_instr", over, "reject"),
                          ev(config_name, "budget_instr", fits, "accept"),
