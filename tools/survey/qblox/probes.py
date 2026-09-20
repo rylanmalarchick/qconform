@@ -180,6 +180,24 @@ def readout_probes():
     for gap in (299, 300):
         out.append(probe("readout", "start", gap, f"second acquisition {gap} ns after the first",
                          [acquire(0, 100), acquire(gap, 100, probed=True)]))
+    # the integration length validator, reached only when the acquisition is
+    # not also the last operation: a long pulse on the drive port keeps the
+    # schedule running past it
+    for d in (1, 3, 4, 5):
+        out.append(probe("readout", "integration_length", d,
+                         f"acquisition of {d} ns while the drive port runs 100 ns",
+                         [acquire(0, d, probed=True), square(0, 100, 0.2)]))
+    # an acquisition instruction occupies 4 ns whatever its integration
+    # length, and the wait that follows is 0 or at least 4 ns
+    for gap in (4, 5, 7, 8):
+        out.append(probe("readout", "start", gap,
+                         f"readout pulse {gap} ns after an acquisition starts",
+                         [acquire(0, 100, probed=True),
+                          square(gap, 20, 0.2, where=READOUT)]))
+    for d in (4, 5, 7, 8, 100):
+        out.append(probe("readout", "integration_length", d,
+                         f"acquisition of {d} ns is the last operation",
+                         [square(0, 20, 0.2), acquire(20, d, probed=True)]))
     # one integration length per sequencer
     for d1, d2 in ((100, 100), (100, 200), (200, 100)):
         out.append(probe("readout", "integration_length", d2,
