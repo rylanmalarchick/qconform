@@ -23,6 +23,18 @@ from oracle import base
 RULE_TO_BEHAVIOR = {}
 
 
+def merged_phase(plan):
+    """Does any frame take more than one phase update at one time."""
+    for entries in plan.expect.values():
+        at = {}
+        for e in entries:
+            if e["kind"] == "phase":
+                at[e["t"]] = at.get(e["t"], 0) + 1
+        if any(n > 1 for n in at.values()):
+            return True
+    return False
+
+
 class Oracle(base.Oracle):
     name = "qblox"
 
@@ -70,7 +82,18 @@ class Oracle(base.Oracle):
         return observe(compiled.handle, plan)
 
     def unobservable(self, plan):
-        """Quantities this oracle cannot read back for this program. The
-        instrument quantizes the initial NCO frequency, and offline the
-        setting keeps the float it was given."""
-        return ["freq"] if plan.unobservable else []
+        """Quantities this oracle cannot read back for this program.
+
+        freq: the instrument quantizes the initial NCO frequency, and offline
+        the setting keeps the float it was given.
+
+        phase: the toolchain merges the phase updates at one time into a
+        single set_ph_delta, so only their sum reaches a register. A repair to
+        one of them is gone before the register is written, and a sum that
+        lands on the step hides every repair in it. observe.py compares the
+        sum for the same reason.
+        """
+        out = ["freq"] if plan.unobservable else []
+        if merged_phase(plan):
+            out.append("phase")
+        return sorted(out)
