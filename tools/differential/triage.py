@@ -179,6 +179,33 @@ def disposition(row, behaviors):
     return "open", f"{verdict} against {outcome}"
 
 
+def vacuous_classes(descriptor):
+    """Classes this descriptor states in a form that can never reject.
+
+    A sample count is an integer in the program format, with no finer unit to
+    carry it, so a grid of one sample accepts every count a program can state.
+    The rule is checked and it holds, and no corpus can make it fire. Counting
+    it as an uncovered class would read as a hole in the corpus instead of a
+    property of the descriptor.
+
+    A duration grid of one is not the same and is not listed here: a program
+    states its times in its own unit, so it can ask for half a channel unit
+    and miss a grid of one.
+
+    Every channel that states the class must state it vacuously. One channel
+    with a grid of 16 makes the class reachable, whatever the others declare,
+    and qce2025-r26 is that descriptor: four generators on 16 samples and
+    eleven on 1.
+    """
+    grids = collections.defaultdict(list)
+    for ch in descriptor.get("channels", []):
+        for c in ch.get("constraints", []):
+            if c.get("shape") == "grid_samples":
+                grids[c["id"]].append(c.get("grid"))
+    return {cls: "every channel states a grid of 1 sample, so every sample count is on it"
+            for cls, seen in grids.items() if all(g == 1 for g in seen)}
+
+
 def coverage(rows, descriptor):
     """Per class: did it fire, and was it checked without firing.
 
@@ -246,13 +273,27 @@ def main():
     print()
     print("coverage, from the checker's own manifests")
     print(f"  {'class':24} {'fires':>6} {'holds':>6}  covered")
+    vacuous = vacuous_classes(descriptor)
     seen = sorted(set(fires) | set(holds))
     covered = 0
+    coverable = 0
     for cls in seen:
+        if cls in vacuous and fires[cls] == 0:
+            print(f"  {cls:24} {fires[cls]:6} {holds[cls]:6}  vacuous")
+            continue
+        if cls in vacuous:
+            # A class called vacuous that fired means this file's reading of
+            # the descriptor is wrong, not that the corpus found something.
+            raise SystemExit(f"triage: {cls} is called vacuous and fired "
+                             f"{fires[cls]} times; vacuous_classes is wrong")
+        coverable += 1
         ok = fires[cls] > 0 and holds[cls] > 0
         covered += 1 if ok else 0
         print(f"  {cls:24} {fires[cls]:6} {holds[cls]:6}  {'yes' if ok else 'no'}")
-    print(f"  covered on both sides: {covered} of {len(seen)} exercised classes")
+    print(f"  covered on both sides: {covered} of {coverable} exercised classes")
+    for cls, why in sorted(vacuous.items()):
+        if cls in seen:
+            print(f"  vacuous: {cls}, {why}")
 
 
 if __name__ == "__main__":

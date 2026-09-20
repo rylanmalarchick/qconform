@@ -145,8 +145,14 @@ def gain_probes():
 
 def envelope_probes():
     out = []
+    # 5 through 7 and 9 are what tell a sample grid of 4 from a minimum of 4
+    # samples. Without them the accepted counts are all multiples of 4 and the
+    # grid the descriptor declares is a guess. 1 and 3 do not decide it: they
+    # are refused for the 4 ns wait between operations, which is start_spacing.
     for n, note in ((1, "1 sample"), (3, "3 samples"), (4, "4 samples"),
-                    (8, "8 samples"), (16384, "16384 samples, the waveform memory"),
+                    (5, "5 samples"), (6, "6 samples"), (7, "7 samples"),
+                    (8, "8 samples"), (9, "9 samples"), (12, "12 samples"),
+                    (16384, "16384 samples, the waveform memory"),
                     (16385, "16385 samples, one past the waveform memory")):
         samples = [0.5] * n
         out.append(probe("envelope", "samples", n, f"numerical pulse, {note}",

@@ -353,13 +353,25 @@
       {
        "config": "qblox-qcm-qrm",
        "axis": "envelope",
-       "note_contains": "numerical pulse, 4 samples",
+       "note_contains": "numerical pulse, 5 samples",
        "outcome": "accept"
       },
       {
        "config": "qblox-qcm-qrm",
        "axis": "envelope",
-       "note_contains": "numerical pulse, 8 samples",
+       "note_contains": "numerical pulse, 6 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 7 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 9 samples",
        "outcome": "accept"
       }
      ]
@@ -807,13 +819,25 @@
       {
        "config": "qblox-qcm-qrm",
        "axis": "envelope",
-       "note_contains": "numerical pulse, 4 samples",
+       "note_contains": "numerical pulse, 5 samples",
        "outcome": "accept"
       },
       {
        "config": "qblox-qcm-qrm",
        "axis": "envelope",
-       "note_contains": "numerical pulse, 8 samples",
+       "note_contains": "numerical pulse, 6 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 7 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 9 samples",
        "outcome": "accept"
       }
      ]

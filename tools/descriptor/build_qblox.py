@@ -143,10 +143,16 @@ def output_constraints(cfg):
                       ev(cfg, "gain", "square amplitude negative full scale", "accept"),
                       ev(cfg, "gain", "square amplitude 1/3", "accept_round"),
                       ev(cfg, "gain", "square amplitude one LSB at 2**15", "accept")]},
+        # The grid is one sample, which the counts that are not multiples of 4
+        # prove. 4 and 8 alone would leave a grid of 4 open. The refusals at 1
+        # and 3 samples are not grid evidence: the toolchain refuses them for
+        # the 4 ns wait between operations, which is start_spacing.
         {"id": "envelope_sample_grid", "quantity": "count", "shape": "grid_samples",
          "severity": "fatal", "grid": 1,
-         "evidence": [ev(cfg, "envelope", "numerical pulse, 4 samples", "accept"),
-                      ev(cfg, "envelope", "numerical pulse, 8 samples", "accept")]},
+         "evidence": [ev(cfg, "envelope", "numerical pulse, 5 samples", "accept"),
+                      ev(cfg, "envelope", "numerical pulse, 6 samples", "accept"),
+                      ev(cfg, "envelope", "numerical pulse, 7 samples", "accept"),
+                      ev(cfg, "envelope", "numerical pulse, 9 samples", "accept")]},
         {"id": "envelope_duration_exact", "quantity": "time", "shape": "range_units",
          "severity": "fatal",
          "evidence": [ev(cfg, "envelope", "numerical pulse, 8 samples", "accept"),
