@@ -164,3 +164,9 @@ class Oracle:
         phase, gain, total_length, start_time). registers is what the
         hardware would see, for the record."""
         raise NotImplementedError
+
+    def unobservable(self, plan):
+        """Quantities this oracle cannot read back for this program. A
+        repair to one of them is neither confirmed nor denied, so triage
+        must not count it as over-predicted."""
+        return []

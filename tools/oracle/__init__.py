@@ -4,7 +4,8 @@ An oracle answers one question for one vendor toolchain: what does the
 vendor do with this qconform program. tools/differential/ asks the question
 and records the answer. Each backend here knows one vendor.
 
-  qick/   QICK asm_v2, compiled from a captured board config
+  qick/    QICK asm_v2, compiled from a captured board config
+  qblox/   qblox-scheduler and the q1asm assembler, on a dummy cluster
 
 load() picks the backend that a descriptor names in
 identification.library.name. A backend imports its vendor package only when
@@ -14,7 +15,7 @@ environment.
 
 import importlib
 
-BACKENDS = {"qick": "oracle.qick"}
+BACKENDS = {"qick": "oracle.qick", "qblox": "oracle.qblox"}
 
 
 def backend(name):

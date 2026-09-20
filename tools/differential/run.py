@@ -160,6 +160,12 @@ def main():
                 outcome = "accept_round"
                 row["vendor_changed"] = changed
             row["vendor_registers"] = registers
+            # Quantities this oracle cannot read back for this program. A
+            # predicted repair to one of them is neither confirmed nor
+            # denied, so triage must not call it over-predicted.
+            unobservable = vendor.unobservable(plan)
+            if unobservable:
+                row["vendor_unobservable"] = sorted(unobservable)
         elif compiled.detail:
             row["vendor_detail"] = compiled.detail
 

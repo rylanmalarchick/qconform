@@ -69,6 +69,9 @@ RULE_TO_QUANTITY = {
     "phase_resolution": "phase",
     "amplitude_range": "gain",
     "amplitude_resolution": "gain",
+    # an envelope's scale is a gain register, so its saturation is a gain
+    # repair like a constant amplitude's
+    "envelope_amplitude": "gain",
     "pulse_length_grid": "total_length",
     "schedule_grid": "start_time",
 }
@@ -89,6 +92,10 @@ def attribution(row, rules, declared):
     predicted = {RULE_TO_QUANTITY[r] for r in rules if r in RULE_TO_QUANTITY}
     unreadable = {RULE_TO_QUANTITY[r] for r in rules
                   if r in RULE_TO_QUANTITY and RULE_TO_BEHAVIOR.get(r, set()) & declared}
+    # The oracle reports what it cannot see for this program, such as the
+    # Qblox initial NCO frequency, which the instrument quantizes and the
+    # offline setting keeps as the float it was given.
+    unreadable |= set(row.get("vendor_unobservable", []))
 
     silent = sorted(changed - predicted)
     if silent:

@@ -4,6 +4,7 @@
 #   make            build ./qconform
 #   make check      build, run unit tests, the golden corpus, and the tripwires
 #   make differential  qconform against the QICK toolchain (needs Python)
+#   make differential-qblox   the same against the Qblox toolchain
 #   make sanitize   same, built with UBSan and ASan
 #   make clean
 #
@@ -37,9 +38,10 @@ TESTS := test_rational test_json test_enums
 TEST_BINS := $(addprefix $(TEST_DIR)/,$(TESTS))
 
 SURVEY_PY ?= $(HOME)/.venvs/qconform-survey/bin/python
+QBLOX_PY ?= $(HOME)/.venvs/qconform-qblox/bin/python
 DIFF_OUT ?= /tmp/qconform-corpus
 
-.PHONY: all check test golden tripwires sanitize differential clean
+.PHONY: all check test golden tripwires sanitize differential differential-qblox clean
 
 all: $(BIN)
 
@@ -91,6 +93,24 @@ differential: $(BIN)
 			tools/differential/results/$$c.jsonl \
 			tests/golden/descriptors/$$c.json; \
 	done
+
+# The same against the Qblox toolchain. Needs the Qblox environment; see
+# tools/survey/qblox/README.txt.
+differential-qblox: $(BIN)
+	@$(QBLOX_PY) tools/oracle/qblox/preflight.py
+	@set -e; c=qblox-qcm-qrm; \
+		echo "=== $$c ==="; \
+		rm -rf $(DIFF_OUT)-$$c; \
+		$(QBLOX_PY) tools/differential/corpus.py \
+			tests/golden/descriptors/$$c.json $(DIFF_OUT)-$$c --seed 1 \
+			--config tools/survey/configs/$$c.json; \
+		$(QBLOX_PY) tools/differential/run.py $(DIFF_OUT)-$$c \
+			tests/golden/descriptors/$$c.json \
+			tools/survey/configs/$$c.json \
+			tools/differential/results/$$c.jsonl; \
+		$(QBLOX_PY) tools/differential/triage.py \
+			tools/differential/results/$$c.jsonl \
+			tests/golden/descriptors/$$c.json
 
 clean:
 	rm -f $(BIN) $(TEST_BINS)
