@@ -487,6 +487,16 @@ def cases_envelope(d, gen):
                 continue
             out.append(envelope_program(grid * 8, amp, f"envelope_amplitude_{rung}"))
 
+    if exact:
+        # a play that lasts one sample longer than the waveform it plays
+        b = Builder([base(gen["name"], unit, sample_unit, gen.get("_mixer_hz"))],
+                    gen_frames(gen["name"]))
+        n = grid * 8
+        b.wf_samples("e0", [safe_amp] * n, [0] * n)
+        b.add(kind="play", frame="f0", waveform="e0",
+              duration=int((n + 1) * sample_unit / unit))
+        out.append(("envelope_duration_one_sample_long", b.program()))
+
     if mem is not None:
         # one waveform just under the memory limit, and one just over
         for n, rung in ((mem // grid * grid, "at_memory"),
@@ -551,6 +561,62 @@ def cases_readout(d, gen, ro):
         b.add(kind="barrier", frames=[])
         b.add(kind="capture", frame="r0", duration=60 * grid + offset)
         out.append((f"readout_pulse_length_grid_{rung}", b.program()))
+
+    def two_captures(first, gap, second, name):
+        b = Builder(
+            [base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro["name"], runit)],
+            gen_frames(gen["name"], ro["name"]),
+        )
+        b.wf_const("w0", Fraction(1, 2))
+        b.add(kind="play", frame="f0", waveform="w0", duration=60 * gen["duration_grid"])
+        b.add(kind="capture", frame="r0", duration=first)
+        b.add(kind="delay", frame="r0", duration=gap - first)
+        b.add(kind="capture", frame="r0", duration=second)
+        out.append((name, b.program()))
+
+    spacing = d.constraint(ro["name"], "capture_spacing")
+    if spacing is not None:
+        for gap, rung in ladder(spacing["min_units"], grid, span=1):
+            if gap < dur:
+                continue
+            two_captures(dur, gap, dur, f"capture_spacing_{rung}")
+
+    if d.constraint(ro["name"], "capture_length_uniform") is not None:
+        far = (spacing or {}).get("min_units", grid * 4)
+        two_captures(dur, far * 2, dur, "capture_length_uniform_same")
+        two_captures(dur, far * 2, dur + grid, "capture_length_uniform_differs")
+    return out
+
+
+def cases_offlattice(d, gen):
+    """pulse_length_grid and schedule_grid where the grid is one channel unit.
+
+    A duration counted in channel units can never be off a grid of one, so
+    the program states its times in half a channel unit instead. That is a
+    legal program: the format lets a program carry its own unit, and a value
+    that does not convert to the descriptor lattice is a grid rejection.
+    """
+    if gen["duration_grid"] != 1 and gen["schedule_grid"] != 1:
+        return []
+    unit = Fraction(gen["unit"]["num"], gen["unit"]["den"]) / 2
+    spacing = d.constraint(gen["name"], "start_spacing")
+    step = max(60, (spacing or {}).get("min_units", 0) * 2)
+    out = []
+    for offset, rung in ((0, "on_lattice"), (1, "half_unit_off")):
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))],
+                    gen_frames(gen["name"]))
+        b.wf_const("w0", Fraction(1, 2))
+        b.add(kind="play", frame="f0", waveform="w0", duration=step + offset)
+        b.add(kind="delay", frame="f0", duration=step)
+        b.add(kind="play", frame="f0", waveform="w0", duration=step)
+        out.append((f"offlattice_duration_{rung}", b.program()))
+    for offset, rung in ((0, "on_lattice"), (1, "half_unit_off")):
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))],
+                    gen_frames(gen["name"]))
+        b.wf_const("w0", Fraction(1, 2))
+        b.add(kind="delay", frame="f0", duration=step + offset)
+        b.add(kind="play", frame="f0", waveform="w0", duration=step)
+        out.append((f"offlattice_start_{rung}", b.program()))
     return out
 
 
@@ -592,7 +658,19 @@ def cases_budgets(d, gen):
     they are a small separate part of the corpus."""
     unit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
     dgrid = gen["duration_grid"]
-    budgets = {b["id"]: b for b in d.raw["budgets"]}
+    # A budget may be declared once per module type, each naming the channels
+    # it counts for. Keyed by id alone, the last one wins and the programs
+    # are built against a limit this channel does not have.
+    budgets = {}
+    for b in d.raw["budgets"]:
+        if b.get("channels") and gen["name"] not in b["channels"]:
+            continue
+        budgets[b["id"]] = b
+    # Where operations must be spaced, a pulse shorter than the spacing makes
+    # every element a spacing violation, and the budget is never the thing
+    # the program tests.
+    spacing = d.constraint(gen["name"], "start_spacing")
+    step = max(3 * dgrid, (spacing or {}).get("min_units", 0))
     out = []
 
     pmem = budgets.get("pmem_words")
@@ -609,7 +687,7 @@ def cases_budgets(d, gen):
             b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], gen_frames(gen["name"]))
             b.wf_const("w0", Fraction(1, 2))
             for _ in range(max(n, 1)):
-                b.add(kind="play", frame="f0", waveform="w0", duration=3 * dgrid)
+                b.add(kind="play", frame="f0", waveform="w0", duration=step)
             out.append((f"pmem_words_{rung}", b.program()))
 
     wmem = budgets.get("wmem_words")
@@ -742,6 +820,7 @@ def build_corpus(descriptor_path, seed, random_programs=40, config_path=None):
         per_gen += cases_amplitude(d, gen)
         per_gen += cases_envelope(d, gen)
         per_gen += cases_negative(d, gen)
+        per_gen += cases_offlattice(d, gen)
         per_gen += random_cases(d, gen, random.Random(tag_seed(seed, tag)),
                                 random_programs)
         for ro in d.classes("readout"):
