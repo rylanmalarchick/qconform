@@ -1,21 +1,23 @@
 {
  "format": "qconform-report",
  "format_version": 0,
- "verdict": "pass",
+ "verdict": "fail",
  "descriptor": {"name": "qblox-qcm-qrm", "firmware": "none: dummy cluster", "software": "qblox-1.0.0b8", "descriptor_version": "0"},
- "rejections": [],
+ "rejections": [
+  {"rule": "capture_slot", "severity": "fatal", "element": 0, "quantity": "time", "value": {"num": 1, "den": 200000000}, "limit": {"num": 1, "den": 250000000}}
+ ],
  "budgets": [
-  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 11, "upper_bound": 20, "limit": 16384}
+  {"budget": "pmem_words", "verdict": "fits", "lower_bound": 11, "upper_bound": 20, "limit": 12288}
  ],
  "coverage": [
-  {"class": "pulse_length_range", "status": "checked"},
+  {"class": "pulse_length_range", "status": "not_applicable"},
   {"class": "pulse_length_grid", "status": "checked"},
-  {"class": "readout_length_range", "status": "not_applicable"},
+  {"class": "readout_length_range", "status": "checked"},
   {"class": "frequency_range", "status": "checked"},
   {"class": "frequency_resolution", "status": "checked"},
   {"class": "phase_resolution", "status": "checked"},
-  {"class": "amplitude_range", "status": "checked"},
-  {"class": "amplitude_resolution", "status": "checked"},
+  {"class": "amplitude_range", "status": "not_applicable"},
+  {"class": "amplitude_resolution", "status": "not_applicable"},
   {"class": "envelope_sample_grid", "status": "not_applicable"},
   {"class": "envelope_amplitude", "status": "not_applicable"},
   {"class": "envelope_memory", "status": "not_applicable"},
@@ -26,10 +28,10 @@
   {"class": "mux_tone_count", "status": "not_applicable"},
   {"class": "start_spacing", "status": "checked"},
   {"class": "frequency_update_spacing", "status": "not_applicable"},
-  {"class": "capture_spacing", "status": "not_applicable"},
-  {"class": "capture_length_uniform", "status": "not_applicable"},
+  {"class": "capture_spacing", "status": "checked"},
+  {"class": "capture_length_uniform", "status": "checked"},
   {"class": "envelope_duration_exact", "status": "not_applicable"},
-  {"class": "capture_slot", "status": "not_applicable"},
+  {"class": "capture_slot", "status": "checked"},
   {"class": "pmem_words", "status": "checked"},
   {"class": "wmem_words", "status": "not_applicable"},
   {"class": "loop_registers", "status": "not_applicable"},

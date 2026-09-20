@@ -94,8 +94,9 @@ Optional fields on a constraint:
                     update
 
 The spacing rules (start_spacing, frequency_update_spacing, capture_spacing)
-are range_units with min_units. capture_length_uniform is range_units with no
-parameters. schedule_grid may be declared, with no
+are range_units with min_units. capture_length_uniform and envelope_duration_exact are
+range_units with no parameters, and capture_slot is range_units with
+min_units. schedule_grid may be declared, with no
 parameters, to set its severity: fatal where the toolchain refuses an
 off-grid start (Qblox).
 

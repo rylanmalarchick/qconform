@@ -90,7 +90,16 @@
     X(capture_spacing)                                                      \
     /* Every capture on one frame has the same duration. A Qblox sequencer
        holds one integration length. */ \
-    X(capture_length_uniform)
+    X(capture_length_uniform)                                               \
+    /* A play of a sample waveform lasts exactly its sample count. A device
+       that neither pads nor truncates an envelope (Qblox) can play it no
+       other way. */ \
+    X(envelope_duration_exact)                                              \
+    /* A capture instruction occupies min_units whatever the capture lasts,
+       and the wait after it is either nothing or another min_units. So the
+       next operation on the frame, or the program end, comes exactly
+       min_units after the capture starts or at least twice that. */ \
+    X(capture_slot)
 
 #define QC_REPAIR_IDS(X)  \
     X(quantize_duration)  \

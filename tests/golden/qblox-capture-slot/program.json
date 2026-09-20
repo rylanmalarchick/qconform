@@ -1,0 +1,36 @@
+{
+ "format": "qconform-program",
+ "format_version": 0,
+ "channels": [
+  {
+   "name": "q0_res",
+   "unit": {
+    "num": 1,
+    "den": 1000000000
+   }
+  }
+ ],
+ "frames": [
+  {
+   "name": "r0",
+   "channel": "q0_res",
+   "frequency": {
+    "num": 50000000,
+    "den": 1
+   },
+   "phase": {
+    "num": 0,
+    "den": 1
+   }
+  }
+ ],
+ "waveforms": [],
+ "elements": [
+  {
+   "id": 0,
+   "kind": "capture",
+   "frame": "r0",
+   "duration": 5
+  }
+ ]
+}

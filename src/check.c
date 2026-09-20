@@ -114,6 +114,8 @@ static SeverityRule severity_rule_for(RuleId id) {
     case QC_RULE_frequency_update_spacing:
     case QC_RULE_capture_spacing:
     case QC_RULE_capture_length_uniform:
+    case QC_RULE_envelope_duration_exact:
+    case QC_RULE_capture_slot:
         return SEV_FATAL_ONLY;
     case QC_RULE_phase_resolution:
         return SEV_REPAIRABLE_ONLY;
@@ -156,6 +158,7 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
                      || c->id == QC_RULE_pulse_length_grid
                      || c->id == QC_RULE_schedule_grid
                      || c->id == QC_RULE_capture_length_uniform
+                     || c->id == QC_RULE_envelope_duration_exact
                      || c->id == QC_RULE_mux_tone_mask
                      || c->id == QC_RULE_mux_tone_count;
                 break;
@@ -175,7 +178,7 @@ bool validate_descriptor(const Descriptor *d, Diag *diag) {
             }
 
             if ((c->id == QC_RULE_start_spacing || c->id == QC_RULE_frequency_update_spacing
-                 || c->id == QC_RULE_capture_spacing)
+                 || c->id == QC_RULE_capture_spacing || c->id == QC_RULE_capture_slot)
                 && (c->shape != QC_SHAPE_range_units || !c->has_min_units || c->min_units < 0)) {
                 diag_set(diag,
                          "descriptor channel '" STR_FMT "' constraint %s: a spacing rule is range_units with a non-negative min_units",
@@ -331,6 +334,10 @@ typedef struct {
     /* the duration of the first capture, for capture_length_uniform */
     int64_t capture_length;
     bool has_capture_length;
+    /* a capture whose following gap is not settled yet, for capture_slot */
+    int64_t open_capture;
+    int64_t open_capture_element;
+    bool has_open_capture;
     /* Elements on this frame, and outputs among them, for a per-frame
      * budget. */
     int64_t n_elements;
@@ -630,8 +637,41 @@ static int64_t envelope_peak(const int64_t *s, size_t n) {
     return peak;
 }
 
+/* envelope_duration_exact: the play lasts exactly the sample count. Both
+ * sides are compared in seconds, because the duration is counted in channel
+ * units and the samples in sample units. */
+static bool check_envelope_duration(Check *k, const CapChannel *dc, uint32_t pci,
+                                    int64_t n, int64_t duration_units, int64_t element) {
+    const Constraint *c = find_constraint(dc, QC_RULE_envelope_duration_exact);
+    const IrChannel *pc = &k->prog->channels[pci];
+    Rat played, wanted;
+
+    if (c == NULL) return true;
+    if (!pc->has_sample_unit)
+        return tool_error(k, "channel '" STR_FMT "': constraint envelope_duration_exact, "
+                             "but the program declares no sample_unit", STR_ARG(pc->name));
+    cover(k, QC_COV_envelope_duration_exact, QC_CSTAT_checked);
+    if (!scale(k, dc->unit, duration_units, &played)) return false;
+    if (!rat_mul_int(pc->sample_unit, n, &wanted))
+        return tool_error(k, "arithmetic overflow (envelope duration)");
+    if (!rat_eq(played, wanted)) {
+        Rejection r;
+        r.rule = QC_COV_envelope_duration_exact;
+        r.severity = c->severity;
+        r.has_repair = false;
+        r.repair = QC_REPAIR_quantize_duration;
+        r.element = element;
+        r.quantity = QC_QTY_time;
+        r.value = played;
+        r.limit = wanted;
+        if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+    }
+    return true;
+}
+
 static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t element,
-                           bool *env_seen, int64_t *env_used, size_t n_wf) {
+                           bool *env_seen, int64_t *env_used, size_t n_wf,
+                           int64_t duration_units) {
     uint32_t pci = k->prog->frames[frame].channel;
     const CapChannel *dc = &k->desc->channels[k->bind[pci]];
     const IrWaveform *w = &k->prog->waveforms[wf];
@@ -642,6 +682,8 @@ static bool check_waveform(Check *k, uint32_t frame, uint32_t wf, int64_t elemen
     /* samples */
     {
         int64_t n = (int64_t)w->as.samples.len;
+
+        if (!check_envelope_duration(k, dc, pci, n, duration_units, element)) return false;
 
         /* Both envelope rules need the constraint as well as the capability.
          * The capability is the limit, and the constraint is the evidence
@@ -797,6 +839,35 @@ static bool spacing_rejection(Check *k, RuleId id, int64_t element, Rat unit,
 
 typedef enum { EV_OUTPUT, EV_CAPTURE, EV_FREQUENCY, EV_PHASE } EventKind;
 
+/* capture_slot: the gap from a capture to what follows it is exactly the
+ * instruction slot, or at least two slots. Anything between leaves a wait
+ * the sequencer cannot issue. */
+static bool check_capture_slot(Check *k, const CapChannel *dc, FrameState *st,
+                               Rat gap) {
+    const Constraint *c = find_constraint(dc, QC_RULE_capture_slot);
+    Rat slot, two_slots;
+
+    if (c == NULL || !st->has_open_capture) return true;
+    st->has_open_capture = false;
+    cover(k, QC_COV_capture_slot, QC_CSTAT_checked);
+    if (!scale(k, dc->unit, c->min_units, &slot)) return false;
+    if (!rat_mul_int(slot, 2, &two_slots)) return tool_error(k, "arithmetic overflow (capture slot)");
+    if (rat_eq(gap, slot) || rat_cmp(gap, two_slots) >= 0) return true;
+    {
+        Rejection r;
+        r.rule = QC_COV_capture_slot;
+        r.severity = QC_SEV_fatal;
+        r.has_repair = false;
+        r.repair = QC_REPAIR_quantize_time;
+        r.element = st->open_capture_element;
+        r.quantity = QC_QTY_time;
+        r.value = gap;
+        r.limit = slot;
+        if (!sink_add(&k->sink, r)) return tool_error(k, "out of memory");
+    }
+    return true;
+}
+
 /* An operation on a frame at the frame's clock: a play or capture start, or a
  * frequency or phase update. Checks the spacing rules against the frame's
  * earlier operations. Frame clocks only move forward, so every gap here is
@@ -808,6 +879,11 @@ static bool note_event(Check *k, FrameState *states, uint32_t frame, int64_t ele
     const Constraint *start = find_constraint(dc, QC_RULE_start_spacing);
     int64_t t = st->clock;
 
+    if (st->has_open_capture && t != st->open_capture) {
+        Rat gap;
+        if (!scale(k, dc->unit, t - st->open_capture, &gap)) return false;
+        if (!check_capture_slot(k, dc, st, gap)) return false;
+    }
     if (start != NULL) {
         cover(k, QC_COV_start_spacing, QC_CSTAT_checked);
         if (!st->has_event && start->initial_phase_update
@@ -844,6 +920,9 @@ static bool note_event(Check *k, FrameState *states, uint32_t frame, int64_t ele
         }
         st->has_capture = true;
         st->last_capture = t;
+        st->open_capture = t;
+        st->open_capture_element = element;
+        st->has_open_capture = true;
     }
     st->has_event = true;
     st->last_event = t;
@@ -1117,6 +1196,7 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
         states[i].has_freq_update = false;
         states[i].has_capture = false;
         states[i].has_capture_length = false;
+        states[i].has_open_capture = false;
         states[i].n_elements = 0;
         states[i].n_outputs = 0;
     }
@@ -1295,7 +1375,7 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
                     uint32_t wf = el->as.play.waveform;
                     wf_played[wf] = true;
                     if (!check_waveform(k, frame, wf, el->id, env_seen, env_used,
-                                        prog->n_waveforms))
+                                        prog->n_waveforms, units))
                         return false;
                 }
             }
@@ -1307,6 +1387,20 @@ bool check(Arena *a, const IrProgram *prog, const Descriptor *desc, Report *out,
     /* start_spacing at the end: the last operation on a frame starts at least
      * min_units before the program ends, since the toolchain needs that long
      * to issue it. The end is the whole program's, not the frame's. */
+    /* capture_slot against the program end, for a capture nothing follows */
+    for (i = 0; i < prog->n_frames; i++) {
+        const CapChannel *dc = desc_channel_of_frame(k, (uint32_t)i);
+        Rat start_s, gap, negated;
+        if (!states[i].has_open_capture) continue;
+        if (!scale(k, dc->unit, states[i].open_capture, &start_s)) return false;
+        negated = start_s;
+        if (negated.num == INT64_MIN) return tool_error(k, "arithmetic overflow (capture slot)");
+        negated.num = -negated.num;
+        if (!rat_add(k->program_end, negated, &gap))
+            return tool_error(k, "arithmetic overflow (capture slot)");
+        if (!check_capture_slot(k, dc, &states[i], gap)) return false;
+    }
+
     for (i = 0; i < prog->n_frames; i++) {
         const CapChannel *dc;
         const Constraint *c;

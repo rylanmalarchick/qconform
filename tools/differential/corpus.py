@@ -462,10 +462,18 @@ def cases_envelope(d, gen):
     dgrid = gen["duration_grid"]
     out = []
 
+    # A device that neither pads nor truncates an envelope plays it for its
+    # sample count, and says so with envelope_duration_exact. Elsewhere the
+    # duration is independent of the sample count.
+    exact = any(c["id"] == "envelope_duration_exact" for c in gen["constraints"])
+
     def envelope_program(n, amp, name):
         b = Builder([base(gen["name"], unit, sample_unit, gen.get("_mixer_hz"))], gen_frames(gen["name"]))
         b.wf_samples("e0", [amp] * n, [0] * n)
-        b.add(kind="play", frame="f0", waveform="e0", duration=60 * dgrid)
+        duration = n * sample_unit / unit if exact else 60 * dgrid
+        if duration.denominator != 1:
+            raise SystemExit(f"{name}: {n} samples do not land on the channel unit")
+        b.add(kind="play", frame="f0", waveform="e0", duration=int(duration))
         return (name, b.program())
 
     safe_amp = (max_abs // 2) if max_abs else 1000

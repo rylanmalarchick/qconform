@@ -29,7 +29,7 @@ refuses to guess through.
 
 2. the rules
 ------------
-Twenty rules, in registry order. The registry is append-only: an id is never
+Twenty-two rules, in registry order. The registry is append-only: an id is never
 renamed, renumbered or reused, and a retired id keeps its slot.
 
   R1   pulse_length_range      a play on a drive channel, in channel units,
@@ -106,6 +106,16 @@ renamed, renumbered or reused, and a retired id keeps its slot.
                                min_units apart
   R20  capture_length_uniform  a capture whose duration differs from the first
                                capture on its frame
+  R21  envelope_duration_exact a play of a sample waveform whose duration is
+                               not the sample count times the sample unit. A
+                               device that neither pads nor truncates can play
+                               it no other way
+  R22  capture_slot            a capture whose next operation, or the program
+                               end, comes neither exactly min_units after it
+                               nor at least twice that. The capture
+                               instruction occupies one slot whatever the
+                               capture lasts, and the wait after it is either
+                               nothing or a whole slot
 
 A muxed generator carries its frequency, phase and amplitude in a tone table
 rather than in a frame, so R4 through R8 apply once per declared tone. They
@@ -138,7 +148,7 @@ A repair means the program that runs is not the program that was written.
 
 4. coverage, and what pass does not mean
 ----------------------------------------
-Every report carries a coverage manifest naming all twenty-four classes as
+Every report carries a coverage manifest naming all twenty-six classes as
 checked, not_applicable, unchecked or indeterminate.
 
 pass means exactly this: no violation was found among the classes marked
@@ -184,11 +194,11 @@ Measured against asm_v2 on 2026-09-06, qick 0.2.418:
 
 Coverage counts a class as covered when the corpus contains a program where it
 fires and a program where it is checked and does not fire. Seventeen of the
-twenty-four classes are reachable on the QICK descriptors, and a descriptor
+twenty-six classes are reachable on the QICK descriptors, and a descriptor
 reaches only the classes its channels declare: testbench has no muxed
 generator, so the two mux classes are not applicable there. The three spacing
-classes and capture_length_uniform are Qblox rules, and no QICK descriptor
-declares them. negative_time and loop_registers are unreachable by
+classes, capture_length_uniform, envelope_duration_exact and capture_slot are
+Qblox rules, and no QICK descriptor declares them. negative_time and loop_registers are unreachable by
 construction, stated in rule R14 and in section 2. unconstrained_channel
 reports unchecked by definition and so cannot fire.
 

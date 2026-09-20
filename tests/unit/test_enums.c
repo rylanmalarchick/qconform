@@ -39,7 +39,9 @@ TEST(known_names_and_ordinals) {
     CHECK_I64(QC_RULE_frequency_update_spacing, 17);
     CHECK_I64(QC_RULE_capture_spacing, 18);
     CHECK_I64(QC_RULE_capture_length_uniform, 19);
-    CHECK_I64(QC_COV_pmem_words, 20);
+    CHECK_I64(QC_RULE_envelope_duration_exact, 20);
+    CHECK_I64(QC_RULE_capture_slot, 21);
+    CHECK_I64(QC_COV_pmem_words, 22);
     CHECK_STR(repair_id_name(QC_REPAIR_saturate_gain), "saturate_gain");
 }
 

@@ -51,6 +51,7 @@ PER_ELEMENT_MAX = 10
 START_SPACING_NS = 4
 FREQUENCY_UPDATE_SPACING_NS = 4
 CAPTURE_SPACING_NS = 300
+MIN_ACQUISITION_NS = 4                     # the integration_length validator
 MAX_ACQUISITION_NS = 16_000_000
 
 
@@ -141,6 +142,10 @@ def output_constraints(cfg):
          "severity": "fatal", "grid": 1,
          "evidence": [ev(cfg, "envelope", "numerical pulse, 4 samples", "accept"),
                       ev(cfg, "envelope", "numerical pulse, 8 samples", "accept")]},
+        {"id": "envelope_duration_exact", "quantity": "time", "shape": "range_units",
+         "severity": "fatal",
+         "evidence": [ev(cfg, "envelope", "numerical pulse, 8 samples", "accept"),
+                      ev(cfg, "cost", "one 8-sample numerical pulse", "accept")]},
         {"id": "envelope_amplitude", "quantity": "amplitude", "shape": "range_resolution",
          "severity": "fatal", "min": rat(-1), "max": rat(1),
          "resolution": rat(GAIN_STEP), "saturate_max": rat(GAIN_SATURATE),
@@ -184,13 +189,30 @@ def channel(name, kind, vendor_type, cfg, capture=False):
     if capture:
         ch["constraints"] += [
             {"id": "readout_length_range", "quantity": "time", "shape": "range_units",
-             "severity": "fatal", "max_units": MAX_ACQUISITION_NS,
+             "severity": "fatal", "min_units": MIN_ACQUISITION_NS,
+             "max_units": MAX_ACQUISITION_NS,
              "evidence": [ev(cfg, "readout", "acquisition of 16000001 ns", "reject"),
-                          ev(cfg, "readout", "acquisition of 16000000 ns", "accept")]},
+                          ev(cfg, "readout", "acquisition of 16000000 ns", "accept"),
+                          ev(cfg, "readout", "acquisition of 3 ns while the drive port runs",
+                             "reject"),
+                          ev(cfg, "readout", "acquisition of 4 ns while the drive port runs",
+                             "accept")]},
             {"id": "capture_spacing", "quantity": "time", "shape": "range_units",
              "severity": "fatal", "min_units": CAPTURE_SPACING_NS,
              "evidence": [ev(cfg, "readout", "second acquisition 299 ns after the first", "reject"),
                           ev(cfg, "readout", "second acquisition 300 ns after the first", "accept")]},
+            {"id": "capture_slot", "quantity": "time", "shape": "range_units",
+             "severity": "fatal", "min_units": START_SPACING_NS,
+             "evidence": [ev(cfg, "readout", "readout pulse 5 ns after an acquisition starts",
+                             "reject"),
+                          ev(cfg, "readout", "readout pulse 4 ns after an acquisition starts",
+                             "accept_round"),
+                          ev(cfg, "readout", "readout pulse 8 ns after an acquisition starts",
+                             "accept_round"),
+                          ev(cfg, "readout", "acquisition of 5 ns is the last operation",
+                             "reject"),
+                          ev(cfg, "readout", "acquisition of 8 ns is the last operation",
+                             "accept")]},
             {"id": "capture_length_uniform", "quantity": "time", "shape": "range_units",
              "severity": "fatal",
              "evidence": [ev(cfg, "readout", "acquisitions of 100 then 200 ns on one sequencer",

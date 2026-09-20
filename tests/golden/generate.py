@@ -269,6 +269,17 @@ CASES = {
         waveforms=[],
         channels=[{"name": "q0_res", "unit": NS}],
         frames=[qframe("r0", "q0_res", 50000000)]), 1),
+    # envelope axis, "numerical pulse, 8 samples": a waveform plays for its
+    # sample count, and Qblox pads nothing, so 60 ns of 8 samples is refused
+    "qblox-envelope-duration-differs": (QBLOX_DESC, qblox_program(
+        [qplay(0, 60, wf="e0")], waveforms=[qenvelope("e0", 100, 8)]), 1),
+    # readout axis, "acquisition of 5 ns is the last operation", reject: the
+    # capture instruction takes 4 ns and the 1 ns left cannot be waited out
+    "qblox-capture-slot": (QBLOX_DESC, qblox_program(
+        [{"id": 0, "kind": "capture", "frame": "r0", "duration": 5}],
+        waveforms=[],
+        channels=[{"name": "q0_res", "unit": NS}],
+        frames=[qframe("r0", "q0_res", 50000000)]), 1),
     # a pmem_words budget with scope frame counts each frame on its own. Six
     # plays on each of two frames: 16 words at least per frame, under a limit
     # of 20, while the two together would be 22

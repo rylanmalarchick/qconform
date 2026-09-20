@@ -365,6 +365,26 @@
      ]
     },
     {
+     "id": "envelope_duration_exact",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 8 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "cost",
+       "note_contains": "one 8-sample numerical pulse",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
      "id": "envelope_amplitude",
      "quantity": "amplitude",
      "shape": "range_resolution",
@@ -799,6 +819,26 @@
      ]
     },
     {
+     "id": "envelope_duration_exact",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "envelope",
+       "note_contains": "numerical pulse, 8 samples",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "cost",
+       "note_contains": "one 8-sample numerical pulse",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
      "id": "envelope_amplitude",
      "quantity": "amplitude",
      "shape": "range_resolution",
@@ -1130,6 +1170,7 @@
      "quantity": "time",
      "shape": "range_units",
      "severity": "fatal",
+     "min_units": 4,
      "max_units": 16000000,
      "evidence": [
       {
@@ -1142,6 +1183,18 @@
        "config": "qblox-qcm-qrm",
        "axis": "readout",
        "note_contains": "acquisition of 16000000 ns",
+       "outcome": "accept"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisition of 3 ns while the drive port runs",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisition of 4 ns while the drive port runs",
        "outcome": "accept"
       }
      ]
@@ -1163,6 +1216,45 @@
        "config": "qblox-qcm-qrm",
        "axis": "readout",
        "note_contains": "second acquisition 300 ns after the first",
+       "outcome": "accept"
+      }
+     ]
+    },
+    {
+     "id": "capture_slot",
+     "quantity": "time",
+     "shape": "range_units",
+     "severity": "fatal",
+     "min_units": 4,
+     "evidence": [
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "readout pulse 5 ns after an acquisition starts",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "readout pulse 4 ns after an acquisition starts",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "readout pulse 8 ns after an acquisition starts",
+       "outcome": "accept_round"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisition of 5 ns is the last operation",
+       "outcome": "reject"
+      },
+      {
+       "config": "qblox-qcm-qrm",
+       "axis": "readout",
+       "note_contains": "acquisition of 8 ns is the last operation",
        "outcome": "accept"
       }
      ]
