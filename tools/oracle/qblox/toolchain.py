@@ -81,7 +81,12 @@ class Toolchain:
     def __init__(self, hw_config):
         from qblox_instruments import Cluster, ClusterType
         from qblox_scheduler import QuantumDevice, SerialCompiler
-        from qblox_scheduler.data_dir import OutputDirectoryManager
+        try:
+            from qblox_scheduler.data_dir import OutputDirectoryManager
+        except ModuleNotFoundError:
+            # before 1.0.0b7 the class lived in the analysis package. The
+            # version study drives releases that old.
+            from qblox_scheduler.analysis.data_handling import OutputDirectoryManager
         from qblox_scheduler.instrument_coordinator.components.qblox import ClusterComponent
 
         logging.getLogger().setLevel(logging.ERROR)
