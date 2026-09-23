@@ -620,6 +620,157 @@ def cases_offlattice(d, gen):
     return out
 
 
+def cases_spacing(d, gen):
+    """start_spacing, frequency_update_spacing and the initial phase update.
+
+    Only the randomized programs reached these rules, so no program put two
+    operations min_units - 1, min_units or min_units + 1 apart, and fault
+    injection saw a min_units one unit off survive. Nor did any program give
+    a frame a nonzero initial phase, which is the only thing
+    initial_phase_update is about.
+    """
+    unit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
+    dgrid = gen["duration_grid"]
+    out = []
+
+    def builder(phase=Fraction(0)):
+        frames = [{"name": "f0", "channel": gen["name"], "frequency": rat(0), "phase": rat(phase)}]
+        b = Builder([base(gen["name"], unit, mixer_hz=gen.get("_mixer_hz"))], frames)
+        b.wf_const("w0", Fraction(1, 2))
+        return b
+
+    start = d.constraint(gen["name"], "start_spacing")
+    if start is not None:
+        m = start["min_units"]
+        # A play lasts exactly its gap, so the second play starts gap units
+        # after the first. The last play is long so the program end is never
+        # the thing under test.
+        for gap, rung in ((m - dgrid, "just_below"), (m, "at"), (m + dgrid, "just_above")):
+            b = builder()
+            b.add(kind="play", frame="f0", waveform="w0", duration=gap)
+            b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
+            out.append((f"start_spacing_{rung}", b.program()))
+
+        if start.get("initial_phase_update"):
+            # A nonzero initial phase reaches the device as a phase update at
+            # time 0, so the first operation must come at time 0 or at least
+            # min_units later. A quarter turn is on any phase step a device
+            # declares.
+            for gap, rung in ((0, "same_time"), (m - dgrid, "just_below"), (m, "at")):
+                b = builder(phase=Fraction(1, 4))
+                if gap:
+                    b.add(kind="delay", frame="f0", duration=gap)
+                b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
+                out.append((f"initial_phase_update_{rung}", b.program()))
+
+    freq = d.constraint(gen["name"], "frequency_update_spacing")
+    if freq is not None:
+        m = freq["min_units"]
+        # Equal times count for this rule and not for start_spacing, so the
+        # same_time rung is the one that tells the two rules apart.
+        for gap, rung in ((0, "same_time"), (m - dgrid, "just_below"), (m, "at"),
+                          (m + dgrid, "just_above")):
+            b = builder()
+            b.add(kind="set_frequency", frame="f0", frequency=rat(0))
+            if gap:
+                b.add(kind="delay", frame="f0", duration=gap)
+            b.add(kind="set_frequency", frame="f0", frequency=rat(0))
+            b.add(kind="play", frame="f0", waveform="w0", duration=60 * dgrid)
+            out.append((f"frequency_update_spacing_{rung}", b.program()))
+    return out
+
+
+def cases_readout_carrier(d, gen, ro):
+    """Frequency and phase updates on a readout frame.
+
+    A readout frame carried only captures and delays, so a readout channel's
+    frequency_range, phase_resolution and frequency_update_spacing were
+    declared and never tested. On a sequencer-per-frame device the readout
+    frame has its own carrier, and the program sets it before the capture.
+    """
+    gunit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
+    runit = Fraction(ro["unit"]["num"], ro["unit"]["den"])
+    length = d.constraint(ro["name"], "readout_length_range")
+    dur = (length or {}).get("min_units") or ro["duration_grid"]
+    out = []
+
+    def program(*updates):
+        b = Builder([base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro["name"], runit)],
+                    gen_frames(gen["name"], ro["name"]))
+        b.wf_const("w0", Fraction(1, 2))
+        b.add(kind="play", frame="f0", waveform="w0", duration=60 * gen["duration_grid"])
+        b.add(kind="barrier", frames=[])
+        for el in updates:
+            b.add(frame="r0", **el)
+        b.add(kind="capture", frame="r0", duration=dur)
+        return b.program()
+
+    c = d.constraint(ro["name"], "frequency_range")
+    if c is not None:
+        res = Fraction(c["resolution"]["num"], c["resolution"]["den"]) if "resolution" in c else None
+        offset = mixer_offset(ro, c)
+        for key in ("min", "max"):
+            if key not in c:
+                continue
+            limit = Fraction(c[key]["num"], c[key]["den"])
+            for value, rung in ladder(limit, res or Fraction(1)):
+                out.append((f"readout_frequency_range_{key}_{rung}",
+                            program({"kind": "set_frequency", "frequency": rat(value + offset)})))
+        if res is not None:
+            for mult, rung in ((100, "on_resolution"), (ODD_MULTIPLE, "three_steps"),
+                               (Fraction(1, 2), "half_step_off")):
+                out.append((f"readout_frequency_resolution_{rung}",
+                            program({"kind": "set_frequency", "frequency": rat(res * mult)})))
+
+    c = d.constraint(ro["name"], "phase_resolution")
+    if c is not None and "resolution" in c:
+        res = Fraction(c["resolution"]["num"], c["resolution"]["den"])
+        for value, rung in ((res * 1000, "on_resolution"), (res * ODD_MULTIPLE, "three_steps"),
+                            (res / 2, "half_step_off"), (res * Fraction(3, 2), "one_and_half_steps")):
+            out.append((f"readout_phase_resolution_{rung}",
+                        program({"kind": "shift_phase", "phase": rat(value)})))
+
+    c = d.constraint(ro["name"], "frequency_update_spacing")
+    if c is not None:
+        m = c["min_units"]
+        g = ro["duration_grid"]
+        for gap, rung in ((0, "same_time"), (m - g, "just_below"), (m, "at"), (m + g, "just_above")):
+            updates = [{"kind": "set_frequency", "frequency": rat(0)}]
+            if gap:
+                updates.append({"kind": "delay", "duration": gap})
+            updates.append({"kind": "set_frequency", "frequency": rat(0)})
+            out.append((f"readout_frequency_update_spacing_{rung}", program(*updates)))
+    return out
+
+
+def cases_readout_offlattice(d, gen, ro):
+    """A readout's pulse_length_grid and schedule_grid where the grid is one
+    unit. As for a generator, only a program in half a unit can miss it."""
+    if ro["duration_grid"] != 1 and ro["schedule_grid"] != 1:
+        return []
+    gunit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
+    runit = Fraction(ro["unit"]["num"], ro["unit"]["den"]) / 2
+    # Long enough that the capture_slot rule, which wants the program end
+    # exactly one slot or at least two slots after the capture starts, is
+    # never what the program tests. In half units.
+    dur = 240
+    out = []
+    for offset, rung in ((0, "on_lattice"), (1, "half_unit_off")):
+        for what in ("duration", "start"):
+            b = Builder([base(gen["name"], gunit, mixer_hz=gen.get("_mixer_hz")), base(ro["name"], runit)],
+                        gen_frames(gen["name"], ro["name"]))
+            b.wf_const("w0", Fraction(1, 2))
+            b.add(kind="play", frame="f0", waveform="w0", duration=60 * gen["duration_grid"])
+            b.add(kind="barrier", frames=[])
+            if what == "start":
+                b.add(kind="delay", frame="r0", duration=120 + offset)
+                b.add(kind="capture", frame="r0", duration=dur)
+            else:
+                b.add(kind="capture", frame="r0", duration=dur + offset)
+            out.append((f"readout_offlattice_{what}_{rung}", b.program()))
+    return out
+
+
 def cases_negative(d, gen):
     unit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
     dgrid = gen["duration_grid"]
@@ -653,16 +804,19 @@ def cases_unconstrained(d, gen):
     return [("unconstrained_channel_bound", b.program())]
 
 
-def cases_budgets(d, gen):
+def cases_budgets(d, gen, declared=None):
     """pmem_words and wmem_words. These need scale rather than precision, so
-    they are a small separate part of the corpus."""
+    they are a small separate part of the corpus.
+
+    declared, when given, is the one budget declaration to test on gen.
+    """
     unit = Fraction(gen["unit"]["num"], gen["unit"]["den"])
     dgrid = gen["duration_grid"]
     # A budget may be declared once per module type, each naming the channels
     # it counts for. Keyed by id alone, the last one wins and the programs
     # are built against a limit this channel does not have.
     budgets = {}
-    for b in d.raw["budgets"]:
+    for b in d.raw["budgets"] if declared is None else [declared]:
         if b.get("channels") and gen["name"] not in b["channels"]:
             continue
         budgets[b["id"]] = b
@@ -821,16 +975,32 @@ def build_corpus(descriptor_path, seed, random_programs=40, config_path=None):
         per_gen += cases_envelope(d, gen)
         per_gen += cases_negative(d, gen)
         per_gen += cases_offlattice(d, gen)
+        per_gen += cases_spacing(d, gen)
         per_gen += random_cases(d, gen, random.Random(tag_seed(seed, tag)),
                                 random_programs)
         for ro in d.classes("readout"):
             per_gen += cases_readout(d, gen, ro)
+            per_gen += cases_readout_carrier(d, gen, ro)
+            per_gen += cases_readout_offlattice(d, gen, ro)
         cases += [(f"{tag}__{name}", prog) for name, prog in per_gen]
 
     # Budgets and the unconstrained channel are whole-program properties, so
-    # one generator is enough for them.
+    # one generator is enough for them. A budget that names its channels is
+    # a different limit per module, so each declaration gets its own ladder,
+    # on the first drive channel it names. Built for the first drive class
+    # alone, the readout module's budget had no program at all.
     gen0 = d.classes("drive")[0]
-    cases += cases_budgets(d, gen0)
+    scoped = [b for b in d.raw["budgets"] if b.get("channels")]
+    if scoped and len(scoped) != len(d.raw["budgets"]):
+        # No descriptor mixes the two forms. If one does, the gen0 ladder
+        # would test the scoped budgets a second time, so refuse instead.
+        raise SystemExit("corpus: budgets mix channel-scoped and unscoped declarations")
+    for b in scoped:
+        owner = next(d.channels[n] for n in b["channels"] if d.channels[n]["kind"] == "drive")
+        cases += [(f"{owner['name']}__{name}", prog)
+                  for name, prog in cases_budgets(d, owner, declared=b)]
+    if not scoped:
+        cases += cases_budgets(d, gen0)
     cases += cases_unconstrained(d, gen0)
 
     # The seed fixes the order. Nothing else consumes randomness at this
