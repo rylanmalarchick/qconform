@@ -42,6 +42,12 @@ so a second implementation can be measured against the same cases.
 
   ./tests/golden/run.sh /path/to/some/other/qconform
 
+The differential runs qconform against a vendor toolchain, with no hardware.
+It needs Python and the vendor package. See tools/differential/README.txt.
+
+  make differential         against QICK asm_v2
+  make differential-qblox   against Qblox qblox-scheduler
+
 Layout
 ------
 

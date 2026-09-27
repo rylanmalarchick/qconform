@@ -186,11 +186,19 @@ documents each one as a vendor_behavior.
 In each the toolchain accepts and the hardware does not. Refusing is the
 useful answer.
 
-Measured against asm_v2 on 2026-09-06, qick 0.2.418:
+A fourth case is not a vendor_behavior. The checker refuses a frequency or
+phase update when the program sets it, and the toolchain checks only the
+updates that an output uses. So a program whose refused update no later output
+reads compiles, and the checker fails it. This occurs on both vendors.
 
-  descriptor        programs   unsound passes   coverage
-  testbench              110                0      15/15
-  qce2025-r26            281                0      17/17
+Measured on 2026-09-22 against asm_v2 (qick 0.2.418) and qblox-scheduler
+1.0.0b8:
+
+  descriptor        vendor   programs   unsound passes   coverage
+  testbench         QICK          127                0      15/15
+  qce2025-r26       QICK          681                0      17/17
+  rb-r27            QICK          127                0      15/15
+  qblox-qcm-qrm     Qblox         328                0      19/19
 
 Coverage counts a class as covered when the corpus contains a program where it
 fires and a program where it is checked and does not fire. Seventeen of the
@@ -198,7 +206,11 @@ twenty-six classes are reachable on the QICK descriptors, and a descriptor
 reaches only the classes its channels declare: testbench has no muxed
 generator, so the two mux classes are not applicable there. The three spacing
 classes, capture_length_uniform, envelope_duration_exact and capture_slot are
-Qblox rules, and no QICK descriptor declares them. negative_time and loop_registers are unreachable by
+Qblox rules, and no QICK descriptor declares them. Twenty of the twenty-six
+classes are reachable on the Qblox descriptor. One of them,
+envelope_sample_grid, is vacuous there: every channel states a grid of one
+sample, so no sample count can miss it. Triage reports it as vacuous and not
+as covered. negative_time and loop_registers are unreachable by
 construction, stated in rule R14 and in section 2. unconstrained_channel
 reports unchecked by definition and so cannot fire.
 
@@ -209,7 +221,7 @@ any implementation of this specification.
 
 6. what bounds the claim
 ------------------------
-Three limits bound the claim.
+These limits bound the claim.
 
 The corpus is boundary-driven from the descriptor and supplemented with seeded
 randomized programs. It finds what the declared limits imply and what random
@@ -219,7 +231,7 @@ Static readouts are outside the evidence. A program does not configure a pfb
 readout, and such a readout refuses the dynamic readout interface the harness
 speaks. The harness therefore declines to lower a capture on one. Recording
 that refusal would blame the program for a limit it did not cause. That is one
-row of 281 on qce2025-r26.
+row of 681 on qce2025-r26.
 
 One limit on a muxed generator is stated rather than checked. The tProc time
 immediate is a signed 32-bit field, and what must fit in it is the accumulated
@@ -235,5 +247,14 @@ one. The resolution each channel declares is correct and is what the rules
 read, so no verdict depends on the rounding block. It is descriptive, and on
 a muxed generator it is wrong for amplitude.
 
-The claim covers one vendor. asm_v2 is the only oracle this specification has
-been measured against.
+On Qblox, pulse_length_grid and schedule_grid cannot be falsified through the
+oracle. The channel unit is 1 ns and both grids are one unit, so only a
+program stated in half a unit can miss either grid. The vendor interface takes
+seconds as a double, and a half-nanosecond value does not survive that
+conversion exactly. Triage attributes every such row to the harness, so a
+defect in either rule would go unseen.
+
+The claim covers two vendors, QICK asm_v2 and Qblox qblox-scheduler. Both
+compile with no hardware present, which is what makes an offline oracle
+possible. A vendor whose compiler runs only against a live instrument cannot
+be measured this way.

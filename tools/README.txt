@@ -15,16 +15,17 @@ What each part is for
 ---------------------
 
   survey/       The empirical constraint survey: a black-box probe harness
-                per vendor (survey/qick/) that feeds programs to the vendor
-                toolchain and records what it accepts, rejects, or silently
-                repairs. Output is the JSONL catalog in survey/catalog/.
-                Every descriptor constraint must cite a row of it. Runs
-                against the captured board configs in survey/configs/, so it
-                needs the vendor package but not a board.
-                Needs: pip install -r survey/requirements.txt
+                per vendor (survey/qick/, survey/qblox/) that feeds programs
+                to the vendor toolchain and records what it accepts, rejects,
+                or silently repairs. Output is the JSONL catalog in
+                survey/catalog/. Every descriptor constraint must cite a row
+                of it. Runs against the board configs in survey/configs/, so
+                it needs the vendor package but not a board.
+                Needs: QICK, pip install -r survey/requirements.txt
+                       Qblox, pip install -r survey/qblox/requirements.txt
 
-  descriptor/   build_qick.py turns a captured QICK config plus the
-                survey catalog into a capability descriptor.
+  descriptor/   build_qick.py and build_qblox.py turn a board config
+                plus the survey catalog into a capability descriptor.
                 check_descriptor.py is the gate: every constraint must trace
                 to a catalog row that resolves, or the descriptor does not
                 ship.
@@ -34,11 +35,12 @@ What each part is for
 
   differential/ qconform against the vendor toolchain over a generated
                 corpus: corpus.py, run.py, triage.py. make differential runs
-                it. See differential/README.txt.
-                Needs: the survey environment
+                it for QICK, make differential-qblox for Qblox. See
+                differential/README.txt.
+                Needs: the survey environment of that vendor
 
   oracle/       The vendor side of the differential, one backend per
-                vendor (oracle/qick/). A backend lowers a qconform program
+                vendor (oracle/qick/, oracle/qblox/). A backend lowers a qconform program
                 to vendor calls, compiles it, and reads back what the vendor
                 did. The descriptor's identification.library.name picks it.
                 Needs: the vendor package of that backend
@@ -56,14 +58,15 @@ What each part is for
                 Needs: pip install -r format/requirements.txt
 
 The studies that measure this harness (fault injection, corpus saturation,
-and the qick version study) are in a separate repository, qconform-study,
-which pins this one as a submodule.
+and the version studies for qick and qblox-scheduler) are in a separate
+repository, qconform-study, which pins this one as a submodule.
 
 Version pinning
 ---------------
 Vendor behavior is a function of the (firmware config, library version)
-pair, so requirements.txt files pin exact versions. A survey re-run under a
-different qick release is a different survey and produces a different
+pair, so requirements.txt files pin exact versions: qick 0.2.418 in
+survey/requirements.txt, qblox-scheduler 1.0.0b8 in
+survey/qblox/requirements.txt. A survey re-run under a different qick release is a different survey and produces a different
 descriptor, by design. See documentation/descriptor-format-v0.txt.
 
 A re-run tests the pin. Under qick 0.2.418 and numpy 2.5.1 the QICK survey
@@ -77,3 +80,7 @@ because the pin is exact:
   uv venv ~/.venvs/qconform-survey --python 3.12
   uv pip install --python ~/.venvs/qconform-survey/bin/python \
       -r tools/survey/requirements.txt
+
+  uv venv ~/.venvs/qconform-qblox --python 3.12
+  uv pip install --python ~/.venvs/qconform-qblox/bin/python \
+      -r tools/survey/qblox/requirements.txt

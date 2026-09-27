@@ -5,24 +5,33 @@ Phase 5 evidence: qconform's verdict against a vendor toolchain, over a
 generated corpus, on every distinct channel class a descriptor declares.
 
 The vendor side is an oracle backend in tools/oracle/. The descriptor names
-its library in identification.library.name, and that picks the backend. Today
-the one backend is QICK asm_v2 (tools/oracle/qick/).
+its library in identification.library.name, and that picks the backend. There
+are two backends: QICK asm_v2 (tools/oracle/qick/) and Qblox qblox-scheduler
+(tools/oracle/qblox/).
 
 This is not tests/difftest.py. That one compares two qconform implementations
 against each other. This one compares qconform against the vendor.
 
 Run it
 ------
-  make differential
+  make differential         QICK: testbench, qce2025-r26, rb-r27
+  make differential-qblox   Qblox: qblox-qcm-qrm
 
-That needs the survey environment, because it drives the vendor toolchain:
+Each needs the survey environment of its vendor, because it drives the
+vendor toolchain:
 
   uv venv ~/.venvs/qconform-survey --python 3.12
   uv pip install --python ~/.venvs/qconform-survey/bin/python \
       -r tools/survey/requirements.txt
 
+  uv venv ~/.venvs/qconform-qblox --python 3.12
+  uv pip install --python ~/.venvs/qconform-qblox/bin/python \
+      -r tools/survey/qblox/requirements.txt
+
 There is no hardware in this loop and there must not be. asm_v2 compiles from
-a captured board configuration in tools/survey/configs/.
+a captured board configuration in tools/survey/configs/. qblox-scheduler
+compiles against a hardware compilation config in the same directory and
+prepares the result on a dummy cluster, which runs the q1asm assembler.
 
 What each part does
 -------------------
@@ -46,7 +55,10 @@ In tools/oracle/, per backend:
   observe.py         Reads back what the vendor did. For QICK, get_pulse_param
                      reports what was asked for. The register is what the
                      hardware sees, and the two differ exactly where the
-                     vendor accepts what it cannot represent.
+                     vendor accepts what it cannot represent. For Qblox, it
+                     reads the compiled Q1ASM.
+  toolchain.py       Qblox only. Compiles a Schedule and prepares it on the
+                     dummy cluster.
   preflight.py       Every golden program the checker accepts must lower and
                      compile. make differential runs it first.
 
