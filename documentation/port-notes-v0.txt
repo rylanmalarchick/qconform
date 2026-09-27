@@ -28,8 +28,8 @@ is kept so the equivalence result below can be reproduced.
 two arithmetic hazards
 ----------------------
 C's defaults are wrong for this checker in two places. Both produce a
-wrong verdict rather than a crash, and neither shows up in a passing
-test unless a test looks for it. src/intmath.h holds the replacements.
+wrong verdict, not a crash. A passing test shows neither unless the test
+looks for it. src/intmath.h holds the replacements.
 
 1. Division rounding.
 

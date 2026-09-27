@@ -7,8 +7,8 @@ with the formats. None of it is required to build, run, or test qconform.
   make            builds the checker
   make check      unit tests, the golden corpus, the invariant tripwires
 
-Both need a C compiler and POSIX sh. Nothing here is on that path, and no
-Python is imported by anything under src/. If you only want the checker, you
+Both need a C compiler and POSIX sh. Nothing here is on that path, and
+nothing under src/ imports Python. If you only want the checker, you
 can ignore this directory entirely.
 
 What each part is for
@@ -57,17 +57,17 @@ What each part is for
                 descriptor or an exporter.
                 Needs: pip install -r format/requirements.txt
 
-The studies that measure this harness (fault injection, corpus saturation,
-and the version studies for qick and qblox-scheduler) are in a separate
-repository, qconform-study, which pins this one as a submodule.
+A separate repository, qconform-study, holds the studies that measure this
+harness: fault injection, corpus saturation, and the version studies for
+qick and qblox-scheduler. It pins this repository as a submodule.
 
 Version pinning
 ---------------
 Vendor behavior is a function of the (firmware config, library version)
-pair, so requirements.txt files pin exact versions: qick 0.2.418 in
+pair. So the requirements.txt files pin exact versions: qick 0.2.418 in
 survey/requirements.txt, qblox-scheduler 1.0.0b8 in
-survey/qblox/requirements.txt. A survey re-run under a different qick release is a different survey and produces a different
-descriptor, by design. See documentation/descriptor-format-v0.txt.
+survey/qblox/requirements.txt. A survey re-run under a different release is
+a different survey and produces a different descriptor, by design. See documentation/descriptor-format-v0.txt.
 
 A re-run tests the pin. Under qick 0.2.418 and numpy 2.5.1 the QICK survey
 rewrites all 45 of its files in survey/catalog/ byte-identically. That test is

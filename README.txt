@@ -37,8 +37,8 @@ Test
   make sanitize   the same, built with UBSan and ASan
 
 tests/golden/manifest.tsv lists each case with its expected exit code and
-report. tests/golden/run.sh runs the corpus against any qconform binary,
-so a second implementation can be measured against the same cases.
+report. tests/golden/run.sh runs the corpus against any qconform binary. Use
+it to measure a second implementation against the same cases.
 
   ./tests/golden/run.sh /path/to/some/other/qconform
 

@@ -1,8 +1,8 @@
 qconform report format v0
 =========================
 
-Versioned JSON output contract of the checker. Implementable from this
-file plus program-format-v0.txt. Draft v0, 2026-07-10. The field set
+Versioned JSON output contract of the checker. This file and
+program-format-v0.txt are enough to implement it. Draft v0, 2026-07-10. The field set
 freezes at v1. JSON conventions (no floats, canonical rationals, i64
 bounds) are the same as program-format-v0.txt.
 
@@ -50,8 +50,9 @@ A vendor_repairable rejection names the repair [freq-alias-v6]:
   The repair id names what the vendor stack does silently: quantize_duration,
   quantize_time, quantize_frequency, quantize_phase, trunc_gain (gain rounded
   toward zero), quantize_gain (gain rounded to nearest), alias_mod_f_dds, or
-  saturate_gain (gain clamped below full scale). The rule catalog records whether a repair keeps
-  experiment semantics. A rejection does not restate that.
+  saturate_gain (gain clamped below full scale). The rule catalog records
+  whether a repair keeps experiment semantics. A rejection does not restate
+  that.
   A checker enforces this pairing at descriptor load. Some rules never
   report a repair and others always do, so a descriptor cannot give a
   rule a severity the rule cannot express.

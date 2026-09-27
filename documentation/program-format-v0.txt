@@ -1,19 +1,19 @@
 qconform program format v0
 ==========================
 
-Versioned JSON interchange format for pulse programs: exporters produce
-it, the checker consumes it. Implementable from this file alone.
+Versioned JSON interchange format for pulse programs. Exporters write it
+and the checker reads it. This file alone is enough to implement it.
 Draft v0, 2026-07-10. The field set freezes at v1.
 
 JSON conventions
 ----------------
 - UTF-8, one JSON object per file
-- no floats anywhere; every JSON number is an integer
+- no floats anywhere. Every JSON number is an integer
 - non-integer quantities are rationals: {"num": N, "den": D} with N, D
   integers, D > 0, gcd(|N|, D) = 1. The sign lives on num. A reader
   rejects non-canonical rationals.
-- integers must survive a 64-bit round-trip; values outside i64 are
-  rejected. A reader that parses numbers through float64 does not
+- integers must survive a 64-bit round-trip. A reader rejects values
+  outside i64. A reader that parses numbers through float64 does not
   conform.
 - unknown fields and unknown kinds are validation errors, not warnings
 - name strings are nonempty and unique within their array
@@ -52,32 +52,32 @@ channels
   rational number of Hz. It is signed, because a mixer can sit below the
   band as easily as above it. Declare it only when the channel has a
   mixer.
-  A descriptor constraint marked post_mixer is checked against the
-  frequency the device sees, which is the requested frequency minus this
-  value. An interpolated QICK generator works that way. A program that
-  plays on such a channel and declares no mixer_frequency is a validation
-  error: the checker cannot know the band, and assuming zero would accept
-  programs the toolchain refuses.
+  The checker compares a post_mixer constraint against the frequency the
+  device sees: the requested frequency minus this value. An interpolated
+  QICK generator works that way. A program that plays on such a channel
+  and declares no mixer_frequency is a validation error. The checker
+  cannot know the band, and an assumed zero would accept programs the
+  toolchain refuses.
 - tones: the tone table of a muxed generator, an ordered list of
   {frequency, phase, amplitude}. Declare it only on a channel that is
   muxed, and never empty.
-  A muxed generator plays a fixed table and a pulse selects from it, so
-  the frequency, phase and amplitude it sounds belong to the channel and
-  not to a frame or a waveform. Frequency is absolute Hz and is treated
-  exactly as a frame frequency is, so a post_mixer constraint subtracts
+  A muxed generator plays a fixed table and a pulse selects from it. So
+  the frequency, phase and amplitude it sounds belong to the channel, not
+  to a frame or a waveform. Frequency is absolute Hz, with the same rules
+  as a frame frequency, so a post_mixer constraint subtracts
   mixer_frequency from it. Phase is in turns and amplitude is a fraction
-  of full scale, on the same terms as a frame phase and a const waveform.
-  A channel that declares a table takes mask plays and no waveform plays,
-  and a channel without one takes the reverse. Getting that pairing wrong
-  is a validation error.
+  of full scale, as for a frame phase and a const waveform.
+  A channel that declares a table takes mask plays and no waveform plays.
+  A channel without a table takes the reverse. A wrong pairing is a
+  validation error.
   A frame on such a channel carries no frequency or phase the device
-  sees, so set_frequency and shift_phase on it are validation errors
-  rather than checks against a value the device never receives.
+  sees. So set_frequency and shift_phase on it are validation errors, not
+  checks against a value the device never receives.
 - sample_unit: seconds per waveform sample on this channel. It must be
   strictly positive, on the same terms as unit. It is required only when
   a samples waveform plays here. The timing unit and the sample rate
-  differ on real hardware, because a QICK generator runs many samples
-  per tProc tick, so the format declares them separately.
+  differ on real hardware: a QICK generator runs many samples per tProc
+  tick. So the format declares them separately.
 
 frames
 ------
@@ -102,9 +102,8 @@ waveforms
 
 - amplitude: a dimensionless full-scale fraction, as a rational. The
   nominal range is -1 to 1. A value outside that range is not a
-  validation error. The vendor toolchain accepts it and truncates the
-  gain, so the checker reports it under the amplitude_range rule
-  instead.
+  validation error. A toolchain can accept it (QICK truncates the gain),
+  so the checker reports it under the amplitude_range rule instead.
 - samples: integer DAC-code arrays. full_scale declares the code that
   means 1.0. i and q have equal length, one entry per sample_unit
 - parametric kinds (gaussian, drag, flat_top) are reserved for a later
@@ -115,8 +114,8 @@ elements
 Ordered list, and the order is the timing model. Time is instruction-
 ordered per frame. play, capture, and delay advance their frame's clock
 by duration. shift_phase and set_frequency take zero time. barrier
-aligns clocks. Absolute times are computed by the checker's resolve
-pass and never appear in the file.
+aligns clocks. The resolve pass of the checker computes absolute times,
+and they never appear in the file.
 
 Every element has:
 - id: unsigned integer, unique within the file, assigned by the
@@ -132,10 +131,10 @@ Every element has:
    "mask": [0, 2], "duration": 60}
 
 A play carries a waveform, or a mask, never both. mask is a non-empty
-list of indices into the tone table of the play's channel, and names the
-tones that sound. An index the table does not declare is a rejection and
-not a validation error, because it is the limit the toolchain itself
-enforces. A repeated index sounds the tone once.
+list of indices into the tone table of the play's channel. It names the
+tones that sound. An index the table does not declare is a rejection, not
+a validation error, because the toolchain itself enforces that limit. A
+repeated index sounds the tone once.
 
   {"id": 1, "kind": "capture", "frame": "r0_ro", "duration": 1200}
 
@@ -150,25 +149,33 @@ enforces. A repeated index sounds the tone once.
    "frequency": {"num": 4850000000, "den": 1}}
 
 - duration: integer count of the frame's channel unit
-- a samples waveform states its own length; whether duration * unit
-  equals sample count * sample_unit is a device rule (vendors zero-pad
-  the mismatch silently), never an input error
+- a samples waveform states its own length. Whether duration * unit
+  equals sample count * sample_unit is a device rule, never an input
+  error. QICK zero-pads the mismatch silently. Qblox refuses it
+  (envelope_duration_exact)
 - barrier with frames omitted aligns every frame in the file
-- shift_phase is virtual-Z; phase in rational turns, added to the frame
-- capture returns data; result naming and binning are target scope, not
-  program scope, in v0
+- shift_phase is virtual-Z. Its phase is in rational turns and adds to
+  the frame phase
+- capture returns data. In v0, result naming and binning are target
+  scope, not program scope
 
 validation errors vs rejections
 -------------------------------
-Malformed input is a tool error (exit 3, see report-format-v0.txt):
-duplicate ids or names, dangling frame/channel/waveform references,
-non-canonical rationals, non-positive unit or sample_unit, unknown
-fields or kinds, missing sample_unit under a samples waveform, and a
-missing mixer_frequency on a channel whose descriptor constraint is
-post_mixer, a play that carries both a waveform and a mask or neither,
-an empty tones list or an empty mask, a negative mask index, and
-set_frequency or shift_phase on a frame whose channel declares a tone
-table.
+Malformed input is a tool error (exit 3, see report-format-v0.txt).
+These inputs are malformed:
+- duplicate ids or names
+- dangling frame, channel or waveform references
+- non-canonical rationals
+- a non-positive unit or sample_unit
+- unknown fields or kinds
+- a missing sample_unit under a samples waveform
+- a missing mixer_frequency on a channel whose descriptor constraint is
+  post_mixer
+- a play that carries both a waveform and a mask, or neither
+- an empty tones list or an empty mask
+- a negative mask index
+- set_frequency or shift_phase on a frame whose channel declares a tone
+  table
 
 A well-formed program that violates a device limit is never a tool
 error. It produces rejections.

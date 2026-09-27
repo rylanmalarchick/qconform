@@ -1,8 +1,8 @@
 survey
 ======
 
-The empirical constraint survey. Each vendor has a black-box probe harness
-that feeds programs to the vendor toolchain with no hardware and records what
+The empirical constraint survey. Each vendor has a black-box probe harness.
+It feeds programs to the vendor toolchain with no hardware. It records what
 the toolchain accepts, rejects, or silently repairs.
 
   qick/       the QICK asm_v2 survey. See qick/README.txt.

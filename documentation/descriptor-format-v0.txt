@@ -17,35 +17,37 @@ identification
    "descriptor_version": "0"}
 
 Both the firmware config version AND the toolchain library version pin
-the descriptor: the survey proved accept/reject/round behavior is a
-function of the (config, library) pair. A report echoes this block. A
+the descriptor. The survey showed that accept, reject and round behavior
+depend on the (config, library) pair. A report echoes this block. A
 descriptor with different pins is a different descriptor.
 
 frames
 ------
 "native" or "compiled_away". QICK is compiled_away: exporters emit one
-frame per channel and fold virtual-Z into per-pulse phase.
+frame per channel and fold virtual-Z into per-pulse phase. Qblox is native:
+a frame is one port and one clock, which qblox-scheduler compiles to one
+sequencer.
 
 rounding
 --------
 Per-quantity rounding mode the toolchain applies to in-range values:
   {"time": "nearest_half_even", "frequency": "nearest_half_even",
    "phase": "nearest_half_even", "amplitude": "trunc_toward_zero"}
-One global mode would be wrong: QICK truncates gain toward zero while
-rounding time/freq/phase to nearest (survey-proven asymmetry). The
-half-even tie-break is source-verified, empirically unreachable from
-float64 physical values.
+One global mode would be wrong. QICK truncates gain toward zero and rounds
+time, frequency and phase to nearest. The survey measured this asymmetry.
+The half-even tie-break is verified from the source. No float64 physical
+value reaches a tie, so no measurement can show it.
 
 channels
 --------
 One entry per generator and readout. Time model: `unit` is an exact
-rational number of seconds, strictly positive (num > 0), chosen as
+rational number of seconds, strictly positive (num > 0). QICK chooses it as
 1 / lcm(channel clock, tProc timing clock), so that
 
   one channel clock cycle = duration_grid * unit   (durations live here)
   one tProc timing tick   = schedule_grid * unit   (schedule times live here)
 
-both exact integers. This carries QICK's two-clock reality (e.g. gen:
+both exact integers. This carries the two QICK clocks (e.g. gen:
 fabric 599.04 MHz vs tProc 430.08 MHz -> unit = 1/16773.12 MHz,
 duration_grid 28, schedule_grid 39. A readout at 307.2 MHz gives grids
 7/5 on a 2150.4 MHz base). A single "grid" field would misstate the device:
@@ -93,11 +95,11 @@ Optional fields on a constraint:
                     phase of a clock resource, so the phase is set by an
                     update
 
-The spacing rules (start_spacing, frequency_update_spacing, capture_spacing)
-are range_units with min_units. capture_length_uniform and envelope_duration_exact are
-range_units with no parameters, and capture_slot is range_units with
-min_units. schedule_grid may be declared, with no
-parameters, to set its severity: fatal where the toolchain refuses an
+The spacing rules (start_spacing, frequency_update_spacing,
+capture_spacing) are range_units with min_units. capture_length_uniform and
+envelope_duration_exact are range_units with no parameters. capture_slot is
+range_units with min_units. A descriptor may declare schedule_grid, with no
+parameters, to set its severity. It is fatal where the toolchain refuses an
 off-grid start (Qblox).
 
 evidence: [{"config", "axis", "note_contains", "outcome"}]. Each entry
@@ -116,8 +118,13 @@ silent repairs and the soundness gaps a checker must know about:
 
 v0 entries for QICK: frequency_alias_mod_f_dds (non-interpolated gens),
 envelope_memory_overflow_unchecked (qconform severity fatal: the board
-load fails), gain_over_full_scale, negative_time_accepted,
-mux_length_near_max_assembler_error.
+load fails), gain_over_full_scale, negative_time_accepted. A muxed
+generator adds mux_tone_count_unchecked, mux_mask_duplicate_tone_ignored
+and mux_tone_nyquist_image_fold.
+
+v0 entries for Qblox: clock_phase_ignored,
+initial_nco_frequency_quantized_on_instrument,
+same_time_phase_updates_merged.
 
 budgets
 -------
@@ -127,17 +134,17 @@ Whole-program resource limits with survey-calibrated cost models:
    "cost_model": {"kind": "linear", "per_item": 1, "overhead": 14},
    "evidence": [...]}
 
-A budget may carry "scope": "frame" (pmem_words only) and "channels": the
-count is then kept per frame, over the frames of those channels, as a Qblox
-sequencer's instruction memory is. A cost model may carry per_element_max,
-the most words one element can cost. The upper bound is then
-per_element_max * elements + overhead instead of two words per element.
+A budget may carry "scope": "frame" (pmem_words only) and "channels". The
+checker then keeps the count per frame, over the frames of those channels.
+A Qblox sequencer holds its instruction memory this way. A cost model may
+carry per_element_max, the most words one element can cost. The upper bound
+is then per_element_max * elements + overhead, not two words per element.
 
 kinds: linear (pmem = per_item * n + overhead, and wmem likewise) and
-indeterminate_band (loop_registers: reserved_min/reserved_max bound
-the unknowable part, and the checker's class B verdict goes
-indeterminate inside the band, per the report model). Cost models are
-pinned to the library version like everything else.
+indeterminate_band. For loop_registers, reserved_min and reserved_max bound
+the part the survey cannot measure. Inside the band, the class B verdict is
+indeterminate, per the report model. The library version pins the cost
+models, as it pins everything else.
 
 coverage consequences
 ---------------------
@@ -147,6 +154,8 @@ is the source of the report's coverage manifest.
 
 generation
 ----------
-tools/descriptor/build_qick.py builds a descriptor from a captured QICK
-config plus the survey catalog. check_descriptor.py gates it. A
-hand edit without evidence fails that gate.
+tools/descriptor/build_qick.py builds a QICK descriptor from a captured
+config plus the survey catalog. tools/descriptor/build_qblox.py builds the
+Qblox descriptor from a hardware compilation config plus the catalog.
+check_descriptor.py gates both. A hand edit without evidence fails that
+gate.

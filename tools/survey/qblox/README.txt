@@ -7,8 +7,8 @@ on a dummy cluster, which applies the qcodes validators and runs the q1asm
 assembler. Output is JSONL catalog rows in the same format as the QICK
 survey.
 
-The oracle is the pair of stages. The assembler alone checks only
-instruction field widths offline: it accepts a 1 ns play, a waveform value
+The oracle is both stages together. Offline, the assembler alone checks
+only instruction field widths. It accepts a 1 ns play, a waveform value
 of 1.5 and 20000 samples. qblox-scheduler checks the documented limits.
 
 Run

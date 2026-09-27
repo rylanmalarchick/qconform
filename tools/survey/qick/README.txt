@@ -2,18 +2,19 @@ asm_v2 constraint survey
 ========================
 
 Black-box probe harness for the QICK asm_v2 (tProc v2) toolchain, run
-hardware-free against captured/reconstructed board configs. Output is a
-JSONL catalog of (probe, outcome) rows: the empirical constraint surface
-that seeds the qconform QICK descriptor, the rule candidates with
-observed severities, and the differential-harness oracle half.
+with no hardware against captured or reconstructed board configs. Output
+is a JSONL catalog of (probe, outcome) rows. The rows are the empirical
+constraint surface that seeds the qconform QICK descriptor. They also give
+the rule candidates with observed severities, and the oracle half of the
+differential harness.
 
 Run
 ---
 From the repository root:
 
   pip install -r tools/survey/requirements.txt
-                    (versions pinned; the oracle is a function of the
-                     qick version)
+                    (versions pinned. The oracle is a function of the
+                     qick version.)
   python tools/survey/qick/reconstruct.py        rebuild the two
                                                  reconstructed configs
   python tools/survey/qick/reconstruct_check.py  prove them against the
@@ -22,9 +23,9 @@ From the repository root:
 
 outdir defaults to tools/survey/catalog/.
 
-Outcomes per probe: accept, accept_round (silent quantization/repair),
+Outcomes per probe: accept, accept_round (silent quantization or repair),
 reject (typed vendor error), crash (unhelpful failure). Runs are
-deterministic: no RNG, no timestamps; identical inputs give
+deterministic, with no RNG and no timestamps. Identical inputs give
 byte-identical catalog files.
 
 Files

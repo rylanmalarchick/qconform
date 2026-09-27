@@ -36,7 +36,7 @@ renamed, renumbered or reused, and a retired id keeps its slot.
                                outside the declared min or max
   R2   pulse_length_grid       a play or capture duration not a whole number
                                of channel cycles. Checked only when the
-                               constraint is declared; a readout declares it
+                               constraint is declared. A readout declares it
                                too. A repair where the toolchain rounds
                                (QICK), fatal where it refuses (Qblox)
   R3   readout_length_range    a capture outside the declared min or max
@@ -117,8 +117,8 @@ renamed, renumbered or reused, and a retired id keeps its slot.
                                capture lasts, and the wait after it is either
                                nothing or a whole slot
 
-A muxed generator carries its frequency, phase and amplitude in a tone table
-rather than in a frame, so R4 through R8 apply once per declared tone. They
+A muxed generator carries its frequency, phase and amplitude in a tone
+table, not in a frame. So R4 through R8 apply once per declared tone. They
 are the same rules and the same coverage classes. Only the value they read
 comes from elsewhere.
 
@@ -139,9 +139,9 @@ Every rejection is fatal or vendor_repairable.
   vendor_repairable  the toolchain accepts the program and changes it
 
 A vendor_repairable rejection names the repair. A fatal one does not. The
-checker enforces that pairing when it loads a descriptor: a rule whose emit
-site never reports a repair must be declared fatal, and one that always
-reports a repair must be declared vendor_repairable.
+checker enforces that pairing when it loads a descriptor. A rule whose emit
+site never reports a repair must be declared fatal. A rule whose emit site
+always reports a repair must be declared vendor_repairable.
 
 A repair means the program that runs is not the program that was written.
 
@@ -151,9 +151,9 @@ A repair means the program that runs is not the program that was written.
 Every report carries a coverage manifest naming all twenty-six classes as
 checked, not_applicable, unchecked or indeterminate.
 
-pass means exactly this: no violation was found among the classes marked
-checked, against the echoed descriptor at its pinned versions. It means
-nothing else.
+pass means exactly this: the checker found no violation among the classes
+marked checked, against the echoed descriptor at its pinned versions. It
+means nothing else.
 
   not_applicable   the program does not exercise the class
   unchecked        the descriptor declares the channel but constrains
@@ -200,11 +200,11 @@ Measured on 2026-09-22 against asm_v2 (qick 0.2.418) and qblox-scheduler
   rb-r27            QICK          127                0      15/15
   qblox-qcm-qrm     Qblox         328                0      19/19
 
-Coverage counts a class as covered when the corpus contains a program where it
-fires and a program where it is checked and does not fire. Seventeen of the
-twenty-six classes are reachable on the QICK descriptors, and a descriptor
-reaches only the classes its channels declare: testbench has no muxed
-generator, so the two mux classes are not applicable there. The three spacing
+A class is covered when the corpus contains a program where it fires and a
+program where it is checked and does not fire. Seventeen of the twenty-six
+classes are reachable on the QICK descriptors. A descriptor reaches only the
+classes its channels declare. testbench has no muxed generator, so the two
+mux classes are not applicable there. The three spacing
 classes, capture_length_uniform, envelope_duration_exact and capture_slot are
 Qblox rules, and no QICK descriptor declares them. Twenty of the twenty-six
 classes are reachable on the Qblox descriptor. One of them,
@@ -240,11 +240,11 @@ is exact for a pulse that starts the program. A maximal pulse that starts
 later still fits R1 and the toolchain refuses it. Bounding that needs a rule
 on accumulated time, which this version does not have.
 
-The descriptor states one device-global rounding mode per quantity, and a
-muxed generator does not follow it for amplitude: its register rounds and
-applies no maxv_scale where an interpolated generator truncates and applies
-one. The resolution each channel declares is correct and is what the rules
-read, so no verdict depends on the rounding block. It is descriptive, and on
+The descriptor states one device-global rounding mode per quantity. A muxed
+generator does not follow it for amplitude. Its register rounds and applies
+no maxv_scale, where an interpolated generator truncates and applies one.
+The resolution each channel declares is correct, and the rules read that
+resolution. So no verdict depends on the rounding block. It is descriptive, and on
 a muxed generator it is wrong for amplitude.
 
 On Qblox, pulse_length_grid and schedule_grid cannot be falsified through the

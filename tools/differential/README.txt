@@ -36,7 +36,7 @@ prepares the result on a dummy cluster, which runs the q1asm assembler.
 What each part does
 -------------------
   corpus.py          Generates programs from a descriptor. Boundary ladders
-                     walk each declared limit; randomized programs compose
+                     walk each declared limit. Randomized programs compose
                      several elements with values near the limits. One
                      representative per channel class, because a corpus that
                      probes one generator cannot reach the rules the others
