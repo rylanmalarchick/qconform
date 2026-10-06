@@ -417,7 +417,9 @@ def compile_plan(plan, soccfg):
     except (RuntimeError, ValueError) as e:
         return None, "reject", {"error_type": type(e).__name__,
                                 "error_msg": str(e)[:300]}
-    except Exception as e:  # the vendor failed without meaning to; see notes/oracle-path.txt
+    # Broad on purpose: any other vendor exception is a refusal, and its
+    # type is recorded as a finding about the vendor's error handling.
+    except Exception as e:
         return None, "crash", {"error_type": type(e).__name__,
                                "error_msg": str(e)[:300]}
 

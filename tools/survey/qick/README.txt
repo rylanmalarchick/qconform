@@ -36,5 +36,3 @@ Files
   reconstruct_check.py  faithfulness proof (dump round-trip)
   ../configs/           three ZCU216 tProc v2 configs + provenance
   ../catalog/           survey output, tracked
-
-Triage summary: notes/survey-qick-2026-07.txt (local notes).

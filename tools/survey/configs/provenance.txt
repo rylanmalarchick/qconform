@@ -6,8 +6,7 @@ zcu216-testbench.json
           firmware/testbench/qick_testbench/soccfg.json (MIT)
   fetched 2026-07-10, verbatim. ZCU216, sw 0.2.367, fw 2025-08-29,
   tProc v2 rev 27. The only public machine-readable tProc v2 soccfg
-  found by GitHub-wide code search on 2026-07-10 (that scarcity is a
-  finding; see notes/survey-qick-2026-07.txt).
+  found by GitHub-wide code search on 2026-07-10.
 
 zcu216-rb-r27.json
   source dump: openquantumhardware/qick

@@ -10,7 +10,7 @@
             assembler.
 
 Both stages are vendor code. The assembler alone checks only instruction
-field widths, so the oracle is the pair. See notes/qblox-feasibility.txt.
+field widths, so the oracle is the pair.
 
 The survey and the oracle backend both use this module, so a probe and a
 differential row reach the vendor by the same path.
