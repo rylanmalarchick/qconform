@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use qconform, cite it as below."
+title: "qconform"
+abstract: "A design-time conformance checker for pulse-level quantum control programs, with versioned capability descriptors for QICK and Qblox and a differential harness against both toolchains."
+type: software
+authors:
+  - family-names: Malarchick
+    given-names: Rylan
+    orcid: "https://orcid.org/0009-0005-9290-2187"
+    affiliation: "Embry-Riddle Aeronautical University"
+version: 0.1.0
+date-released: 2026-10-07
+license: Apache-2.0
+repository-code: "https://github.com/rylanmalarchick/qconform"
